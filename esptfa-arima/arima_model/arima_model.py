@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
+from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error
 
 
@@ -10,6 +11,7 @@ def preprocess_data(csv_file):
 
     # Define test dates (assuming weekly tests)
     num_tests = test_data.shape[1] - 4  # Exclude student_id, name, and section
+    print(test_data.shape)
     test_dates = pd.date_range(start="2024-01-01", periods=num_tests, freq="7D")
 
     # Reshape from wide to long format
@@ -37,9 +39,23 @@ processed_data = preprocess_data("esptfa-arima/arima_model/test_scores.csv")
 
 
 def train_model(processed_data):
+    
+    # train the model on each student individually
     for student, student_data in processed_data.groupby("student_id"):
         print(f"Student: {student}")
-        print(f"Student Data: {student_data.head()}")
+        num_tests = student_data.shape[0]
+        print("Number of Tests:", num_tests)
+        
+        student_data = student_data.sort_values("date")
+        train = student_data.iloc[:num_tests-2]
+        test = student_data.iloc[num_tests-2:]
+
+        model = ARIMA(train["score"], order=(1,1,1), dates=train["date"], freq="7D")
+        model = model.fit()
+        predictions = model.forecast(steps=test.shape[0])
+        mae = mean_absolute_error(test["score"], predictions)
+        print("Actual Test Scores:", test["score"].to_list())
+        print(f"Predicted Next Score for {student}: {predictions.to_list()}")
         
 train_model(processed_data)
 # Sample test score data
