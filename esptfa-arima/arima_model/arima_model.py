@@ -4,6 +4,44 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error
 
+
+def preprocess_data(csv_file):
+    test_data = pd.read_csv(csv_file)
+
+    # Define test dates (assuming weekly tests)
+    num_tests = test_data.shape[1] - 4  # Exclude student_id, name, and section
+    test_dates = pd.date_range(start="2024-01-01", periods=num_tests, freq="7D")
+
+    # Reshape from wide to long format
+    test_data_long = test_data.melt(id_vars=["student_id", "first_name", "last_name", "section"],
+                    var_name="test",
+                    value_name="score")
+
+    # Extract test number & assign correct dates
+    test_data_long["test_number"] = test_data_long["test"].str.extract("(\d+)").astype(int)
+    test_data_long["date"] = test_data_long["test_number"].apply(lambda x: test_dates[x - 1])
+
+    # Drop old test column
+    test_data_long.drop(columns=["test"], inplace=True)
+
+    # Handling missing values
+    test_data_long["score"].fillna(test_data_long["score"].mean(), inplace=True)
+
+    # Print reshaped dataset
+    print(test_data_long.head())
+
+    return test_data_long
+
+
+processed_data = preprocess_data("esptfa-arima/arima_model/test_scores.csv")
+
+
+def train_model(processed_data):
+    for student, student_data in processed_data.groupby("student_id"):
+        print(f"Student: {student}")
+        print(f"Student Data: {student_data.head()}")
+        
+train_model(processed_data)
 # Sample test score data
 data = {
     "date": pd.date_range(start="2024-01-01", periods=7, freq="7D"),
