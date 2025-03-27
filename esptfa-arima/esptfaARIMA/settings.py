@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     
     # mine
     'arima_model',
+    'Test_Management',
 ]
 
 MIDDLEWARE = [
