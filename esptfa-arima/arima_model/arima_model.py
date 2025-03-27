@@ -50,7 +50,7 @@ def train_model(processed_data):
         train = student_data.iloc[:num_tests-2]
         test = student_data.iloc[num_tests-2:]
 
-        model = ARIMA(train["score"], order=(1,1,1), dates=train["date"], freq="7D")
+        model = auto_arima(train["score"], order=(1,1,1), dates=train["date"], freq="7D")
         model = model.fit()
         predictions = model.forecast(steps=test.shape[0])
         mae = mean_absolute_error(test["score"], predictions)
