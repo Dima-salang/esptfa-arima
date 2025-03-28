@@ -5,6 +5,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error
 from statsmodels.tsa.stattools import adfuller
+import os
 
 
 def preprocess_data(csv_file):
@@ -45,37 +46,55 @@ def convert_to_non_stationary(preprocessed_data):
 
     if result[1] > 0.05:
         # data is stationary
-        # apply differencing
-        preprocessed_data["score_diff"] = preprocessed_data["score"].diff()
-        convert_to_non_stationary(preprocessed_data["score_diff"])
-    
+        # apply first-order differencing
+        preprocessed_data["score_diff"] = preprocessed_data["score"].diff().dropna()
+        print(preprocessed_data.head())
     return preprocessed_data
 
 
-
-processed_data = preprocess_data("esptfa-arima/arima_model/test_scores.csv")
-
-
 def train_model(processed_data):
-    
-    # train the model on each student individually
+    # Train the model on each student individually
     for student, student_data in processed_data.groupby("student_id"):
         print(f"Student: {student}")
         num_tests = student_data.shape[0]
         print("Number of Tests:", num_tests)
-        
+
         student_data = student_data.sort_values("date")
         train = student_data.iloc[:num_tests-2]
         test = student_data.iloc[num_tests-2:]
 
-        model = auto_arima(train["score"], order=(1,1,1), dates=train["date"], freq="7D")
-        model = model.fit()
-        predictions = model.forecast(steps=test.shape[0])
+        # Ensure the date column is set as the index
+        train.set_index("date", inplace=True)
+        test.set_index("date", inplace=True)
+        # Fit the ARIMA model (manually specify p, d, q)
+        model = ARIMA(train["score"], order=(
+            2,1,2), dates=train.index, freq="7D")  # Example: (p=1, d=1, q=1)
+        fitted_model = model.fit()
+
+        # Forecast the same number of steps as the test set
+        predictions = fitted_model.forecast(steps=test.shape[0])
         mae = mean_absolute_error(test["score"], predictions)
         print("Actual Test Scores:", test["score"].to_list())
-        print(f"Predicted Next Score for {student}: {predictions.to_list()}")
-        
-train_model(processed_data)
+        print(f"Predicted Next Score for {student}: {predictions.tolist()}")
+        print("Mean Absolute Error:", round(mae, 2))
+
+def driver(csv_file):
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(script_dir, csv_file)
+
+    # Preprocess the data
+    processed_data = preprocess_data(csv_path)
+
+    # Convert to non-stationary data
+    processed_data = convert_to_non_stationary(processed_data)
+
+    # Train the model
+    train_model(processed_data)
+
+if __name__ == "__main__":
+    driver("test_scores.csv")
+
 # Sample test score data
 data = {
     "date": pd.date_range(start="2024-01-01", periods=7, freq="7D"),
