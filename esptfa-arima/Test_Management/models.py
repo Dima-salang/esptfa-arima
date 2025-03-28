@@ -20,12 +20,10 @@ class Student(models.Model):
 
 class Teacher(models.Model):
     teacher_id = models.CharField(unique=True, primary_key=True, max_length=20)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}({self.teacher_id})"
+        return self.user.get_full_name() or self.user.username
 
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
