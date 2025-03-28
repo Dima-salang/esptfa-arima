@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Analysis Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    
+
+    <div class="bg-white shadow-lg rounded-lg p-6 max-w-md w-full">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 text-center">Upload Analysis Document</h2>
+
+        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+
+            <!-- Document Title -->
+            <div>
+                <label for="id_analysis_doc_title" class="block text-sm font-medium text-gray-700">Document Title</label>
+                <input type="text" name="analysis_doc_title" id="id_analysis_doc_title" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Enter document title" required>
+            </div>
+
+            <!-- File Upload -->
+            <div>
+                <label for="id_analysis_doc" class="block text-sm font-medium text-gray-700">Upload File</label>
+                <input type="file" name="analysis_doc" id="id_analysis_doc" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white" required>
+            </div>
+
+            <!-- Teacher Selection -->
+            <div>
+                <label for="id_teacher_id" class="block text-sm font-medium text-gray-700">Teacher</label>
+                <select name="teacher_id" id="id_teacher_id" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for teacher in form.fields.teacher_id.queryset %}
+                        <option value="{{ teacher.pk }}">{{ teacher }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Section Selection -->
+            <div>
+                <label for="id_section_id" class="block text-sm font-medium text-gray-700">Section</label>
+                <select name="section_id" id="id_section_id" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for section in form.fields.section_id.queryset %}
+                        <option value="{{ section.pk }}">{{ section }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition">
+                    Upload Document
+                </button>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

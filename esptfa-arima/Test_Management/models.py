@@ -2,9 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 # Create your models here.
 
-# student that subclasses the User model
-
-
 class Section(models.Model):
     section_id = models.AutoField(unique=True, primary_key=True)
     section_name = models.CharField(max_length=100)
