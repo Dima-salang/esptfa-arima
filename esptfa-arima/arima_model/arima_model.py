@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
 from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error
+from statsmodels.tsa.stattools import adfuller
 
 
 def preprocess_data(csv_file):
@@ -33,6 +34,23 @@ def preprocess_data(csv_file):
     print(test_data_long.head())
 
     return test_data_long
+
+
+def convert_to_non_stationary(preprocessed_data):
+    # check if the data is stationary
+    result = adfuller(preprocessed_data["score"])
+    print("ADF Statistic:", result[0])
+    print("p-value:", result[1])
+    print("Critical Values:", result[4])
+
+    if result[1] > 0.05:
+        # data is stationary
+        # apply differencing
+        preprocessed_data["score_diff"] = preprocessed_data["score"].diff()
+        convert_to_non_stationary(preprocessed_data["score_diff"])
+    
+    return preprocessed_data
+
 
 
 processed_data = preprocess_data("esptfa-arima/arima_model/test_scores.csv")
