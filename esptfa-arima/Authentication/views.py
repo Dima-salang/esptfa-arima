@@ -13,7 +13,7 @@ def register(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.is_active = False
-            user = form.save()  # Save the new user
+            user.save()  # Save the new user
             return redirect("home")  # Redirect to home or dashboard
     else:
         form = UserRegisterForm()
