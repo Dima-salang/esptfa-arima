@@ -2,6 +2,21 @@ from django.db import models
 from django.contrib.auth.models import User
 # Create your models here.
 
+
+class Subject(models.Model):
+    subject_id = models.AutoField(unique=True, primary_key=True)
+    subject_name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.subject_name
+
+class Quarter(models.Model):
+    quarter_id = models.AutoField(unique=True, primary_key=True)
+    quarter_name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.quarter_name
+
 class Section(models.Model):
     section_id = models.AutoField(unique=True, primary_key=True)
     section_name = models.CharField(max_length=100)
