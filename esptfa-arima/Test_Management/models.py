@@ -29,7 +29,8 @@ class Student(models.Model):
     student_id = models.CharField(unique=True, primary_key=True, max_length=20)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
+    section = models.CharField(max_length=100, null=True)
+
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}({self.student_id})"
@@ -51,6 +52,7 @@ class AnalysisDocument(models.Model):
 
 class FormativeAssessmentScore(models.Model):
     formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
@@ -62,7 +64,7 @@ class FormativeAssessmentScore(models.Model):
 
 class PredictedScore(models.Model):
     predicted_score_id = models.AutoField(unique=True, primary_key=True)
-    formative_assessment_score_id = models.ForeignKey(FormativeAssessmentScore, on_delete=models.CASCADE)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)

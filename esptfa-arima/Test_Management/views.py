@@ -4,6 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
+from arima_model.arima_model import arima_driver
 
 
 @login_required
@@ -22,7 +23,12 @@ def upload_analysis_document(request):
                 document = form.save(commit=False)
                 document.teacher_id = teacher
                 document.save()
-                messages.success(request, "Document uploaded successfully!")
+                messages.success(request, "Document uploaded successfully! Processing....")
+
+                # Process the document
+                arima_driver(document)
+
+
                 return redirect("upload_document")  # Redirect after success
             except Exception as e:
                 # Catch database/file save issues

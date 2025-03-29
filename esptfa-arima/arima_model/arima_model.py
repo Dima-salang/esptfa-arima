@@ -8,6 +8,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import RandomForestRegressor
 from statsmodels.tsa.stattools import adfuller
 import os
+from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 
 
 arima_results = []
@@ -72,15 +73,29 @@ def grid_search_arima(train_series, p_values, d_values, q_values):
     return best_order, best_model
 
 
-def train_model(processed_data):
+def train_model(processed_data, analysis_document):
+
+    formative_scores = []
+    predicted_scores = []
     
 
     p_values = range(0, 2)
     d_values = [1]  # Differencing is manually applied, so d=1
     q_values = range(0, 2)
 
-    for student, student_data in processed_data.groupby("student_id"):
-        print(f"Student: {student}")
+    for student_id, student_data in processed_data.groupby("student_id"):
+        print(f"Student: {student_id}")
+
+
+        # Ensure the student exists in the database
+        student = Student.objects.filter(student_id=student_id).first()
+        if not student:
+            student = Student.objects.create(
+                student_id=student_id,
+                first_name=student_data["first_name"].iloc[0],
+                last_name=student_data["last_name"].iloc[0],
+                section=student_data["section"].iloc[0]
+            )
 
         student_data = make_stationary(student_data)
         num_tests = student_data.shape[0]
@@ -136,22 +151,51 @@ def train_model(processed_data):
                 "arima_mae": mae_arima,
                 "hybrid_mae": mae_hybrid
             })
+
+            # Collect objects for bulk insertion
+            for i, (date, actual_score) in enumerate(zip(test.index, test["score"])):
+                fa = FormativeAssessmentScore(
+                    analysis_document=analysis_document,
+                    student_id=student,
+                    score=actual_score,
+                    date=date,
+                    formative_assessment_number=str(i + 1)
+                )
+                formative_scores.append(fa)
+
+            # Bulk insert FA scores first to get primary keys
+            FormativeAssessmentScore.objects.bulk_create(formative_scores)
+
+            # Create predicted scores, linking to the correct FA records
+            for i, fa in enumerate(formative_scores):
+                predicted_scores.append(PredictedScore(
+                    analysis_document=analysis_document,
+                    student_id=student,
+                    formative_assessment_score_id=fa,  # Use the saved FA object
+                    score=corrected_predictions[i],
+                    date=fa.date,
+                    formative_assessment_number=fa.formative_assessment_number
+                ))
+
+            # Bulk insert all predicted scores
+            PredictedScore.objects.bulk_create(predicted_scores)
+            print("Bulk inserted FA Scores and Predicted Scores.")
         else:
             print(f"Could not find a suitable ARIMA model for {student}.")
 
-def driver(csv_file):
+def arima_driver(analysis_document):
     # Get the directory of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(script_dir, csv_file)
+    if analysis_document.analysis_doc:
+        csv_path = analysis_document.analysis_doc.path
 
-    # Preprocess the data
-    processed_data = preprocess_data(csv_path)
+        # Preprocess the data
+        processed_data = preprocess_data(csv_path)
 
-    # Convert to non-stationary data
-    processed_data = make_stationary(processed_data)
+        # Convert to non-stationary data
+        processed_data = make_stationary(processed_data)
 
-    # Train the model
-    train_model(processed_data)
+        # Train the model
+        train_model(processed_data)
 
 
     # Print results
@@ -163,6 +207,4 @@ def driver(csv_file):
         print(
             f"  ARIMA MAE: {r['arima_mae']:.2f}, Hybrid MAE: {r['hybrid_mae']:.2f}")
 
-if __name__ == "__main__":
-    driver("test_scores.csv")
 
