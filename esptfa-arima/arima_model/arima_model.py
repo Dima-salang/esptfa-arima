@@ -152,6 +152,8 @@ def train_model(processed_data, analysis_document):
                 "hybrid_mae": mae_hybrid
             })
 
+            first_fa_number = student_data["test_number"].iloc[0]
+
             # Collect objects for bulk insertion
             for i, (date, actual_score) in enumerate(zip(test.index, test["score"])):
                 fa = FormativeAssessmentScore(
@@ -159,23 +161,26 @@ def train_model(processed_data, analysis_document):
                     student_id=student,
                     score=actual_score,
                     date=date,
-                    formative_assessment_number=str(i + 1)
+                    formative_assessment_number=str(first_fa_number + i)  # Use the test number from the original data
                 )
                 formative_scores.append(fa)
 
             # Bulk insert FA scores first to get primary keys
             FormativeAssessmentScore.objects.bulk_create(formative_scores)
 
-            # Create predicted scores, linking to the correct FA records
-            for i, fa in enumerate(formative_scores):
+            
+            last_fa_number = student_data["test_number"].iloc[-1]
+
+            # Generate predicted scores for the actual future dates
+            for i, (date, predicted_score) in enumerate(zip(test.index, corrected_predictions)):
                 predicted_scores.append(PredictedScore(
                     analysis_document=analysis_document,
                     student_id=student,
-                    formative_assessment_score_id=fa,  # Use the saved FA object
-                    score=corrected_predictions[i],
-                    date=fa.date,
-                    formative_assessment_number=fa.formative_assessment_number
+                    score=predicted_score,  # Directly use corrected_predictions
+                    date=date,
+                    formative_assessment_number=str(last_fa_number + i + 1)  # Continue from last FA number
                 ))
+
 
             # Bulk insert all predicted scores
             PredictedScore.objects.bulk_create(predicted_scores)
@@ -195,7 +200,7 @@ def arima_driver(analysis_document):
         processed_data = make_stationary(processed_data)
 
         # Train the model
-        train_model(processed_data)
+        train_model(processed_data, analysis_document=analysis_document)
 
 
     # Print results
