@@ -30,7 +30,7 @@ class UploadAnalysisDocumentTest(TestCase):
     def test_upload_document_post_valid(self):
         """Test valid file upload."""
         file = SimpleUploadedFile(
-            "test.pdf", b"Test file content", content_type="application/pdf")
+            "test.csv", b"Test file content", content_type="text/csv")
         response = self.client.post(reverse("upload_document"), {
             "analysis_doc_title": "Test Document",
             "analysis_doc": file,
@@ -41,6 +41,26 @@ class UploadAnalysisDocumentTest(TestCase):
 
         self.assertEqual(response.status_code, 200)  # Or redirect status (302)
         self.assertTrue(AnalysisDocument.objects.filter(
+            analysis_doc_title="Test Document").exists())
+        
+        # delete the test file
+        document = AnalysisDocument.objects.get(analysis_doc_title="Test Document")
+        document.delete()
+    
+    def test_upload_document_post_invalid_type(self):
+        """Test invalid file type upload."""
+        file = SimpleUploadedFile(
+            "test.pdf", b"Test file content", content_type="application/pdf")
+        response = self.client.post(reverse("upload_document"), {
+            "analysis_doc_title": "Test Document",
+            "analysis_doc": file,
+            "section_id": self.section.section_id,
+            "quarter": self.quarter.quarter_id,
+            "subject": self.subject.subject_id,
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)  # Or redirect status (302)
+        self.assertFalse(AnalysisDocument.objects.filter(
             analysis_doc_title="Test Document").exists())
 
     def test_upload_document_post_invalid(self):
