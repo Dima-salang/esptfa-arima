@@ -31,6 +31,11 @@ ALLOWED_HOSTS = []
 LOGIN_URL = "/auth/login/"
 LOGOUT_REDIRECT_URL = "/auth/login/"
 
+
+MEDIA_URL = "/media/"
+# Media files will be stored in the "media" folder
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 # Application definition
 
 INSTALLED_APPS = [

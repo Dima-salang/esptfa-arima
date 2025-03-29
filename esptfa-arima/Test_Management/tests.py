@@ -5,6 +5,8 @@ from Authentication.models import Teacher
 from .models import AnalysisDocument, Section, Subject, Quarter
 from .forms import AnalysisDocumentForm
 from django.core.files.uploadedfile import SimpleUploadedFile
+import os
+from django.conf import settings
 
 
 class UploadAnalysisDocumentTest(TestCase):
@@ -19,6 +21,14 @@ class UploadAnalysisDocumentTest(TestCase):
         self.quarter = Quarter.objects.create(quarter_name="Q1")
 
         self.client.login(username="testuser", password="password123")
+
+    def tearDown(self):
+        """Delete uploaded files after each test"""
+        for doc in AnalysisDocument.objects.all():
+            if doc.analysis_doc:  # Ensure there's a file
+                print(f"Deleting file: {doc.analysis_doc.path}")
+                os.remove(doc.analysis_doc.path)# Delete the file from storage
+
 
     def test_upload_document_get(self):
         """Test if the upload form renders correctly."""
@@ -43,9 +53,7 @@ class UploadAnalysisDocumentTest(TestCase):
         self.assertTrue(AnalysisDocument.objects.filter(
             analysis_doc_title="Test Document").exists())
         
-        # delete the test file
-        document = AnalysisDocument.objects.get(analysis_doc_title="Test Document")
-        document.delete()
+        
     
     def test_upload_document_post_invalid_type(self):
         """Test invalid file type upload."""
