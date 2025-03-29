@@ -1,23 +1,36 @@
 from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
 
+
 @login_required
 def upload_analysis_document(request):
-    
+    """Handle document uploads with error handling."""
+    try:
+        teacher = Teacher.objects.get(user_id=request.user)
+    except ObjectDoesNotExist:
+        messages.error(request, "You are not assigned as a teacher.")
+        return redirect("home")  # Redirect if user isn't a teacher
 
-    teacher = Teacher.objects.get(user_id=request.user)
     if request.method == "POST":
-        
         form = AnalysisDocumentForm(request.POST, request.FILES)
         if form.is_valid():
-            document = form.save(commit=False)
-            document.teacher_id = teacher  # Assign logged-in user as the teacher
-            document.save()
+            try:
+                document = form.save(commit=False)
+                document.teacher_id = teacher
+                document.save()
+                messages.success(request, "Document uploaded successfully!")
+                return redirect("upload_document")  # Redirect after success
+            except Exception as e:
+                # Catch database/file save issues
+                messages.error(request, f"An error occurred: {str(e)}")
+        else:
+            messages.error(
+                request, "Invalid form submission. Please check your inputs.")
 
-            # Redirect to a success page or list
-            return redirect('upload_document')
     else:
         form = AnalysisDocumentForm()
 

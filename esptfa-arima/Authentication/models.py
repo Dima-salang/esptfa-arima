@@ -8,4 +8,4 @@ class Teacher(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.user.get_full_name() or self.user.username
+        return self.user_id.get_full_name() or self.user_id.username
