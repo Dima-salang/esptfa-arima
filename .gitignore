@@ -1,1 +1,8 @@
 /esptfa-arima-venv
+# Ignore Python bytecode and cache
+__pycache__/
+db.sqlite3
+.env
+*.env
+
+*/migrations/__pycache__/

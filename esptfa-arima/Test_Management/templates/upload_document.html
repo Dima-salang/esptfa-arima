@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %} Upload Analysis Document {% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="max-w-md mx-auto mb-4">
+    {% for message in messages %}
+    <div class="p-3 rounded-md text-white 
+        {% if message.tags == 'success' %} bg-green-500 
+        {% elif message.tags == 'error' %} bg-red-500 
+        {% else %} bg-blue-500 {% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white shadow-lg rounded-lg p-6 max-w-md w-full">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 text-center">Upload Analysis Document</h2>
+
+        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+
+            <!-- Display Form Errors -->
+            {% if form.errors %}
+            <div class="p-3 mb-4 bg-red-100 text-red-700 border border-red-400 rounded">
+                <p class="font-semibold">Please fix the following errors:</p>
+                <ul class="list-disc list-inside">
+                    {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Document Title -->
+            <div>
+                <label for="id_analysis_doc_title" class="block text-sm font-medium text-gray-700">Document
+                    Title</label>
+                <input type="text" name="analysis_doc_title" id="id_analysis_doc_title"
+                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter document title" required>
+                {% if form.analysis_doc_title.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.analysis_doc_title.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Subject Selection -->
+            <div>
+                <label for="id_subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                <select name="subject" id="id_subject"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for subject in form.fields.subject.queryset %}
+                    <option value="{{ subject.pk }}">{{ subject }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.subject.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.subject.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Quarter Selection-->
+            <div>
+                <label for="id_quarter" class="block text-sm font-medium text-gray-700">Quarter</label>
+                <select name="quarter" id="id_quarter"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for quarter in form.fields.quarter.queryset %}
+                    <option value="{{ quarter.pk }}">{{ quarter }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.quarter.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.quarter.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Section Selection -->
+            <div>
+                <label for="id_section_id" class="block text-sm font-medium text-gray-700">Section</label>
+                <select name="section_id" id="id_section_id"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for section in form.fields.section_id.queryset %}
+                    <option value="{{ section.pk }}">{{ section }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.section_id.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.section_id.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- File Upload -->
+            <div>
+                <label for="id_analysis_doc" class="block text-sm font-medium text-gray-700">Upload File</label>
+                <input type="file" name="analysis_doc" id="id_analysis_doc"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    required>
+                {% if form.analysis_doc.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.analysis_doc.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition">
+                    Upload Document
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
