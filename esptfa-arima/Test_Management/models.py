@@ -43,6 +43,8 @@ class Teacher(models.Model):
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
     analysis_doc_title = models.CharField(max_length=100)
+    quarter = models.ForeignKey(Quarter, on_delete=models.CASCADE, null=True)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     upload_date = models.DateTimeField(auto_now_add=True)
     analysis_doc = models.FileField(upload_to='analysis_documents/')
     teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)

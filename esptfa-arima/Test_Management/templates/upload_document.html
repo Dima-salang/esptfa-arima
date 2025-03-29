@@ -21,21 +21,27 @@
                 <input type="text" name="analysis_doc_title" id="id_analysis_doc_title" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Enter document title" required>
             </div>
 
-            <!-- File Upload -->
+            <!-- Subject Selection -->
             <div>
-                <label for="id_analysis_doc" class="block text-sm font-medium text-gray-700">Upload File</label>
-                <input type="file" name="analysis_doc" id="id_analysis_doc" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white" required>
-            </div>
-
-            <!-- Teacher Selection -->
-            <div>
-                <label for="id_teacher_id" class="block text-sm font-medium text-gray-700">Teacher</label>
-                <select name="teacher_id" id="id_teacher_id" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
-                    {% for teacher in form.fields.teacher_id.queryset %}
-                        <option value="{{ teacher.pk }}">{{ teacher }}</option>
+                <label for="id_subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                <select name="subject" id="id_subject" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for subject in form.fields.subject.queryset %}
+                        <option value="{{ subject.pk }}">{{ subject }}</option>
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Quarter Selection-->
+            <div>
+                <label for="id_quarter" class="block text-sm font-medium text-gray-700">Quarter</label>
+                <select name="quarter" id="id_quarter" class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for quarter in form.fields.quarter.queryset %}
+                        <option value="{{ quarter.pk }}">{{ quarter }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            
 
             <!-- Section Selection -->
             <div>
@@ -45,6 +51,15 @@
                         <option value="{{ section.pk }}">{{ section }}</option>
                     {% endfor %}
                 </select>
+            </div>
+
+
+            <!-- File Upload -->
+            <div>
+                <label for="id_analysis_doc" class="block text-sm font-medium text-gray-700">Upload File</label>
+                <input type="file" name="analysis_doc" id="id_analysis_doc"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    required>
             </div>
 
             <!-- Submit Button -->
