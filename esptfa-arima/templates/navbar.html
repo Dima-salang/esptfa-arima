@@ -1,0 +1,13 @@
+<nav class="bg-blue-500 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="/" class="text-lg font-bold">ESPTFA</a>
+        <div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'upload_analysis_document' %}" class="mr-4">Upload</a>
+            <a href="{% url 'logout' %}" class="text-red-300">Logout</a>
+            {% else %}
+            <a href="{% url 'login' %}" class="text-green-300">Login</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>

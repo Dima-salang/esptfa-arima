@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}ESPTFA-HOME{% endblock %}
+
+{% block content %}
+<div
+    class="relative bg-gradient-to-br from-blue-500 to-purple-600 text-white min-h-screen flex flex-col items-center justify-center text-center p-6">
+
+    <!-- Hero Section -->
+    <div class="max-w-4xl">
+        <h1 class="text-5xl font-extrabold leading-tight mb-4 animate-fade-in">
+            Empowering Learning with Smart Insights
+        </h1>
+        <p class="text-lg text-gray-200 max-w-2xl mx-auto animate-fade-in delay-200">
+            A modern system designed for educators and students to analyze academic performance and make data-driven
+            decisions.
+        </p>
+        <div class="mt-6 flex justify-center space-x-4 animate-fade-in delay-400">
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}"
+                class="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+                Go to Dashboard
+            </a>
+            <a href="{% url 'upload_analysis_document' %}"
+                class="px-6 py-3 border border-white text-white font-semibold rounded-lg hover:bg-white hover:text-blue-600 transition duration-300">
+                Upload Document
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}"
+                class="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+                Get Started
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Feature Section -->
+    <div class="mt-20 max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8 text-gray-900 animate-fade-in-up">
+
+        <div class="p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-500 text-white mb-4">
+                📊
+            </div>
+            <h3 class="text-xl font-semibold">Smart Analysis</h3>
+            <p class="text-gray-600 mt-2">Get insights on student performance with AI-driven analytics.</p>
+        </div>
+
+        <div class="p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-500 text-white mb-4">
+                🔄
+            </div>
+            <h3 class="text-xl font-semibold">Real-time Predictions</h3>
+            <p class="text-gray-600 mt-2">Predict future scores and performance trends accurately.</p>
+        </div>
+
+        <div class="p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-purple-500 text-white mb-4">
+                🔐
+            </div>
+            <h3 class="text-xl font-semibold">Secure & Reliable</h3>
+            <p class="text-gray-600 mt-2">Your data is encrypted and securely stored for peace of mind.</p>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-20 text-gray-300 text-sm">
+        &copy; 2025 Your System. All Rights Reserved.
+    </footer>
+
+</div>
+{% endblock %}

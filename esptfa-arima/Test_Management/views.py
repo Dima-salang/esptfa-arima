@@ -20,3 +20,7 @@ def upload_analysis_document(request):
         form = AnalysisDocumentForm()
 
     return render(request, "upload_document.html", {"form": form})
+
+
+def home(request):
+    return render(request, "home.html")
