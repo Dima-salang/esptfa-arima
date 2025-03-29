@@ -42,4 +42,6 @@ def home(request):
 
 
 def dashboard(request):
-    pass
+    analysis_documents = AnalysisDocumentForm.objects.filter(teacher_id=request.user.teacher)
+    context = {"analysis_documents": analysis_documents}
+    return render(request, "dashboard.html", context)
