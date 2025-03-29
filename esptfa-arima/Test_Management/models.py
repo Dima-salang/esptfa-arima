@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from Authentication.models import Teacher
 # Create your models here.
 
 
@@ -33,12 +34,7 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name}({self.student_id})"
 
-class Teacher(models.Model):
-    teacher_id = models.CharField(unique=True, primary_key=True, max_length=20)
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
 
-    def __str__(self):
-        return self.user.get_full_name() or self.user.username
 
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
