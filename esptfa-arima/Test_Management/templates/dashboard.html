@@ -2,21 +2,129 @@
 {% block title %}Formative Assessments{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
-    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Formative Assessment Documents</h2>
+<div class="bg-gray-100 min-h-screen">
+    <!-- Dashboard Header -->
+    <div class="bg-blue-700 text-white py-8">
+        <div class="container mx-auto px-6">
+            <h1 class="text-2xl md:text-3xl font-bold">Formative Assessment Dashboard</h1>
+            <p class="text-blue-100 mt-2">Manage and analyze your assessment documents</p>
+        </div>
+    </div>
 
-    {% if documents %}
-    <ul class="bg-white shadow rounded-lg p-4">
-        {% for document in documents %}
-        <li class="border-b last:border-0 p-3">
-            <a href="{% url 'formative_assessment_detail' document.slug %}" class="text-blue-600 hover:underline">
-                {{ document.analysis_doc_title }} ({{ document.test_start_date }})
+    <!-- Dashboard Content -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900">Your Assessment Documents</h2>
+                <p class="text-gray-600 mt-1">View and manage your formative assessments</p>
+            </div>
+
+            <div class="mt-4 md:mt-0">
+                <a href="{% url 'upload_document' %}"
+                    class="inline-flex items-center px-5 py-3 bg-blue-700 text-white font-medium rounded-lg shadow hover:bg-blue-800 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Upload New Document
+                </a>
+            </div>
+        </div>
+
+        {% if documents %}
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <!-- Table Header -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-6 md:col-span-5 font-medium text-gray-700">Document Title</div>
+                    <div class="col-span-4 md:col-span-3 font-medium text-gray-700">Date</div>
+                    <div class="col-span-2 md:col-span-2 font-medium text-gray-700">Status</div>
+                    <div class="hidden md:block md:col-span-2 font-medium text-gray-700">Actions</div>
+                </div>
+            </div>
+
+            <!-- Table Body -->
+            <div class="divide-y divide-gray-200">
+                {% for document in documents %}
+                <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
+                    <div class="grid grid-cols-12 gap-4 items-center">
+                        <div class="col-span-6 md:col-span-5">
+                            <a href="{% url 'formative_assessment_detail' document.pk %}"
+                                class="text-blue-700 font-medium hover:text-blue-800 hover:underline">
+                                {{ document.analysis_doc_title }}
+                            </a>
+                        </div>
+                        <div class="col-span-4 md:col-span-3 text-gray-600">
+                            {{ document.test_start_date }}
+                        </div>
+                        <div class="col-span-2 md:col-span-2">
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Analyzed
+                            </span>
+                        </div>
+                        <div class="hidden md:flex md:col-span-2 space-x-2">
+                            <a href="{% url 'formative_assessment_detail' document.pk %}"
+                                class="p-2 text-gray-500 hover:text-blue-700 rounded-full hover:bg-gray-100"
+                                title="View Details">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                            <button class="p-2 text-gray-500 hover:text-blue-700 rounded-full hover:bg-gray-100"
+                                title="Download Report">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-6 flex justify-between items-center">
+            <p class="text-sm text-gray-600">Showing <span class="font-medium">{{ documents|length }}</span> documents
+            </p>
+            <div class="flex space-x-1">
+                <button
+                    class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    disabled>Previous</button>
+                <button
+                    class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    disabled>Next</button>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-700" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No Documents Yet</h3>
+            <p class="text-gray-600 mb-6">You haven't uploaded any formative assessment documents yet.</p>
+            <a href="{% url 'upload_document' %}"
+                class="inline-flex items-center px-5 py-3 bg-blue-700 text-white font-medium rounded-lg shadow hover:bg-blue-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Upload Your First Document
             </a>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>No formative assessment documents available.</p>
-    {% endif %}
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

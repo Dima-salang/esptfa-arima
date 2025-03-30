@@ -2,59 +2,279 @@
 {% block title %}{{ document.analysis_doc_title }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
-    <h2 class="text-2xl font-semibold text-gray-800 mb-4">{{ document.analysis_doc_title }}</h2>
+<div class="bg-gray-100 min-h-screen pb-12">
+    <!-- Document Header -->
+    <div class="bg-blue-700 text-white py-8">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold">{{ document.analysis_doc_title }}</h1>
+                    <p class="text-blue-100 mt-2">Assessment Analysis and Predictions</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex space-x-3">
+                    <button
+                        class="inline-flex items-center px-4 py-2 bg-white text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Export Report
+                    </button>
+                    <button
+                        class="inline-flex items-center px-4 py-2 border border-white text-white font-medium rounded-lg hover:bg-white hover:text-blue-700 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <p><strong>Test Start Date:</strong> {{ document.test_start_date }}</p>
-    <p><strong>Subject:</strong> {{ document.subject }}</p>
-    <p><strong>Quarter:</strong> {{ document.quarter }}</p>
+    <!-- Document Overview Card -->
+    <div class="container mx-auto px-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6 -mt-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Test Date</p>
+                        <p class="font-medium text-gray-900">{{ document.test_start_date }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Subject</p>
+                        <p class="font-medium text-gray-900">{{ document.subject }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Quarter</p>
+                        <p class="font-medium text-gray-900">{{ document.quarter }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <h3 class="mt-6 text-lg font-semibold">Formative Assessments</h3>
-    <table class="w-full border-collapse border border-gray-300 mt-3">
-        <thead>
-            <tr class="bg-gray-200">
-                <th class="border border-gray-300 p-2">Student</th>
-                <th class="border border-gray-300 p-2">Assessment #</th>
-                <th class="border border-gray-300 p-2">Score</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for assessment in assessments %}
-            <tr>
-                <td class="border border-gray-300 p-2">{{ assessment.student_id }}</td>
-                <td class="border border-gray-300 p-2">{{ assessment.formative_assessment_number }}</td>
-                <td class="border border-gray-300 p-2">{{ assessment.score }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3" class="border border-gray-300 p-2 text-center">No assessments available.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 mt-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Actual Assessments Card -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-blue-700 px-6 py-4 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-white">Actual Assessment Scores</h2>
+                    <span class="bg-blue-600 text-white text-sm px-3 py-1 rounded-full">
+                        {{ assessments|length }} Students
+                    </span>
+                </div>
 
-    <h3 class="mt-6 text-lg font-semibold">Predicted Scores</h3>
-    <table class="w-full border-collapse border border-gray-300 mt-3">
-        <thead>
-            <tr class="bg-gray-200">
-                <th class="border border-gray-300 p-2">Student</th>
-                <th class="border border-gray-300 p-2">Assessment #</th>
-                <th class="border border-gray-300 p-2">Predicted Score</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for prediction in predictions %}
-            <tr>
-                <td class="border border-gray-300 p-2">{{ prediction.student_id }}</td>
-                <td class="border border-gray-300 p-2">{{ prediction.formative_assessment_number }}</td>
-                <td class="border border-gray-300 p-2">{{ prediction.score }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3" class="border border-gray-300 p-2 text-center">No predictions available.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left border-b border-gray-200">
+                                    <th class="pb-3 font-semibold text-gray-700">Student ID</th>
+                                    <th class="pb-3 font-semibold text-gray-700">Assessment #</th>
+                                    <th class="pb-3 font-semibold text-gray-700">Score</th>
+                                    <th class="pb-3 font-semibold text-gray-700">Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for assessment in assessments %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-3 text-gray-900">{{ assessment.student_id }}</td>
+                                    <td class="py-3 text-gray-900">{{ assessment.formative_assessment_number }}</td>
+                                    <td class="py-3 font-medium text-gray-900">{{ assessment.score }}</td>
+                                    <td class="py-3">
+                                        {% if assessment.score >= 90 %}
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Excellent
+                                        </span>
+                                        {% elif assessment.score >= 80 %}
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            Good
+                                        </span>
+                                        {% elif assessment.score >= 70 %}
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Average
+                                        </span>
+                                        {% else %}
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            Needs Help
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="py-4 text-center text-gray-500">No assessments available.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Predicted Scores Card -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-blue-700 px-6 py-4 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-white">Predicted Assessment Scores</h2>
+                    <span class="bg-blue-600 text-white text-sm px-3 py-1 rounded-full">
+                        {{ predictions|length }} Predictions
+                    </span>
+                </div>
+
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left border-b border-gray-200">
+                                    <th class="pb-3 font-semibold text-gray-700">Student ID</th>
+                                    <th class="pb-3 font-semibold text-gray-700">Assessment #</th>
+                                    <th class="pb-3 font-semibold text-gray-700">Predicted Score</th>
+                                    <th class="pb-3 font-semibold text-gray-700">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for prediction in predictions %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-3 text-gray-900">{{ prediction.student_id }}</td>
+                                    <td class="py-3 text-gray-900">{{ prediction.formative_assessment_number }}</td>
+                                    <td class="py-3 font-medium text-gray-900">{{ prediction.score }}</td>
+                                    <td class="py-3">
+                                        <div class="w-24 bg-gray-200 rounded-full h-2.5">
+                                            <div class="bg-blue-700 h-2.5 rounded-full" style="width: 85%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="py-4 text-center text-gray-500">No predictions available.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Summary -->
+        <div class="mt-8 bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="bg-blue-700 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Performance Summary</h2>
+            </div>
+
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Class Average</h3>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-blue-700">78.5</span>
+                            <span class="text-sm text-gray-500 ml-2 mb-1">points</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Average score across all assessments</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Highest Score</h3>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-green-600">95</span>
+                            <span class="text-sm text-gray-500 ml-2 mb-1">points</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Highest individual assessment score</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Students at Risk</h3>
+                        <div class="flex items-end">
+                            <span class="text-3xl font-bold text-red-600">3</span>
+                            <span class="text-sm text-gray-500 ml-2 mb-1">students</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Students scoring below 70 points</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Recommended Actions</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700 mr-2 mt-0.5"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-gray-700">Schedule one-on-one sessions with the 3 students who scored
+                                below 70 points.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700 mr-2 mt-0.5"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-gray-700">Review topics related to questions 3, 7, and 9, which had the
+                                lowest average scores.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700 mr-2 mt-0.5"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-gray-700">Provide additional practice materials for students predicted to
+                                score below 75 on the next assessment.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard Button -->
+        <div class="mt-8 text-center">
+            <a href="{% url 'formative_assessment_dashboard' %}"
+                class="inline-flex items-center px-4 py-2 text-blue-700 hover:text-blue-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
 </div>
 {% endblock %}

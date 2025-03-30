@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 from statsmodels.tsa.stattools import adfuller
 import os
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
-
+from django.db import transaction
 
 arima_results = []
 
@@ -37,7 +37,7 @@ def preprocess_data(csv_file, analysis_document):
     test_data_long["score"].fillna(test_data_long["score"].mean(), inplace=True)
 
     # Print reshaped dataset
-    print(test_data_long.head())
+    print(test_data_long)
 
     return test_data_long
 
@@ -75,10 +75,6 @@ def grid_search_arima(train_series, p_values, d_values, q_values):
 
 def train_model(processed_data, analysis_document):
 
-    formative_scores = []
-    predicted_scores = []
-    
-
     p_values = range(0, 2)
     d_values = [1]  # Differencing is manually applied, so d=1
     q_values = range(0, 2)
@@ -106,6 +102,9 @@ def train_model(processed_data, analysis_document):
         # Ensure index is datetime
         train.set_index("date", inplace=True)
         test.set_index("date", inplace=True)
+
+        print(f"Train data: {train}")
+        print(f"Test data: {test}")
 
         # Perform grid search to find the best (p, d, q)
         best_order, best_model = grid_search_arima(
@@ -152,39 +151,39 @@ def train_model(processed_data, analysis_document):
                 "hybrid_mae": mae_hybrid
             })
 
+
+
             first_fa_number = student_data["test_number"].iloc[0]
 
-            # Collect objects for bulk insertion
-            for i, (date, actual_score) in enumerate(zip(test.index, test["score"])):
-                fa = FormativeAssessmentScore(
-                    analysis_document=analysis_document,
-                    student_id=student,
-                    score=actual_score,
-                    date=date,
-                    formative_assessment_number=str(first_fa_number + i)  # Use the test number from the original data
-                )
-                formative_scores.append(fa)
+            with transaction.atomic():
 
-            # Bulk insert FA scores first to get primary keys
-            FormativeAssessmentScore.objects.bulk_create(formative_scores)
+                # Collect objects for bulk insertion
+                for i, (date, actual_score) in enumerate(zip(test.index, test["score"])):
 
-            
-            last_fa_number = student_data["test_number"].iloc[-1]
+                    fa = FormativeAssessmentScore.objects.update_or_create(
+                        analysis_document=analysis_document,
+                        student_id=student,
+                        formative_assessment_number=str(first_fa_number + i),
+                        date=date,
+                        score=actual_score,
+                    )
 
-            # Generate predicted scores for the actual future dates
-            for i, (date, predicted_score) in enumerate(zip(test.index, corrected_predictions)):
-                predicted_scores.append(PredictedScore(
-                    analysis_document=analysis_document,
-                    student_id=student,
-                    score=predicted_score,  # Directly use corrected_predictions
-                    date=date,
-                    formative_assessment_number=str(last_fa_number + i + 1)  # Continue from last FA number
-                ))
+                
+                last_fa_number = student_data["test_number"].iloc[-1]
+                
+                # make the date range for the predicted scores after the last week of the formative assessment scores
+                future_dates = pd.date_range(start=test.index[-1] + pd.Timedelta(days=7), periods=len(corrected_predictions), freq="7D")
 
 
-            # Bulk insert all predicted scores
-            PredictedScore.objects.bulk_create(predicted_scores)
-            print("Bulk inserted FA Scores and Predicted Scores.")
+                # Generate predicted scores for the actual future dates
+                for i, (date, predicted_score) in enumerate(zip(future_dates, corrected_predictions)):
+                    fa = PredictedScore.objects.update_or_create(
+                        analysis_document=analysis_document,
+                        student_id=student,
+                        formative_assessment_number=str(last_fa_number + i + 1),
+                        date=date,
+                        score=predicted_score,
+                    )
         else:
             print(f"Could not find a suitable ARIMA model for {student}.")
 
