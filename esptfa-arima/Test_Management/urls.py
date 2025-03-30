@@ -7,6 +7,6 @@ urlpatterns = [
     path("upload-document/", upload_analysis_document, name="upload_document"),
     path("formative-assessments/", FormativeAssessmentDashboardView.as_view(),
          name="formative_assessment_dashboard"),
-    path("formative-assessments/<slug:slug>/",
+    path("formative-assessments/<int:pk>/",
          FormativeAssessmentDetailView.as_view(), name="formative_assessment_detail"),
 ]

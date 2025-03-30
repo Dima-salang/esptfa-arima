@@ -67,8 +67,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
     model = AnalysisDocument
     template_name = "analysis_doc_detail.html"
     context_object_name = "document"
-    slug_field = "slug"
-    slug_url_kwarg = "slug"
+    pk_url_kwarg = "pk"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
