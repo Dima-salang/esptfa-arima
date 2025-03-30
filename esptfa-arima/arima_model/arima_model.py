@@ -111,7 +111,7 @@ def train_lstm_model(processed_data):
 
     # Build and train the LSTM model
     lstm_model = build_lstm_model(window_size)
-    lstm_model.fit(X_train, y_train, epochs=100, batch_size=32)
+    lstm_model.fit(X_train, y_train, epochs=50, batch_size=8)
 
 
 def hybrid_prediction(student_scores):
@@ -123,6 +123,7 @@ def hybrid_prediction(student_scores):
     # Use ARIMA for baseline prediction
     arima_model = train_arima(student_scores)
     arima_pred = arima_model.forecast(steps=1)[0]
+    
 
     # Use LSTM for refinement
     X_input = np.array(
