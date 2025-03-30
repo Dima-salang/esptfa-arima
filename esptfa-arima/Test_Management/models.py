@@ -43,6 +43,7 @@ class AnalysisDocument(models.Model):
     quarter = models.ForeignKey(Quarter, on_delete=models.CASCADE, null=True)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     upload_date = models.DateTimeField(auto_now_add=True)
+    test_start_date = models.DateField(null=True)
     analysis_doc = models.FileField(upload_to='analysis_documents/')
     teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
