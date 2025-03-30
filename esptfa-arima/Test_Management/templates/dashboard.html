@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Formative Assessments{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Formative Assessment Documents</h2>
+
+    {% if documents %}
+    <ul class="bg-white shadow rounded-lg p-4">
+        {% for document in documents %}
+        <li class="border-b last:border-0 p-3">
+            <a href="{% url 'formative_assessment_detail' document.slug %}" class="text-blue-600 hover:underline">
+                {{ document.analysis_doc_title }} ({{ document.test_start_date }})
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No formative assessment documents available.</p>
+    {% endif %}
+</div>
+{% endblock %}

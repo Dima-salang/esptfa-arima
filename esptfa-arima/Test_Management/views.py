@@ -5,6 +5,10 @@ from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver
+from django.views.generic import ListView, DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404
+from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore
 
 
 @login_required
@@ -47,7 +51,33 @@ def home(request):
     return render(request, "home.html")
 
 
-def dashboard(request):
-    analysis_documents = AnalysisDocumentForm.objects.filter(teacher_id=request.user.teacher)
-    context = {"analysis_documents": analysis_documents}
-    return render(request, "dashboard.html", context)
+# Dashboard: List all formative assessment documents for the teacher
+class FormativeAssessmentDashboardView(LoginRequiredMixin, ListView):
+    model = AnalysisDocument
+    template_name = "dashboard.html"
+    context_object_name = "documents"
+
+    def get_queryset(self):
+        # Show only the documents owned by the logged-in teacher
+        return AnalysisDocument.objects.filter(teacher_id=self.request.user.teacher)
+
+
+# Detail View: Show individual formative assessments and predicted scores
+class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
+    model = AnalysisDocument
+    template_name = "analysis_doc_detail.html"
+    context_object_name = "document"
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        document = self.get_object()
+
+        # Get assessments and predicted scores related to this document
+        context["assessments"] = FormativeAssessmentScore.objects.filter(
+            analysis_document=document)
+        context["predictions"] = PredictedScore.objects.filter(
+            analysis_document=document)
+
+        return context

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ document.analysis_doc_title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">{{ document.analysis_doc_title }}</h2>
+
+    <p><strong>Test Start Date:</strong> {{ document.test_start_date }}</p>
+    <p><strong>Subject:</strong> {{ document.subject }}</p>
+    <p><strong>Quarter:</strong> {{ document.quarter }}</p>
+
+    <h3 class="mt-6 text-lg font-semibold">Formative Assessments</h3>
+    <table class="w-full border-collapse border border-gray-300 mt-3">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-2">Student</th>
+                <th class="border border-gray-300 p-2">Assessment #</th>
+                <th class="border border-gray-300 p-2">Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assessment in assessments %}
+            <tr>
+                <td class="border border-gray-300 p-2">{{ assessment.student_id }}</td>
+                <td class="border border-gray-300 p-2">{{ assessment.formative_assessment_number }}</td>
+                <td class="border border-gray-300 p-2">{{ assessment.score }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="border border-gray-300 p-2 text-center">No assessments available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 class="mt-6 text-lg font-semibold">Predicted Scores</h3>
+    <table class="w-full border-collapse border border-gray-300 mt-3">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border border-gray-300 p-2">Student</th>
+                <th class="border border-gray-300 p-2">Assessment #</th>
+                <th class="border border-gray-300 p-2">Predicted Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prediction in predictions %}
+            <tr>
+                <td class="border border-gray-300 p-2">{{ prediction.student_id }}</td>
+                <td class="border border-gray-300 p-2">{{ prediction.formative_assessment_number }}</td>
+                <td class="border border-gray-300 p-2">{{ prediction.score }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="border border-gray-300 p-2 text-center">No predictions available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

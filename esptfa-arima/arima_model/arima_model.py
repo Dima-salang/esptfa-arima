@@ -13,13 +13,13 @@ from Test_Management.models import Student, FormativeAssessmentScore, PredictedS
 
 arima_results = []
 
-def preprocess_data(csv_file):
+def preprocess_data(csv_file, analysis_document):
     test_data = pd.read_csv(csv_file)
 
     # Define test dates (assuming weekly tests)
     num_tests = test_data.shape[1] - 4  # Exclude student_id, name, and section
     print(test_data.shape)
-    test_dates = pd.date_range(start="2024-01-01", periods=num_tests, freq="7D")
+    test_dates = pd.date_range(start=analysis_document.test_start_date, periods=num_tests, freq="7D")
 
     # Reshape from wide to long format
     test_data_long = test_data.melt(id_vars=["student_id", "first_name", "last_name", "section"],
@@ -194,7 +194,7 @@ def arima_driver(analysis_document):
         csv_path = analysis_document.analysis_doc.path
 
         # Preprocess the data
-        processed_data = preprocess_data(csv_path)
+        processed_data = preprocess_data(csv_path, analysis_document)
 
         # Convert to non-stationary data
         processed_data = make_stationary(processed_data)
