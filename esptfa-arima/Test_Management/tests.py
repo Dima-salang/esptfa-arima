@@ -43,6 +43,7 @@ class UploadAnalysisDocumentTest(TestCase):
             "test.csv", b"Test file content", content_type="text/csv")
         response = self.client.post(reverse("upload_document"), {
             "analysis_doc_title": "Test Document",
+            "test_start_date": "2023-10-01",
             "analysis_doc": file,
             "section_id": self.section.section_id,
             "quarter": self.quarter.quarter_id,
@@ -61,6 +62,7 @@ class UploadAnalysisDocumentTest(TestCase):
             "test.pdf", b"Test file content", content_type="application/pdf")
         response = self.client.post(reverse("upload_document"), {
             "analysis_doc_title": "Test Document",
+            "test_start_date": "2023-10-01",
             "analysis_doc": file,
             "section_id": self.section.section_id,
             "quarter": self.quarter.quarter_id,
