@@ -7,7 +7,6 @@ from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore
 
 

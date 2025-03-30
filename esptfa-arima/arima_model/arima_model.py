@@ -1,14 +1,11 @@
 from itertools import product
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
-from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error
-from sklearn.ensemble import RandomForestRegressor
 import tensorflow as tf
 from keras.api.models import Sequential
-from keras.api.layers import LSTM, Dense
+from keras.api.layers import LSTM, Dense, Dropout, Bidirectional
 from django.db import transaction
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 
@@ -42,6 +39,9 @@ def preprocess_data(csv_file, analysis_document):
     # Handling missing values
     test_data_long["score"].fillna(
         test_data_long["score"].mean(), inplace=True)
+    
+
+    print(test_data_long)
 
     return test_data_long
 
@@ -83,7 +83,11 @@ def prepare_lstm_data(data, window_size):
 def build_lstm_model(window_size):
     """ Builds and compiles an LSTM model. """
     model = Sequential([
-        LSTM(50, activation="relu", input_shape=(window_size, 1)),
+        Bidirectional(LSTM(64, activation="tanh", return_sequences=True,
+             input_shape=(window_size, 1))),
+        Dropout(0.2),
+        Bidirectional(LSTM(32, activation="tanh")),
+        Dense(16, activation="relu"),
         Dense(1)  # Predicts one score
     ])
     model.compile(optimizer="adam", loss="mse")
@@ -107,7 +111,7 @@ def train_lstm_model(processed_data):
 
     # Build and train the LSTM model
     lstm_model = build_lstm_model(window_size)
-    lstm_model.fit(X_train, y_train, epochs=50, batch_size=16)
+    lstm_model.fit(X_train, y_train, epochs=100, batch_size=32)
 
 
 def hybrid_prediction(student_scores):
@@ -158,6 +162,7 @@ def train_model(processed_data, analysis_document):
 
         student_data = make_stationary(student_data)
         num_tests = student_data.shape[0]
+        print(f"Number of tests: {num_tests}")
 
         train = student_data.iloc[:num_tests - 1].copy()
         test = student_data.iloc[num_tests - 1:].copy()
@@ -194,7 +199,7 @@ def train_model(processed_data, analysis_document):
             first_fa_number = student_data["test_number"].iloc[0]
 
             with transaction.atomic():
-                for i, (date, actual_score) in enumerate(zip(test.index, test["score"])):
+                for i, (date, actual_score) in enumerate(zip(train.index, student_data["score"])):
                     FormativeAssessmentScore.objects.update_or_create(
                         analysis_document=analysis_document,
                         student_id=student,
