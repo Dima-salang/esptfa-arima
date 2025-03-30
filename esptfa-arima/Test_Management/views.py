@@ -33,7 +33,7 @@ def upload_analysis_document(request):
                 arima_driver(document)
 
 
-                return redirect("upload_document")  # Redirect after success
+                return redirect("formative_assessment_dashboard")  # Redirect after success
             except Exception as e:
                 # Catch database/file save issues
                 messages.error(request, f"An error occurred: {str(e)}")
