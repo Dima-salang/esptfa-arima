@@ -51,6 +51,17 @@
                 {% endif %}
             </div>
 
+            <!-- Test Start Date -->
+            <div>
+                <label for="id_test_start_date" class="block text-sm font-medium text-gray-700">Test Start Date</label>
+                <input type="date" name="test_start_date" id="id_test_start_date"
+                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    required>
+                {% if form.test_start_date.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.test_start_date.errors.0 }}</p>
+                {% endif %}
+            </div>
+
             <!-- Subject Selection -->
             <div>
                 <label for="id_subject" class="block text-sm font-medium text-gray-700">Subject</label>

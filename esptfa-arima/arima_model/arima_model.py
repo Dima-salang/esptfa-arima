@@ -1,56 +1,55 @@
 from itertools import product
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
-from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error
-from sklearn.ensemble import RandomForestRegressor
-from statsmodels.tsa.stattools import adfuller
-import os
-
+import tensorflow as tf
+from keras.api.models import Sequential
+from keras.api.layers import LSTM, Dense, Dropout, Bidirectional
+from django.db import transaction
+from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 
 arima_results = []
+lstm_model = None  # Global LSTM model
+window_size = 5  # Number of past scores to use for LSTM predictions
 
-def preprocess_data(csv_file):
+
+def preprocess_data(csv_file, analysis_document):
     test_data = pd.read_csv(csv_file)
 
     # Define test dates (assuming weekly tests)
-    num_tests = test_data.shape[1] - 4  # Exclude student_id, name, and section
-    print(test_data.shape)
-    test_dates = pd.date_range(start="2024-01-01", periods=num_tests, freq="7D")
+    num_tests = test_data.shape[1] - 4  # Exclude student_id, name, section
+    test_dates = pd.date_range(
+        start=analysis_document.test_start_date, periods=num_tests, freq="7D")
 
     # Reshape from wide to long format
     test_data_long = test_data.melt(id_vars=["student_id", "first_name", "last_name", "section"],
-                    var_name="test",
-                    value_name="score")
+                                    var_name="test",
+                                    value_name="score")
 
     # Extract test number & assign correct dates
-    test_data_long["test_number"] = test_data_long["test"].str.extract("(\d+)").astype(int)
-    test_data_long["date"] = test_data_long["test_number"].apply(lambda x: test_dates[x - 1])
+    test_data_long["test_number"] = test_data_long["test"].str.extract(
+        "(\d+)").astype(int)
+    test_data_long["date"] = test_data_long["test_number"].apply(
+        lambda x: test_dates[x - 1])
 
     # Drop old test column
     test_data_long.drop(columns=["test"], inplace=True)
 
     # Handling missing values
-    test_data_long["score"].fillna(test_data_long["score"].mean(), inplace=True)
+    test_data_long["score"].fillna(
+        test_data_long["score"].mean(), inplace=True)
+    
 
-    # Print reshaped dataset
-    print(test_data_long.head())
+    print(test_data_long)
 
     return test_data_long
 
 
 def make_stationary(student_data):
-    # Ensure data is sorted
     student_data = student_data.sort_values("date").copy()
-
-    # Apply first-order differencing
     student_data["score_diff"] = student_data["score"].diff()
-
-    # Drop NaN values (first row will be NaN)
     return student_data.dropna()
-
 
 
 def grid_search_arima(train_series, p_values, d_values, q_values):
@@ -67,64 +66,125 @@ def grid_search_arima(train_series, p_values, d_values, q_values):
                 best_order = (p, d, q)
                 best_model = fitted_model
         except:
-            continue  # Skip invalid models
+            continue
 
     return best_order, best_model
 
 
-def train_model(processed_data):
+def prepare_lstm_data(data, window_size):
+    """ Converts the dataset into sequences for LSTM training. """
+    X, y = [], []
+    for i in range(len(data) - window_size):
+        X.append(data[i:i+window_size])
+        y.append(data[i+window_size])
+    return np.array(X), np.array(y)
+
+
+def build_lstm_model(window_size):
+    """ Builds and compiles an LSTM model. """
+    model = Sequential([
+        Bidirectional(LSTM(64, activation="tanh", return_sequences=True,
+             input_shape=(window_size, 1))),
+        Dropout(0.2),
+        Bidirectional(LSTM(32, activation="tanh")),
+        Dense(16, activation="relu"),
+        Dense(1)  # Predicts one score
+    ])
+    model.compile(optimizer="adam", loss="mse")
+    return model
+
+
+def train_lstm_model(processed_data):
+    """ Trains a single LSTM model across all students. """
+    global lstm_model
+
+    # Prepare data for LSTM training
+    all_scores = []
+    for _, student_data in processed_data.groupby("student_id"):
+        scores = student_data.sort_values("date")["score"].tolist()
+        all_scores.extend(scores)  # Collect all scores
+
+    # Convert data into sequences
+    X_train, y_train = prepare_lstm_data(all_scores, window_size)
+    X_train = X_train.reshape(
+        (X_train.shape[0], X_train.shape[1], 1))  # Reshape for LSTM
+
+    # Build and train the LSTM model
+    lstm_model = build_lstm_model(window_size)
+    lstm_model.fit(X_train, y_train, epochs=50, batch_size=8)
+
+
+def hybrid_prediction(student_scores):
+    """ Generates a hybrid prediction using both ARIMA and LSTM. """
+    global lstm_model
+
     
+
+    # Use ARIMA for baseline prediction
+    arima_model = train_arima(student_scores)
+    arima_pred = arima_model.forecast(steps=1)[0]
+    
+
+    # Use LSTM for refinement
+    X_input = np.array(
+        student_scores[-window_size:]).reshape(1, window_size, 1)
+    lstm_pred = lstm_model.predict(X_input)[0][0]
+
+    # Hybrid prediction: Combine both models
+    final_pred = (0.6 * arima_pred) + (0.4 * lstm_pred)
+    return final_pred
+
+
+def train_arima(train_series):
+    """ Trains an ARIMA model for a given student's time series. """
+    model = ARIMA(train_series, order=(1, 1, 1))
+    model_fit = model.fit()
+    return model_fit
+
+
+def train_model(processed_data, analysis_document):
+    """ Trains ARIMA for each student and applies the hybrid approach. """
 
     p_values = range(0, 2)
     d_values = [1]  # Differencing is manually applied, so d=1
     q_values = range(0, 2)
 
-    for student, student_data in processed_data.groupby("student_id"):
-        print(f"Student: {student}")
+    for student_id, student_data in processed_data.groupby("student_id"):
+        print(f"Processing Student {student_id}...")
+
+        student = Student.objects.filter(student_id=student_id).first()
+        if not student:
+            student = Student.objects.create(
+                student_id=student_id,
+                first_name=student_data["first_name"].iloc[0],
+                last_name=student_data["last_name"].iloc[0],
+                section=student_data["section"].iloc[0]
+            )
 
         student_data = make_stationary(student_data)
         num_tests = student_data.shape[0]
+        print(f"Number of tests: {num_tests}")
 
-        train = student_data.iloc[:num_tests - 2].copy()
-        test = student_data.iloc[num_tests - 2:].copy()
+        train = student_data.iloc[:num_tests - 1].copy()
+        test = student_data.iloc[num_tests - 1:].copy()
 
-        # Ensure index is datetime
         train.set_index("date", inplace=True)
         test.set_index("date", inplace=True)
 
-        # Perform grid search to find the best (p, d, q)
         best_order, best_model = grid_search_arima(
             train["score_diff"], p_values, d_values, q_values)
 
         if best_order:
-            print(f"Best ARIMA Order for {student}: {best_order}")
-
-            # Forecast differenced values
             diff_predictions = best_model.forecast(steps=test.shape[0])
-
-            # Convert back to original scale
-            last_train_score = train["score"].iloc[-1]  # Last known value
+            last_train_score = train["score"].iloc[-1]
             predictions = np.cumsum(diff_predictions) + last_train_score
 
-            # Compute residuals
-            residuals = train["score_diff"] - best_model.fittedvalues
-            residuals = residuals.dropna()
-                # Train Random Forest on residuals
-            X_train = np.arange(len(residuals)).reshape(-1, 1)
-            y_train = residuals.values
-            rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
-            rf_model.fit(X_train, y_train)
+            # Hybrid prediction
+            hybrid_predictions = [hybrid_prediction(
+                student_data["score"].tolist())]
 
-            # Predict residuals for future steps
-            X_test = np.arange(len(residuals), len(residuals) + len(test)).reshape(-1, 1)
-            predicted_residuals = rf_model.predict(X_test)
-            predicted_residuals = np.cumsum(predicted_residuals) + residuals.iloc[-1]
-            # Correct ARIMA predictions
-            corrected_predictions = predictions + predicted_residuals
-
-            # Evaluate accuracy
             mae_arima = mean_absolute_error(test["score"], predictions)
-            mae_hybrid = mean_absolute_error(test["score"], corrected_predictions)
+            mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
 
             print(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
 
@@ -132,37 +192,41 @@ def train_model(processed_data):
                 "student_id": student,
                 "actual_scores": test["score"].tolist(),
                 "arima_predictions": predictions.tolist(),
-                "corrected_predictions": corrected_predictions.tolist(),
+                "hybrid_predictions": hybrid_predictions,
                 "arima_mae": mae_arima,
                 "hybrid_mae": mae_hybrid
             })
-        else:
-            print(f"Could not find a suitable ARIMA model for {student}.")
 
-def driver(csv_file):
-    # Get the directory of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(script_dir, csv_file)
+            first_fa_number = student_data["test_number"].iloc[0]
 
-    # Preprocess the data
-    processed_data = preprocess_data(csv_path)
+            with transaction.atomic():
+                for i, (date, actual_score) in enumerate(zip(train.index, student_data["score"])):
+                    FormativeAssessmentScore.objects.update_or_create(
+                        analysis_document=analysis_document,
+                        student_id=student,
+                        formative_assessment_number=str(first_fa_number + i),
+                        date=date,
+                        score=actual_score,
+                    )
 
-    # Convert to non-stationary data
-    processed_data = make_stationary(processed_data)
+                last_fa_number = student_data["test_number"].iloc[-1]
+                future_dates = pd.date_range(
+                    start=test.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
 
-    # Train the model
-    train_model(processed_data)
+                for i, (date, predicted_score) in enumerate(zip(future_dates, hybrid_predictions)):
+                    PredictedScore.objects.update_or_create(
+                        analysis_document=analysis_document,
+                        student_id=student,
+                        formative_assessment_number=str(
+                            last_fa_number + i + 1),
+                        date=date,
+                        score=predicted_score,
+                    )
 
 
-    # Print results
-    for r in arima_results:
-        print(f"\nStudent {r['student_id']}:")
-        print(f"  Actual Scores: {r['actual_scores']}")
-        print(f"  ARIMA Predictions: {r['arima_predictions']}")
-        print(f"  Hybrid Model Predictions: {r['corrected_predictions']}")
-        print(
-            f"  ARIMA MAE: {r['arima_mae']:.2f}, Hybrid MAE: {r['hybrid_mae']:.2f}")
+def arima_driver(analysis_document):
+    csv_path = analysis_document.analysis_doc.path
+    processed_data = preprocess_data(csv_path, analysis_document)
 
-if __name__ == "__main__":
-    driver("test_scores.csv")
-
+    train_lstm_model(processed_data)  # Train LSTM first
+    train_model(processed_data, analysis_document)
