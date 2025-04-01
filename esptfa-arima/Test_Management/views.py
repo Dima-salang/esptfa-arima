@@ -28,8 +28,7 @@ def upload_analysis_document(request):
                 document.save()
                 messages.success(request, "Document uploaded successfully! Processing....")
 
-                # Process the document
-                arima_driver(document)
+                
 
 
                 return redirect("formative_assessment_dashboard")  # Redirect after success
