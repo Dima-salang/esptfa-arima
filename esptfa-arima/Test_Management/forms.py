@@ -2,6 +2,7 @@ from django import forms
 from .models import AnalysisDocument
 from django.contrib import messages
 from pandas import read_csv
+from arima_model.arima_model import arima_driver
 import os
 
 
@@ -47,6 +48,13 @@ class AnalysisDocumentForm(forms.ModelForm):
             if num_tests < 5:
                 raise forms.ValidationError(
                     "The file must contain at least 5 tests.")
+            
+            # process the document and check if there are errors
+            try:
+                arima_driver(file)
+            except Exception as e:
+                raise forms.ValidationError(
+                    f"Error processing the document: {str(e)}")
             
 
         return file

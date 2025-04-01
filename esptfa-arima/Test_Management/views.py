@@ -28,9 +28,6 @@ def upload_analysis_document(request):
                 document.save()
                 messages.success(request, "Document uploaded successfully! Processing....")
 
-                
-
-
                 return redirect("formative_assessment_dashboard")  # Redirect after success
             except Exception as e:
                 # Catch database/file save issues
