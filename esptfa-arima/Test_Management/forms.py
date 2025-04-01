@@ -7,10 +7,16 @@ import os
 
 
 class AnalysisDocumentForm(forms.ModelForm):
+
+    test_topics = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3}),
+        help_text="Enter topics for each test number (e.g., 'FA1: Algebra, FA2: Geometry'). Optional."
+    )
     class Meta:
         model = AnalysisDocument
         fields = ['analysis_doc_title',
-                  'analysis_doc', 'test_start_date', 'section_id', 'quarter', 'subject']
+                  'analysis_doc', 'test_start_date', 'section_id', 'quarter', 'subject', 'test_topics']
         
     def clean(self):
         cleaned_data = super().clean()
@@ -42,6 +48,10 @@ class AnalysisDocumentForm(forms.ModelForm):
             if file.size > max_size:
                 raise forms.ValidationError("File size must be under 5MB.")
             
+             # Store column names for later processing of test topics
+            self.test_columns = [
+                col for col in test_data.columns if col.startswith('FA')]
+
             # read csv file and check whether the num of tests is not below 5
             test_data = read_csv(file)
             num_tests = test_data.shape[1] - 4

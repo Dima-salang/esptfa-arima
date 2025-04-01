@@ -9,7 +9,7 @@ from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore
+from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, TestTopicMapping, TestTopic
 
 
 @login_required
@@ -29,14 +29,22 @@ def upload_analysis_document(request):
             # process the document and check if there are errors
             document.save()
 
+            # Process test topics if provided
+            test_topics_str = form.cleaned_data.get('test_topics', '')
+            if test_topics_str:
+                process_test_topics(document, test_topics_str)
+            else:
+                # If no topics provided, use default naming based on CSV columns
+                process_default_topics(document, form.test_columns)
+
             try:
                 # try and process the document
                 process_analysis_document.delay(document.analysis_document_id)
 
             except Exception as e:
-                form.add_error(
-                    None, "Error processing the document: " + str(e))
                 document.delete()
+                messages.error(
+                    request, "Error processing the document: " + str(e))
             messages.success(
                 request, "Document uploaded successfully! Please wait at least 5 minutes for the analysis to finish.")
 
@@ -51,6 +59,52 @@ def upload_analysis_document(request):
         form = AnalysisDocumentForm()
 
     return render(request, "upload_document.html", {"form": form})
+
+
+def process_test_topics(document, topics_str):
+    """Process the user-provided topic strings and create mappings."""
+    # Split by commas or new lines
+    topic_entries = [entry.strip() for entry in topics_str.replace(
+        '\n', ',').split(',') if entry.strip()]
+
+    for entry in topic_entries:
+        if ':' in entry:
+            test_num, topic_name = entry.split(':', 1)
+            test_num = test_num.strip()
+            topic_name = topic_name.strip()
+
+            # Skip if either part is empty
+            if not test_num or not topic_name:
+                continue
+
+            # Remove "Test" prefix if present
+            if test_num.lower().startswith('fa'):
+                test_num = test_num[2:].strip()
+
+            # Get or create the topic (handles duplicates)
+            topic = TestTopic.get_or_create_topic(topic_name)
+
+            # Create the mapping
+            TestTopicMapping.objects.update_or_create(
+                analysis_document=document,
+                test_number=test_num,
+                defaults={'topic': topic}
+            )
+
+
+def process_default_topics(document, test_columns):
+    """Create default topics based on column names."""
+    for col in test_columns:
+        if col.lower().startswith('test'):
+            test_num = col[2:].strip()  # Extract the number from "TestX"
+            topic = TestTopic.get_or_create_topic(f"Topic for Test {test_num}")
+
+            TestTopicMapping.objects.create(
+                analysis_document=document,
+                test_number=test_num,
+                topic=topic
+            )
+
 
 
 def home(request):
@@ -84,5 +138,18 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
             analysis_document=document)
         context["predictions"] = PredictedScore.objects.filter(
             analysis_document=document)
+        
+        # Get test topics for this document
+        context["test_topics"] = TestTopicMapping.objects.filter(
+            analysis_document=document).order_by('test_number')
+
+        # Create a mapping of test number to topic for easy access in templates
+        test_topic_dict = {
+            mapping.test_number: mapping.topic.topic_name
+            for mapping in context["test_topics"]
+        }
+        context["test_topic_dict"] = test_topic_dict
 
         return context
+
+

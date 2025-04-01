@@ -102,6 +102,22 @@
                 {% endif %}
             </div>
 
+
+            <!-- Test Topics (NEW) -->
+            <div>
+                <label for="id_test_topics" class="block text-sm font-medium text-gray-700">Test Topics (Optional)</label>
+                <textarea name="test_topics" id="id_test_topics" rows="3"
+                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Test1: Algebra, Test2: Geometry"></textarea>
+                <p class="text-gray-500 text-xs mt-1">
+                    Enter topics for each test number (e.g., 'FA1: Algebra, FA2: Geometry').
+                    You can also enter one per line.
+                </p>
+                {% if form.test_topics.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.test_topics.errors.0 }}</p>
+                {% endif %}
+            </div>
+
             <!-- Submit Button -->
             <div>
                 <button type="submit"
