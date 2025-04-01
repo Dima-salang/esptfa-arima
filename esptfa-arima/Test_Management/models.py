@@ -4,6 +4,8 @@ from Authentication.models import Teacher
 # Create your models here.
 
 
+
+
 class Subject(models.Model):
     subject_id = models.AutoField(unique=True, primary_key=True)
     subject_name = models.CharField(max_length=100)
@@ -73,3 +75,36 @@ class PredictedScore(models.Model):
 
     def __str__(self):
         return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
+
+
+class TestTopic(models.Model):
+    topic_id = models.AutoField(unique=True, primary_key=True)
+    topic_name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.topic_name
+
+    @classmethod
+    def get_or_create_topic(cls, topic_name):
+        """Get existing topic or create a new one (handles duplicates)"""
+        topic_name = topic_name.strip()
+        try:
+            return cls.objects.get(topic_name__iexact=topic_name)
+        except cls.DoesNotExist:
+            return cls.objects.create(topic_name=topic_name)
+
+
+class TestTopicMapping(models.Model):
+    """Maps test numbers to topics for a specific analysis document"""
+    mapping_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE, related_name='test_topics')
+    test_number = models.CharField(max_length=5)
+    topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE)
+
+    class Meta:
+        # Ensure each test number has only one topic per document
+        unique_together = ('analysis_document', 'test_number')
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} - Test {self.test_number}: {self.topic}"
