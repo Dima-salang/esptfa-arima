@@ -62,7 +62,7 @@ def upload_analysis_document(request):
 
 
 def process_test_topics(document, topics_str):
-    """Process the user-provided topic strings and create mappings."""
+    """Process the user-provided topic strings and create mappings. Returns the topic entries"""
     # Split by commas or new lines
     topic_entries = [entry.strip() for entry in topics_str.replace(
         '\n', ',').split(',') if entry.strip()]
@@ -95,7 +95,7 @@ def process_test_topics(document, topics_str):
 def process_default_topics(document, test_columns):
     """Create default topics based on column names."""
     for col in test_columns:
-        if col.lower().startswith('test'):
+        if col.lower().startswith('fa'):
             test_num = col[2:].strip()  # Extract the number from "TestX"
             topic = TestTopic.get_or_create_topic(f"Topic for Test {test_num}")
 

@@ -48,20 +48,34 @@ class AnalysisDocumentForm(forms.ModelForm):
             if file.size > max_size:
                 raise forms.ValidationError("File size must be under 5MB.")
             
-             # Store column names for later processing of test topics
-            self.test_columns = [
-                col for col in test_data.columns if col.startswith('FA')]
+
 
             # read csv file and check whether the num of tests is not below 5
             test_data = read_csv(file)
             num_tests = test_data.shape[1] - 4
+
+            # Store column names for later processing of test topics
+            self.test_columns = [
+                col for col in test_data.columns if col.startswith('fa')]
+            
             if num_tests < 5:
                 raise forms.ValidationError(
                     "The file must contain at least 5 tests.")
-            
-            
-            
-
-            
-
         return file
+    
+
+    def clean_test_topics(self):
+        
+        test_topics = self.cleaned_data.get("test_topics")
+
+        topic_entries = [entry.strip() for entry in test_topics.replace(
+            '\n', ',').split(',') if entry.strip()]
+        num_of_tests = len(self.test_columns)
+        num_of_topics = len(topic_entries)
+
+        # check if the number of topics match the number of tests
+        if num_of_topics != num_of_tests:
+            raise forms.ValidationError(
+                f"Number of topics provided ({num_of_topics}) does not match number of tests ({num_of_tests}).")
+
+        return test_topics
