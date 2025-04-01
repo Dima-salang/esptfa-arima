@@ -27,7 +27,7 @@ class AnalysisDocumentForm(forms.ModelForm):
 
             if ext not in allowed_extensions:
                 raise forms.ValidationError(
-                    "Invalid file format. Please upload a CSV file.")
+                    "Invalid file format. Please upload a CSV file. If you are using Excel, save it as CSV format.")
 
             # (Optional) MIME type validation for extra security
             allowed_types = [
@@ -35,7 +35,7 @@ class AnalysisDocumentForm(forms.ModelForm):
             ]
             if file.content_type not in allowed_types:
                 raise forms.ValidationError(
-                    "Invalid file type. Only CSV files are allowed.")
+                    "Invalid file type. Only CSV files are allowed. If you are using Excel, save it as CSV format.")
 
             # Validate file size (Max: 5MB)
             max_size = 5 * 1024 * 1024  # 5MB
