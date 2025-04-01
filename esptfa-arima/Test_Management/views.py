@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.forms import forms
+from arima_model.tasks import process_analysis_document
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
@@ -29,16 +30,19 @@ def upload_analysis_document(request):
             document.save()
 
             try:
-                arima_driver(document)
+                # try and process the document
+                process_analysis_document.delay(document.analysis_document_id)
+
             except Exception as e:
                 form.add_error(
                     None, "Error processing the document: " + str(e))
                 document.delete()
             messages.success(
-                request, "Document uploaded successfully! Processing....")
+                request, "Document uploaded successfully! Please wait at least 5 minutes for the analysis to finish.")
 
             # Redirect after success
             return redirect("formative_assessment_dashboard")
+        
         else:
             messages.error(
                 request, "Invalid form submission. Please check your inputs.")

@@ -36,6 +36,13 @@ MEDIA_URL = "/media/"
 # Media files will be stored in the "media" folder
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+# CELERY CONFIG
+# Redis as message broker
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+
 # Application definition
 
 INSTALLED_APPS = [
