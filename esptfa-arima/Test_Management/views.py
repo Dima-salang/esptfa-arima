@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.forms import forms
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
@@ -22,16 +23,22 @@ def upload_analysis_document(request):
     if request.method == "POST":
         form = AnalysisDocumentForm(request.POST, request.FILES)
         if form.is_valid():
-            try:
-                document = form.save(commit=False)
-                document.teacher_id = teacher
-                document.save()
-                messages.success(request, "Document uploaded successfully! Processing....")
+            document = form.save(commit=False)
+            document.teacher_id = teacher
+            # process the document and check if there are errors
+            document.save()
 
-                return redirect("formative_assessment_dashboard")  # Redirect after success
+            try:
+                arima_driver(document)
             except Exception as e:
-                # Catch database/file save issues
-                messages.error(request, f"An error occurred: {str(e)}")
+                form.add_error(
+                    None, "Error processing the document: " + str(e))
+                document.delete()
+            messages.success(
+                request, "Document uploaded successfully! Processing....")
+
+            # Redirect after success
+            return redirect("formative_assessment_dashboard")
         else:
             messages.error(
                 request, "Invalid form submission. Please check your inputs.")

@@ -49,12 +49,9 @@ class AnalysisDocumentForm(forms.ModelForm):
                 raise forms.ValidationError(
                     "The file must contain at least 5 tests.")
             
-            # process the document and check if there are errors
-            try:
-                arima_driver(file)
-            except Exception as e:
-                raise forms.ValidationError(
-                    f"Error processing the document: {str(e)}")
+            
+            
+
             
 
         return file
