@@ -9,6 +9,7 @@ from keras.api.layers import LSTM, Dense, Dropout, Bidirectional, Input
 from django.db import transaction
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 import logging
+import traceback
 
 logger = logging.getLogger("arima_model")
 
@@ -35,9 +36,7 @@ def preprocess_data(csv_file, analysis_document):
         "(\d+)").astype(int)
     test_data_long["date"] = test_data_long["test_number"].apply(
         lambda x: test_dates[x - 1])
-
-    test_data_long.set_index("date", inplace=True)
-
+    
     # Drop old test column
     test_data_long.drop(columns=["test"], inplace=True)
 
@@ -46,7 +45,7 @@ def preprocess_data(csv_file, analysis_document):
         test_data_long["score"].mean())
     
 
-    logger(f"Preprocessed data: {test_data_long.head()}", level=logging.INFO)
+    print(f"Preprocessed data: {test_data_long}")
 
     return test_data_long
 
@@ -54,7 +53,8 @@ def preprocess_data(csv_file, analysis_document):
 def make_stationary(student_data):
     student_data = student_data.sort_values("date").copy()
     student_data["score_diff"] = student_data["score"].diff()
-    return student_data.dropna()
+    student_data.dropna(inplace=True)
+    return student_data
 
 
 def grid_search_arima(train_series):
@@ -152,14 +152,16 @@ def train_arima(train_series):
 def train_model(processed_data, analysis_document):
     """ Trains ARIMA for each student and applies the hybrid approach. """
 
+    first_fa_number = processed_data["test_number"].iloc[0]
+
     p_values = range(0, 2)
     d_values = [1]  # Differencing is manually applied, so d=1
     q_values = range(0, 2)
 
     for student_id, student_data in processed_data.groupby("student_id"):
-        logger(f"Processing Student {student_id}...")
+        logger.info(f"Processing Student {student_id}...")
 
-        logger(f"Student Data: {student_data.head()}")
+        logger.info(f"Student Data: {student_data}")
 
         student = Student.objects.filter(student_id=student_id).first()
         if not student:
@@ -171,18 +173,21 @@ def train_model(processed_data, analysis_document):
             )
 
         differenced_student_data = make_stationary(student_data.copy())
-        logger(f"Student data after differencing: {student_data.head()}")
+        logger.info(f"Student data after differencing: {differenced_student_data}")
         num_tests = differenced_student_data.shape[0]
-        logger(f"Number of tests: {num_tests}")
+        logger.info(f"Number of tests: {num_tests}")
 
-        train = differenced_student_data.iloc[:num_tests - 1].copy()
-        test = differenced_student_data.iloc[num_tests - 1:].copy()
+        train = differenced_student_data.iloc[:num_tests-1].copy()
+        test = differenced_student_data.iloc[num_tests-1:].copy()
+
+        logger.info(f"Train data: {train}")
+        logger.info(f"Test data: {test}")
 
         train.set_index("date", inplace=True)
         test.set_index("date", inplace=True)
 
         best_order, best_model = grid_search_arima(
-            train["score_diff"], p_values, d_values, q_values)
+            train["score_diff"])
 
         if best_order:
             diff_predictions = best_model.forecast(steps=test.shape[0])
@@ -196,12 +201,10 @@ def train_model(processed_data, analysis_document):
             mae_arima = mean_absolute_error(test["score"], predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
 
-            logger(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
-
-            first_fa_number = student_data["test_number"].iloc[0]
+            logger.info(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
 
             with transaction.atomic():
-                for i, (date, actual_score) in enumerate(zip(train.index, student_data["score"])):
+                for i, (date, actual_score) in enumerate(zip(student_data["date"], student_data["score"])):
                     FormativeAssessmentScore.objects.update_or_create(
                         analysis_document=analysis_document,
                         student_id=student,
@@ -226,8 +229,13 @@ def train_model(processed_data, analysis_document):
 
 
 def arima_driver(analysis_document):
-    csv_path = analysis_document.analysis_doc.path
-    processed_data = preprocess_data(csv_path, analysis_document)
+    logger.info(f"Processing Analysis Document... {analysis_document.analysis_document_id} - {analysis_document.analysis_doc_title}")
+    try:
+        csv_path = analysis_document.analysis_doc.path
+        processed_data = preprocess_data(csv_path, analysis_document)
 
-    train_lstm_model(processed_data)  # Train LSTM first
-    train_model(processed_data, analysis_document)
+        train_lstm_model(processed_data)  # Train LSTM first
+        train_model(processed_data, analysis_document)
+    except Exception as e:
+        logger.error(f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
+        logger.error(traceback.format_exc())

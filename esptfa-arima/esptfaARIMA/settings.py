@@ -141,8 +141,10 @@ LOGGING = {
         },
         "file": {
             "level": "DEBUG",
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/django/django_logs.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 3,
             "formatter": "verbose",
         },
         "file_INFO": {
@@ -152,7 +154,7 @@ LOGGING = {
             "formatter": "verbose",
         },
         "file_arima_model": {
-            "level": "WARNING",
+            "level": "DEBUG",
             "class": "logging.FileHandler",
             "filename": os.path.join(BASE_DIR, "logs/arima/arima_model_logs.log"),
             "formatter": "verbose",
