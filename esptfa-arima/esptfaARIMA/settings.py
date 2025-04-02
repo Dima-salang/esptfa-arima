@@ -144,7 +144,12 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": os.path.join(BASE_DIR, "django_logs.log"),
             "formatter": "verbose",
-        },
+        }, "file_arima_model": {
+            "level": "WARNING",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/arima/arima_model_logs.log"),
+            "formatter": "verbose",
+        }
     },
     "loggers": {
         "django": {
@@ -156,12 +161,11 @@ LOGGING = {
             "handlers": ["file"],
             "level": "ERROR",
             "propagate": False,
-        },
-        "myapp": {  # Custom app logger
-            "handlers": ["console", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
+        }, "arima_model": {
+            "handlers": ["console", "file_arima_model"],
+            "level": "DEBUG",
+            "propagate": True,
+        }
     },
 }
 

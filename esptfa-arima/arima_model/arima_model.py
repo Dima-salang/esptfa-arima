@@ -8,6 +8,9 @@ from keras.api.models import Sequential
 from keras.api.layers import LSTM, Dense, Dropout, Bidirectional, Input
 from django.db import transaction
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
+import logging
+
+logger = logging.getLogger("arima_model")
 
 arima_results = []
 lstm_model = None  # Global LSTM model
@@ -43,7 +46,7 @@ def preprocess_data(csv_file, analysis_document):
         test_data_long["score"].mean())
     
 
-    print(test_data_long)
+    logger(f"Preprocessed data: {test_data_long.head()}", level=logging.INFO)
 
     return test_data_long
 
@@ -154,9 +157,9 @@ def train_model(processed_data, analysis_document):
     q_values = range(0, 2)
 
     for student_id, student_data in processed_data.groupby("student_id"):
-        print(f"Processing Student {student_id}...")
+        logger(f"Processing Student {student_id}...")
 
-        print(f"Student Data: {student_data.head()}")
+        logger(f"Student Data: {student_data.head()}")
 
         student = Student.objects.filter(student_id=student_id).first()
         if not student:
@@ -168,9 +171,9 @@ def train_model(processed_data, analysis_document):
             )
 
         differenced_student_data = make_stationary(student_data.copy())
-        print(f"Student data after differencing: {student_data.head()}")
+        logger(f"Student data after differencing: {student_data.head()}")
         num_tests = differenced_student_data.shape[0]
-        print(f"Number of tests: {num_tests}")
+        logger(f"Number of tests: {num_tests}")
 
         train = differenced_student_data.iloc[:num_tests - 1].copy()
         test = differenced_student_data.iloc[num_tests - 1:].copy()
@@ -193,7 +196,7 @@ def train_model(processed_data, analysis_document):
             mae_arima = mean_absolute_error(test["score"], predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
 
-            print(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
+            logger(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
 
             first_fa_number = student_data["test_number"].iloc[0]
 
