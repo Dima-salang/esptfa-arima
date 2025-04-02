@@ -145,12 +145,16 @@ LOGGING = {
             "filename": os.path.join(BASE_DIR, "logs/django/django_logs.log"),
             "maxBytes": 1024 * 1024 * 5,  # 5 MB
             "backupCount": 3,
+            "delay": True,
             "formatter": "verbose",
         },
         "file_INFO": {
             "level": "INFO",
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "logs/django/django_info_logs.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 2,
+            "delay": True,
             "formatter": "verbose",
         },
         "file_arima_model": {
@@ -162,14 +166,13 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["file", "file_INFO"],
+            "handlers": ["file_INFO"],
             "level": "DEBUG",
             "propagate": True,
         },
         "django.request": {
-            "handlers": ["file"],
             "level": "ERROR",
-            "handlers": ["console", "file"],
+            "handlers": ["console", "file_INFO"],
             "propagate": False,
         }, "arima_model": {
             "handlers": ["console", "file_arima_model"],
