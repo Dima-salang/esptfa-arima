@@ -5,7 +5,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error
 import tensorflow as tf
 from keras.api.models import Sequential
-from keras.api.layers import LSTM, Dense, Dropout, Bidirectional
+from keras.api.layers import LSTM, Dense, Dropout, Bidirectional, Input
 from django.db import transaction
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 
@@ -33,12 +33,14 @@ def preprocess_data(csv_file, analysis_document):
     test_data_long["date"] = test_data_long["test_number"].apply(
         lambda x: test_dates[x - 1])
 
+    test_data_long.set_index("date", inplace=True)
+
     # Drop old test column
     test_data_long.drop(columns=["test"], inplace=True)
 
     # Handling missing values
     test_data_long["score"].fillna(
-        test_data_long["score"].mean(), inplace=True)
+        test_data_long["score"].mean())
     
 
     print(test_data_long)
@@ -52,7 +54,11 @@ def make_stationary(student_data):
     return student_data.dropna()
 
 
-def grid_search_arima(train_series, p_values, d_values, q_values):
+def grid_search_arima(train_series):
+    p_values = range(0, 2)
+    d_values = [1]  # Differencing is manually applied, so d=1
+    q_values = range(0, 2)  
+
     best_aic = float("inf")
     best_order = None
     best_model = None
@@ -83,8 +89,8 @@ def prepare_lstm_data(data, window_size):
 def build_lstm_model(window_size):
     """ Builds and compiles an LSTM model. """
     model = Sequential([
-        Bidirectional(LSTM(64, activation="tanh", return_sequences=True,
-             input_shape=(window_size, 1))),
+        Input(shape=(window_size, 1)),
+        Bidirectional(LSTM(64, activation="tanh", return_sequences=True)),
         Dropout(0.2),
         Bidirectional(LSTM(32, activation="tanh")),
         Dense(16, activation="relu"),
@@ -111,14 +117,12 @@ def train_lstm_model(processed_data):
 
     # Build and train the LSTM model
     lstm_model = build_lstm_model(window_size)
-    lstm_model.fit(X_train, y_train, epochs=50, batch_size=8)
+    lstm_model.fit(X_train, y_train, epochs=50, batch_size=16)
 
 
 def hybrid_prediction(student_scores):
     """ Generates a hybrid prediction using both ARIMA and LSTM. """
     global lstm_model
-
-    
 
     # Use ARIMA for baseline prediction
     arima_model = train_arima(student_scores)
@@ -152,6 +156,8 @@ def train_model(processed_data, analysis_document):
     for student_id, student_data in processed_data.groupby("student_id"):
         print(f"Processing Student {student_id}...")
 
+        print(f"Student Data: {student_data.head()}")
+
         student = Student.objects.filter(student_id=student_id).first()
         if not student:
             student = Student.objects.create(
@@ -161,12 +167,13 @@ def train_model(processed_data, analysis_document):
                 section=student_data["section"].iloc[0]
             )
 
-        student_data = make_stationary(student_data)
-        num_tests = student_data.shape[0]
+        differenced_student_data = make_stationary(student_data.copy())
+        print(f"Student data after differencing: {student_data.head()}")
+        num_tests = differenced_student_data.shape[0]
         print(f"Number of tests: {num_tests}")
 
-        train = student_data.iloc[:num_tests - 1].copy()
-        test = student_data.iloc[num_tests - 1:].copy()
+        train = differenced_student_data.iloc[:num_tests - 1].copy()
+        test = differenced_student_data.iloc[num_tests - 1:].copy()
 
         train.set_index("date", inplace=True)
         test.set_index("date", inplace=True)
@@ -181,21 +188,12 @@ def train_model(processed_data, analysis_document):
 
             # Hybrid prediction
             hybrid_predictions = [hybrid_prediction(
-                student_data["score"].tolist())]
+                differenced_student_data["score"].tolist())]
 
             mae_arima = mean_absolute_error(test["score"], predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
 
             print(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
-
-            arima_results.append({
-                "student_id": student,
-                "actual_scores": test["score"].tolist(),
-                "arima_predictions": predictions.tolist(),
-                "hybrid_predictions": hybrid_predictions,
-                "arima_mae": mae_arima,
-                "hybrid_mae": mae_hybrid
-            })
 
             first_fa_number = student_data["test_number"].iloc[0]
 
@@ -209,7 +207,7 @@ def train_model(processed_data, analysis_document):
                         score=actual_score,
                     )
 
-                last_fa_number = student_data["test_number"].iloc[-1]
+                last_fa_number = differenced_student_data["test_number"].iloc[-1]
                 future_dates = pd.date_range(
                     start=test.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
 
