@@ -140,26 +140,34 @@ LOGGING = {
             "formatter": "verbose",
         },
         "file": {
-            "level": "WARNING",
+            "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": os.path.join(BASE_DIR, "django_logs.log"),
+            "filename": os.path.join(BASE_DIR, "logs/django/django_logs.log"),
             "formatter": "verbose",
-        }, "file_arima_model": {
+        },
+        "file_INFO": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/django/django_info_logs.log"),
+            "formatter": "verbose",
+        },
+        "file_arima_model": {
             "level": "WARNING",
             "class": "logging.FileHandler",
             "filename": os.path.join(BASE_DIR, "logs/arima/arima_model_logs.log"),
             "formatter": "verbose",
-        }
+        },
     },
     "loggers": {
         "django": {
-            "handlers": ["console", "file"],
+            "handlers": ["file", "file_INFO"],
             "level": "DEBUG",
             "propagate": True,
         },
         "django.request": {
             "handlers": ["file"],
             "level": "ERROR",
+            "handlers": ["console", "file"],
             "propagate": False,
         }, "arima_model": {
             "handlers": ["console", "file_arima_model"],

@@ -5,7 +5,8 @@ __pycache__/
 db.sqlite3
 .env
 *.env
-*/media/analysis_document
+*/media/analysis_documents
+*/logs
 
 
 */migrations/__pycache__/
