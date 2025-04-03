@@ -150,6 +150,9 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
         }
         context["test_topic_dict"] = test_topic_dict
 
+        # get necessary statistics
+    
+
         return context
 
 

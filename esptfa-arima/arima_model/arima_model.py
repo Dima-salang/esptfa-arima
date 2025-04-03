@@ -10,6 +10,7 @@ from django.db import transaction
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 import logging
 import traceback
+import re
 
 logger = logging.getLogger("arima_model")
 
@@ -25,24 +26,47 @@ def preprocess_data(csv_file, analysis_document):
     num_tests = test_data.shape[1] - 4  # Exclude student_id, name, section
     test_dates = pd.date_range(
         start=analysis_document.test_start_date, periods=num_tests, freq="7D")
+    
+    # Identify columns with test scores (e.g., "fa1:30", "fa2:20")
+    test_columns = [col for col in test_data.columns if "fa" in col]
+
+    # Extract test numbers and max scores from column names
+    test_info = []
+    for col in test_columns:
+        match = re.match(r"(fa\d+):(\d+)", col)
+        if match:
+            test_number, max_score = match.groups()
+            test_info.append((col, test_number, int(max_score)))
 
     # Reshape from wide to long format
     test_data_long = test_data.melt(id_vars=["student_id", "first_name", "last_name", "section"],
+                                    value_vars=[col for col,
+                                                _, _ in test_info],
                                     var_name="test",
                                     value_name="score")
 
     # Extract test number & assign correct dates
-    test_data_long["test_number"] = test_data_long["test"].str.extract(
-        "(\d+)").astype(int)
+    # Extract test number and assign corresponding max score
+    test_data_long["test_number"] = test_data_long["test"].apply(
+        lambda x: re.match(r"(fa\d+)", x).group(1))
+    test_data_long["max_score"] = test_data_long["test"].apply(
+        lambda x: next(max_score for col, _,
+                       max_score in test_info if col == x)
+    )
     test_data_long["date"] = test_data_long["test_number"].apply(
         lambda x: test_dates[x - 1])
+    
+    # Handling missing values
+    test_data_long["score"].fillna(
+        test_data_long["score"].mean())
+    
+    # normalize scores
+    test_data_long["normalzed_scores"] = test_data_long["score"] / test_data_long["max_score"]
     
     # Drop old test column
     test_data_long.drop(columns=["test"], inplace=True)
 
-    # Handling missing values
-    test_data_long["score"].fillna(
-        test_data_long["score"].mean())
+
     
 
     print(f"Preprocessed data: {test_data_long}")
