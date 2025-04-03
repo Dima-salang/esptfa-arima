@@ -10,7 +10,6 @@ from django.db import transaction
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
 import logging
 import traceback
-import re
 
 logger = logging.getLogger("arima_model")
 
@@ -26,48 +25,24 @@ def preprocess_data(csv_file, analysis_document):
     num_tests = test_data.shape[1] - 4  # Exclude student_id, name, section
     test_dates = pd.date_range(
         start=analysis_document.test_start_date, periods=num_tests, freq="7D")
-    
-    # Identify columns with test scores (e.g., "fa1:30", "fa2:20")
-    test_columns = [col for col in test_data.columns if "fa" in col]
-
-    # Extract test numbers and max scores from column names
-    test_info = []
-    for col in test_columns:
-        match = re.match(r"(fa\d+):(\d+)", col)
-        if match:
-            test_number, max_score = match.groups()
-            test_info.append((col, test_number, int(max_score)))
 
     # Reshape from wide to long format
     test_data_long = test_data.melt(id_vars=["student_id", "first_name", "last_name", "section"],
-                                    value_vars=[col for col,
-                                                _, _ in test_info],
                                     var_name="test",
                                     value_name="score")
 
     # Extract test number & assign correct dates
-    # Extract test number and assign corresponding max score
-    test_data_long["test_number"] = test_data_long["test"].apply(
-        lambda x: re.match(r"(fa\d+)", x).group(1))
-    test_data_long["max_score"] = test_data_long["test"].apply(
-        lambda x: next(max_score for col, _,
-                       max_score in test_info if col == x)
-    )
+    test_data_long["test_number"] = test_data_long["test"].str.extract(
+        "(\d+)").astype(int)
     test_data_long["date"] = test_data_long["test_number"].apply(
         lambda x: test_dates[x - 1])
-    
-    # Handling missing values
-    test_data_long["score"].fillna(
-        test_data_long["score"].mean())
-    
-    # normalize scores
-    test_data_long["normalzed_scores"] = test_data_long["score"] / test_data_long["max_score"]
-    
+
     # Drop old test column
     test_data_long.drop(columns=["test"], inplace=True)
 
-
-    
+    # Handling missing values
+    test_data_long["score"].fillna(
+        test_data_long["score"].mean())
 
     print(f"Preprocessed data: {test_data_long}")
 
@@ -84,7 +59,7 @@ def make_stationary(student_data):
 def grid_search_arima(train_series):
     p_values = range(0, 2)
     d_values = [1]  # Differencing is manually applied, so d=1
-    q_values = range(0, 2)  
+    q_values = range(0, 2)
 
     best_aic = float("inf")
     best_order = None
@@ -147,14 +122,11 @@ def train_lstm_model(processed_data):
     lstm_model.fit(X_train, y_train, epochs=50, batch_size=16)
 
 
-def hybrid_prediction(student_scores):
+def hybrid_prediction(student_scores, arima_model):
     """ Generates a hybrid prediction using both ARIMA and LSTM. """
     global lstm_model
 
-    # Use ARIMA for baseline prediction
-    arima_model = train_arima(student_scores)
     arima_pred = arima_model.forecast(steps=1)[0]
-    
 
     # Use LSTM for refinement
     X_input = np.array(
@@ -162,7 +134,7 @@ def hybrid_prediction(student_scores):
     lstm_pred = lstm_model.predict(X_input)[0][0]
 
     # Hybrid prediction: Combine both models
-    final_pred = (0.6 * arima_pred) + (0.4 * lstm_pred)
+    final_pred = (arima_pred * 0.5) + (lstm_pred * 0.5)
     return final_pred
 
 
@@ -177,10 +149,6 @@ def train_model(processed_data, analysis_document):
     """ Trains ARIMA for each student and applies the hybrid approach. """
 
     first_fa_number = processed_data["test_number"].iloc[0]
-
-    p_values = range(0, 2)
-    d_values = [1]  # Differencing is manually applied, so d=1
-    q_values = range(0, 2)
 
     for student_id, student_data in processed_data.groupby("student_id"):
         logger.info(f"Processing Student {student_id}...")
@@ -197,7 +165,8 @@ def train_model(processed_data, analysis_document):
             )
 
         differenced_student_data = make_stationary(student_data.copy())
-        logger.info(f"Student data after differencing: {differenced_student_data}")
+        logger.info(
+            f"Student data after differencing: {differenced_student_data}")
         num_tests = differenced_student_data.shape[0]
         logger.info(f"Number of tests: {num_tests}")
 
@@ -219,13 +188,22 @@ def train_model(processed_data, analysis_document):
             predictions = np.cumsum(diff_predictions) + last_train_score
 
             # Hybrid prediction
-            hybrid_predictions = [hybrid_prediction(
-                differenced_student_data["score"].tolist())]
+            hybrid_predictions_diff = [hybrid_prediction(
+                train["score_diff"].tolist(), best_model)]
+
+            hybrid_predictions = hybrid_predictions_diff + last_train_score
 
             mae_arima = mean_absolute_error(test["score"], predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
+            
+            # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
+            if mae_arima < mae_hybrid:
+                best_prediction = mae_arima
+            else:
+                best_prediction = mae_hybrid
 
-            logger.info(f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
+            logger.info(
+                f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
 
             with transaction.atomic():
                 for i, (date, actual_score) in enumerate(zip(student_data["date"], student_data["score"])):
@@ -241,7 +219,7 @@ def train_model(processed_data, analysis_document):
                 future_dates = pd.date_range(
                     start=test.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
 
-                for i, (date, predicted_score) in enumerate(zip(future_dates, hybrid_predictions)):
+                for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
                     PredictedScore.objects.update_or_create(
                         analysis_document=analysis_document,
                         student_id=student,
@@ -253,7 +231,9 @@ def train_model(processed_data, analysis_document):
 
 
 def arima_driver(analysis_document):
-    logger.info(f"Processing Analysis Document... {analysis_document.analysis_document_id} - {analysis_document.analysis_doc_title}")
+    logger.info("Starting new analysis...")
+    logger.info(
+        f"Processing Analysis Document... {analysis_document.analysis_document_id} - {analysis_document.analysis_doc_title}")
     try:
         csv_path = analysis_document.analysis_doc.path
         processed_data = preprocess_data(csv_path, analysis_document)
@@ -261,5 +241,6 @@ def arima_driver(analysis_document):
         train_lstm_model(processed_data)  # Train LSTM first
         train_model(processed_data, analysis_document)
     except Exception as e:
-        logger.error(f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
+        logger.error(
+            f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
         logger.error(traceback.format_exc())
