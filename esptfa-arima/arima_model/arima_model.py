@@ -7,10 +7,13 @@ import tensorflow as tf
 from keras.api.models import Sequential
 from keras.api.layers import LSTM, Dense, Dropout, Bidirectional, Input
 from django.db import transaction
-from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore
+from django.db.models import Avg
+from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic
 import logging
 import traceback
 import re
+from scipy.stats import mode
+
 
 logger = logging.getLogger("arima_model")
 
@@ -45,7 +48,6 @@ def preprocess_data(csv_file, analysis_document):
                                                 _, _ in test_info],
                                     value_name="score")
 
-
     # Extract test number & assign correct dates
     # Extract test number and assign corresponding max score
     # Convert test number using the pre-extracted data from test_info
@@ -54,7 +56,7 @@ def preprocess_data(csv_file, analysis_document):
     )
     test_data_long["max_score"] = test_data_long["test"].apply(
         lambda x: next(max_score for col, _,
-                    max_score in test_info if col == x)
+                       max_score in test_info if col == x)
     )
     test_data_long["date"] = test_data_long["test_number"].apply(
         lambda x: test_dates[x - 1])
@@ -137,7 +139,8 @@ def train_lstm_model(processed_data):
     all_scores = []
     for _, student_data in processed_data.groupby("student_id"):
         normalized_diff_scores = make_stationary(student_data.copy())
-        scores = normalized_diff_scores.sort_values("date")["normalized_score_diff"].tolist()
+        scores = normalized_diff_scores.sort_values(
+            "date")["normalized_score_diff"].tolist()
         all_scores.extend(scores)  # Collect all scores
 
     # Convert data into sequences
@@ -154,7 +157,8 @@ def hybrid_prediction(student_scores, arima_model, last_normalized_score, last_m
     """ Generates a hybrid prediction using both ARIMA and LSTM. """
     global lstm_model
 
-    arima_pred = arima_prediction(arima_model=arima_model, student_scores=student_scores, last_normalized_score=last_normalized_score, last_max_score=last_max_score)
+    arima_pred = arima_prediction(arima_model=arima_model, student_scores=student_scores,
+                                  last_normalized_score=last_normalized_score, last_max_score=last_max_score)
 
     # Use LSTM for refinement
     X_input = np.array(
@@ -277,15 +281,66 @@ def train_model(processed_data, analysis_document):
                     )
 
 # function for computing necessary statistics
-def compute_statistics(analysis_document):
+
+
+def compute_document_statistics(analysis_document, passing_threshold=75, at_risk_threshold=74):
     # get the necessary statistics for the analysis document
     # e.g., mean, median, standard deviation
 
-    # mean of scores
-    
+    if analysis_document.empty:
+        return {
+            "mean": None, "median": None, "standard_deviation": None,
+            "minimum": None, "maximum": None, "mode": None,
+            "passing_rate": None, "failing_rate": None, "at_risk_students": None
+        }
 
+    # compute for mean using pandas
+    mean = analysis_document["score"].mean()
 
-    pass
+    # compute for median
+    median = analysis_document["score"].median()
+
+    # compute for standard deviation
+    standard_deviation = analysis_document["score"].std()
+
+    # compute for minimum
+    minimum = analysis_document["score"].min()
+
+    # compute for maximum
+    maximum = analysis_document["score"].max()
+
+    # Compute mode (handling cases where multiple modes exist)
+    mode_value = mode(analysis_document["score"])[
+        0][0] if not analysis_document["score"].mode().empty else None
+
+    # total students in the document
+    total_students = len(analysis_document)
+
+    # save statistics
+    AnalysisDocumentStatistic.objects.update_or_create(
+        analysis_document=analysis_document,
+        defaults={
+            "mean": mean,
+            "median": median,
+            "standard_deviation": standard_deviation,
+            "minimum": minimum,
+            "maximum": maximum,
+            "mode": mode_value,
+            "total_students": total_students
+        }
+    )
+
+    # return as dict
+    return {
+        "mean": mean,
+        "median": median,
+        "standard_deviation": standard_deviation,
+        "minimum": minimum,
+        "maximum": maximum, 
+        "mode": mode_value,
+        "total_students": total_students
+    }
+
 
 def arima_driver(analysis_document):
     """ Driver function for the ARIMA model prediction. Starts the process of predicting scores for students."""
