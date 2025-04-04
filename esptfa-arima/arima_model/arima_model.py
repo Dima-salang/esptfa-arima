@@ -28,10 +28,10 @@ def preprocess_data(csv_file, analysis_document):
     # Extract test numbers and max scores from column names
     test_info = []
     for col in test_columns:
-        match = re.match(r"(fa\d+):(\d+)", col)
+        match = re.match(r"fa(\d+):(\d+)", col)
         if match:
             test_number, max_score = match.groups()
-            test_info.append((col, test_number, int(max_score)))
+            test_info.append((col, int(test_number), int(max_score)))
 
     # Define test dates (assuming weekly tests)
     num_tests = test_data.shape[1] - 4  # Exclude student_id, name, section
@@ -45,13 +45,16 @@ def preprocess_data(csv_file, analysis_document):
                                                 _, _ in test_info],
                                     value_name="score")
 
+
     # Extract test number & assign correct dates
     # Extract test number and assign corresponding max score
-    test_data_long["test_number"] = test_data_long["test"].apply(
-        lambda x: re.match(r"(fa\d+)", x).group(1))
+    # Convert test number using the pre-extracted data from test_info
+    test_data_long["test_number"] = test_data_long["test"].map(
+        {col: test_number for col, test_number, _ in test_info}
+    )
     test_data_long["max_score"] = test_data_long["test"].apply(
         lambda x: next(max_score for col, _,
-                       max_score in test_info if col == x)
+                    max_score in test_info if col == x)
     )
     test_data_long["date"] = test_data_long["test_number"].apply(
         lambda x: test_dates[x - 1])
@@ -62,9 +65,10 @@ def preprocess_data(csv_file, analysis_document):
     # Handling missing values
     test_data_long["score"].fillna(
         test_data_long["score"].mean())
-    
+
     # normalize test scores
-    test_data_long["normalized_scores"] = test_data_long["score"] / test_data_long["max_score"]
+    test_data_long["normalized_scores"] = test_data_long["score"] / \
+        test_data_long["max_score"]
 
     print(f"Preprocessed data: {test_data_long}")
 
@@ -132,7 +136,8 @@ def train_lstm_model(processed_data):
     # Prepare data for LSTM training
     all_scores = []
     for _, student_data in processed_data.groupby("student_id"):
-        scores = student_data.sort_values("date")["score"].tolist()
+        normalized_diff_scores = make_stationary(student_data.copy())
+        scores = normalized_diff_scores.sort_values("date")["normalized_score_diff"].tolist()
         all_scores.extend(scores)  # Collect all scores
 
     # Convert data into sequences
@@ -145,28 +150,27 @@ def train_lstm_model(processed_data):
     lstm_model.fit(X_train, y_train, epochs=50, batch_size=16)
 
 
-def hybrid_prediction(student_scores, arima_model, last_max_score):
+def hybrid_prediction(student_scores, arima_model, last_normalized_score, last_max_score):
     """ Generates a hybrid prediction using both ARIMA and LSTM. """
     global lstm_model
 
-    arima_pred = arima_model.forecast(steps=1)[0]
+    arima_pred = arima_prediction(arima_model=arima_model, student_scores=student_scores, last_normalized_score=last_normalized_score, last_max_score=last_max_score)
 
     # Use LSTM for refinement
     X_input = np.array(
         student_scores[-window_size:]).reshape(1, window_size, 1)
     lstm_pred = lstm_model.predict(X_input)[0][0]
 
-    # Hybrid prediction: Combine both models
-    final_pred = (arima_pred * 0.5) + (lstm_pred * 0.5)
-
-    # reverse differencing
-    last_known_normalized_score = student_scores.iloc[-1]
-    predicted_normalized_score = final_pred + last_known_normalized_score
+    # reverse difference the lstm_pred
+    lstm_pred_normalized = lstm_pred + last_normalized_score
 
     # reverse normalization
-    predicted_score = predicted_normalized_score * last_max_score
+    lstm_pred = lstm_pred_normalized * last_max_score
 
-    return predicted_score
+    # Hybrid prediction: Combine both models
+    hybrid_prediction = (arima_pred * 0.5) + (lstm_pred * 0.5)
+
+    return hybrid_prediction
 
 
 def train_arima(train_series):
@@ -176,14 +180,13 @@ def train_arima(train_series):
     return model_fit
 
 
-def arima_prediction(arima_model, student_scores, last_max_score):
+def arima_prediction(arima_model, student_scores, last_normalized_score, last_max_score):
     """ Generates an ARIMA prediction for a given student's time series. """
-    last_known_normalized_score = student_scores.iloc[-1]
 
     arima_pred = arima_model.forecast(steps=1)[0]
 
     # reverse differencing
-    predicted_normalized_score = arima_pred + last_known_normalized_score
+    predicted_normalized_score = arima_pred + last_normalized_score
 
     # reverse normalization
     predicted_score = predicted_normalized_score * last_max_score
@@ -229,21 +232,22 @@ def train_model(processed_data, analysis_document):
             train["normalized_score_diff"])
 
         if best_order:
-            arima_predictions = arima_prediction(best_model, train["normalized_score_diff"], train["max_scores"].iloc[-1])
-            last_train_score = train["score"].iloc[-1]
+            # Base ARIMA Prediction
+            arima_predictions = [arima_prediction(
+                best_model, train["normalized_score_diff"], train["normalized_scores"].iloc[-1], train["max_score"].iloc[-1])]
 
             # Hybrid prediction
             hybrid_predictions = [hybrid_prediction(
-                train["normalized_score_diff"], best_model, train["max_scores"].iloc[-1])]
+                train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], train["max_score"].iloc[-1])]
 
             mae_arima = mean_absolute_error(test["score"], arima_predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
-            
+
             # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
             if mae_arima < mae_hybrid:
-                best_prediction = mae_arima
+                best_prediction = arima_predictions
             else:
-                best_prediction = mae_hybrid
+                best_prediction = hybrid_predictions
 
             logger.info(
                 f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
@@ -274,6 +278,7 @@ def train_model(processed_data, analysis_document):
 
 
 def arima_driver(analysis_document):
+    """ Driver function for the ARIMA model prediction. Starts the process of predicting scores for students."""
     logger.info("Starting new analysis...")
     logger.info(
         f"Processing Analysis Document... {analysis_document.analysis_document_id} - {analysis_document.analysis_doc_title}")
