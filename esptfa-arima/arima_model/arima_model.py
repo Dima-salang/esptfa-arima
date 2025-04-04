@@ -276,6 +276,16 @@ def train_model(processed_data, analysis_document):
                         score=predicted_score,
                     )
 
+# function for computing necessary statistics
+def compute_statistics(analysis_document):
+    # get the necessary statistics for the analysis document
+    # e.g., mean, median, standard deviation
+
+    # mean of scores
+    
+
+
+    pass
 
 def arima_driver(analysis_document):
     """ Driver function for the ARIMA model prediction. Starts the process of predicting scores for students."""

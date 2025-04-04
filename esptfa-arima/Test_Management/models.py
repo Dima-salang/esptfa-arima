@@ -52,6 +52,23 @@ class AnalysisDocument(models.Model):
 
     def __str__(self):
         return self.analysis_doc_title
+    
+class AnalysisDocumentStatistic(models.Model):
+    analysis_document_statistic_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE)
+    mean = models.FloatField()
+    standard_deviation = models.FloatField()
+    median = models.FloatField()
+    minimum = models.FloatField()
+    maximum = models.FloatField()
+    mode = models.FloatField()
+    passing_rate = models.FloatField()
+    failing_rate = models.FloatField()
+    total_students = models.IntegerField()
+    
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} Statistics"
 
 class FormativeAssessmentScore(models.Model):
     formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
