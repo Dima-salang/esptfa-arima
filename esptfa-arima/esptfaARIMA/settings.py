@@ -36,6 +36,13 @@ MEDIA_URL = "/media/"
 # Media files will be stored in the "media" folder
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+# CELERY CONFIG
+# Redis as message broker
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -111,6 +118,70 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} | {levelname} | {module} | {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} | {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/django/django_logs.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 3,
+            "delay": True,
+            "formatter": "verbose",
+        },
+        "file_INFO": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/django/django_info_logs.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 2,
+            "delay": True,
+            "formatter": "verbose",
+        },
+        "file_arima_model": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/arima/arima_model_logs.log"),
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file_INFO"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "django.request": {
+            "level": "ERROR",
+            "handlers": ["console", "file_INFO"],
+            "propagate": False,
+        }, "arima_model": {
+            "handlers": ["console", "file_arima_model"],
+            "level": "DEBUG",
+            "propagate": True,
+        }
+    },
+}
+
 
 
 # Internationalization

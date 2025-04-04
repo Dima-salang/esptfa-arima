@@ -4,19 +4,6 @@
 
 {% block content %}
 
-{% if messages %}
-<div class="max-w-md mx-auto mb-4">
-    {% for message in messages %}
-    <div class="p-3 rounded-md text-white 
-        {% if message.tags == 'success' %} bg-green-500 
-        {% elif message.tags == 'error' %} bg-red-500 
-        {% else %} bg-blue-500 {% endif %}">
-        {{ message }}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
 <div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="bg-white shadow-lg rounded-lg p-6 max-w-md w-full">
@@ -114,6 +101,288 @@
                 <p class="text-red-500 text-sm mt-1">{{ form.analysis_doc.errors.0 }}</p>
                 {% endif %}
             </div>
+
+
+            <!-- Test Topics (Dynamic) -->
+            <div class="mb-6">
+                <label for="id_test_topics" class="block text-sm font-medium text-gray-700 mb-2">Test Topics</label>
+            
+                <!-- Hidden textarea that will be submitted with the form -->
+                <textarea name="test_topics" id="id_test_topics" rows="3" class="hidden"
+                    placeholder="Test1: Algebra, Test2: Geometry">{{ form.test_topics.value|default:'' }}</textarea>
+            
+                <!-- Dynamic topics container -->
+                <div class="bg-white rounded-lg border border-gray-300 p-4" id="topics-container">
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">Add topics for each formative assessment:</p>
+            
+                        <!-- Topics list -->
+                        <div id="topics-list" class="space-y-3 mb-4">
+                            <!-- Dynamic topics will be added here -->
+                            {% if form.test_topics.value %}
+                            <!-- This will be populated by JavaScript on load -->
+                            {% else %}
+                            <!-- Default empty state with one topic field -->
+                            <div class="topic-item flex items-center space-x-3">
+                                <div class="w-24 flex">
+                                    <span
+                                        class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
+                                        FA
+                                    </span>
+                                    <input type="number" min="1" value="1"
+                                        class="topic-number block w-full rounded-none rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        placeholder="1">
+                                </div>
+                                <div class="flex-grow">
+                                    <input type="text"
+                                        class="topic-content block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        placeholder="Enter topic (e.g., Algebra)">
+                                </div>
+                                <button type="button"
+                                    class="remove-topic p-1.5 text-gray-400 hover:text-red-500 focus:outline-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+            
+                        <!-- Add topic button -->
+                        <button type="button" id="add-topic-btn"
+                            class="inline-flex items-center px-3 py-1.5 border border-blue-700 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Another Topic
+                        </button>
+                    </div>
+            
+                    <!-- Preview of formatted output -->
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-sm font-medium text-gray-700">Preview</h4>
+                            <button type="button" id="copy-preview-btn"
+                                class="text-xs text-blue-700 hover:text-blue-800 focus:outline-none">
+                                Copy to clipboard
+                            </button>
+                        </div>
+                        <div id="topics-preview" class="text-sm bg-gray-50 p-3 rounded border border-gray-200 text-gray-600">
+                            <!-- Preview will be shown here -->
+                            <span class="text-gray-400 italic">Topics will appear here as you add them</span>
+                        </div>
+                    </div>
+                </div>
+            
+                <p class="text-gray-500 text-xs mt-2">
+                    Add topics for each formative assessment. These will help analyze student performance by topic area.
+                </p>
+            
+                {% if form.test_topics.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.test_topics.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const topicsList = document.getElementById('topics-list');
+                    const addTopicBtn = document.getElementById('add-topic-btn');
+                    const hiddenTextarea = document.getElementById('id_test_topics');
+                    const topicsPreview = document.getElementById('topics-preview');
+                    const copyPreviewBtn = document.getElementById('copy-preview-btn');
+
+                    // Initialize from existing value if present
+                    if (hiddenTextarea.value.trim()) {
+                        // Clear the default empty state
+                        topicsList.innerHTML = '';
+
+                        // Parse the existing value
+                        const topics = parseTopics(hiddenTextarea.value);
+
+                        // Create fields for each topic
+                        topics.forEach(topic => {
+                            addTopicField(topic.number, topic.content);
+                        });
+
+                        // Update the preview
+                        updatePreview();
+                    }
+
+                    // Add a new topic field
+                    addTopicBtn.addEventListener('click', function () {
+                        // Find the highest FA number currently in use
+                        let highestFA = 0;
+                        document.querySelectorAll('.topic-number').forEach(input => {
+                            const faNumber = parseInt(input.value);
+                            if (faNumber > highestFA) {
+                                highestFA = faNumber;
+                            }
+                        });
+
+                        // Add a new field with the next FA number
+                        addTopicField(highestFA + 1, '');
+                        updatePreview();
+                    });
+
+                    // Handle removing topics
+                    topicsList.addEventListener('click', function (e) {
+                        if (e.target.closest('.remove-topic')) {
+                            const topicItem = e.target.closest('.topic-item');
+                            topicItem.remove();
+                            updatePreview();
+
+                            // Ensure at least one topic field exists
+                            if (topicsList.children.length === 0) {
+                                addTopicField(1, '');
+                                updatePreview();
+                            }
+                        }
+                    });
+
+                    // Handle changes to topic fields
+                    topicsList.addEventListener('input', function (e) {
+                        if (e.target.classList.contains('topic-number') || e.target.classList.contains('topic-content')) {
+                            updatePreview();
+                        }
+                    });
+
+                    // Copy preview to clipboard
+                    copyPreviewBtn.addEventListener('click', function () {
+                        const textToCopy = topicsPreview.textContent.trim();
+                        navigator.clipboard.writeText(textToCopy).then(() => {
+                            // Show a temporary "Copied!" message
+                            const originalText = copyPreviewBtn.textContent;
+                            copyPreviewBtn.textContent = 'Copied!';
+                            setTimeout(() => {
+                                copyPreviewBtn.textContent = originalText;
+                            }, 2000);
+                        });
+                    });
+
+                    // Function to add a new topic field
+                    function addTopicField(number, content) {
+                        const topicItem = document.createElement('div');
+                        topicItem.className = 'topic-item flex items-center space-x-3';
+
+                        topicItem.innerHTML = `
+                            <div class="w-24 flex">
+                                <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
+                                    FA
+                                </span>
+                                <input type="number" min="1" class="topic-number block w-full rounded-none rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="1" value="${number}">
+                            </div>
+                            <div class="flex-grow">
+                                <input type="text" class="topic-content block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Enter topic (e.g., Algebra)" value="${content}">
+                            </div>
+                            <button type="button" class="remove-topic p-1.5 text-gray-400 hover:text-red-500 focus:outline-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        `;
+
+                        topicsList.appendChild(topicItem);
+                    }
+
+                    // Function to update the preview and hidden textarea
+                    function updatePreview() {
+                        const topics = [];
+
+                        // Collect all topic items
+                        document.querySelectorAll('.topic-item').forEach(item => {
+                            const numberInput = item.querySelector('.topic-number');
+                            const contentInput = item.querySelector('.topic-content');
+
+                            const number = numberInput.value.trim();
+                            const content = contentInput.value.trim();
+
+                            if (number && content) {
+                                topics.push({
+                                    number: parseInt(number),
+                                    content: content
+                                });
+                            }
+                        });
+
+                        // Sort topics by FA number
+                        topics.sort((a, b) => a.number - b.number);
+
+                        // Format for preview and textarea
+                        const formattedTopics = topics.map(topic => `FA${topic.number}: ${topic.content}`).join(', ');
+
+                        // Update preview
+                        if (formattedTopics) {
+                            topicsPreview.textContent = formattedTopics;
+                        } else {
+                            topicsPreview.innerHTML = '<span class="text-gray-400 italic">Topics will appear here as you add them</span>';
+                        }
+
+                        // Update hidden textarea
+                        hiddenTextarea.value = formattedTopics;
+                    }
+
+                    // Function to parse existing topics from textarea
+                    function parseTopics(text) {
+                        const topics = [];
+
+                        // Handle comma-separated format
+                        if (text.includes(',')) {
+                            text.split(',').forEach(part => {
+                                const trimmed = part.trim();
+                                const match = trimmed.match(/^(FA|Test)(\d+):\s*(.+)$/);
+
+                                if (match) {
+                                    topics.push({
+                                        number: parseInt(match[2]),
+                                        content: match[3].trim()
+                                    });
+                                }
+                            });
+                        }
+                        // Handle line-by-line format
+                        else if (text.includes('\n')) {
+                            text.split('\n').forEach(line => {
+                                const trimmed = line.trim();
+                                if (trimmed) {
+                                    const match = trimmed.match(/^(FA|Test)(\d+):\s*(.+)$/);
+
+                                    if (match) {
+                                        topics.push({
+                                            number: parseInt(match[2]),
+                                            content: match[3].trim()
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                        // If no topics were found but there's text, try to parse it as a single topic
+                        if (topics.length === 0 && text.trim()) {
+                            const match = text.trim().match(/^(FA|Test)(\d+):\s*(.+)$/);
+                            if (match) {
+                                topics.push({
+                                    number: parseInt(match[2]),
+                                    content: match[3].trim()
+                                });
+                            }
+                        }
+
+                        // If still no topics were found, return an empty array
+                        return topics.length > 0 ? topics : [];
+                    }
+
+                    // Add form submit handler to ensure the textarea is updated
+                    const form = hiddenTextarea.closest('form');
+                    if (form) {
+                        form.addEventListener('submit', function () {
+                            updatePreview(); // Ensure the textarea is updated before submission
+                        });
+                    }
+                });
+            </script>
 
             <!-- Submit Button -->
             <div>

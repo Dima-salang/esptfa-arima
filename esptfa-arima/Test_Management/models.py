@@ -4,6 +4,8 @@ from Authentication.models import Teacher
 # Create your models here.
 
 
+
+
 class Subject(models.Model):
     subject_id = models.AutoField(unique=True, primary_key=True)
     subject_name = models.CharField(max_length=100)
@@ -51,6 +53,11 @@ class AnalysisDocument(models.Model):
     def __str__(self):
         return self.analysis_doc_title
 
+
+
+
+
+
 class FormativeAssessmentScore(models.Model):
     formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
     analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
@@ -73,3 +80,93 @@ class PredictedScore(models.Model):
 
     def __str__(self):
         return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
+
+
+class TestTopic(models.Model):
+    topic_id = models.AutoField(unique=True, primary_key=True)
+    topic_name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.topic_name
+
+    @classmethod
+    def get_or_create_topic(cls, topic_name):
+        """Get existing topic or create a new one (handles duplicates)"""
+        topic_name = topic_name.strip()
+        try:
+            return cls.objects.get(topic_name__iexact=topic_name)
+        except cls.DoesNotExist:
+            return cls.objects.create(topic_name=topic_name)
+
+
+class TestTopicMapping(models.Model):
+    """Maps test numbers to topics for a specific analysis document"""
+    mapping_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE, related_name='test_topics')
+    test_number = models.CharField(max_length=5)
+    topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE)
+
+    class Meta:
+        # Ensure each test number has only one topic per document
+        unique_together = ('analysis_document', 'test_number')
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} - Test {self.test_number}: {self.topic}"
+
+
+class AnalysisDocumentStatistic(models.Model):
+    analysis_document_statistic_id = models.AutoField(
+        unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE)
+    mean = models.FloatField()
+    standard_deviation = models.FloatField()
+    median = models.FloatField()
+    minimum = models.FloatField()
+    maximum = models.FloatField()
+    mode = models.FloatField()
+    total_students = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} Statistics"
+
+
+class FormativeAssessmentStatistic(models.Model):
+    formative_assessment_statistic_id = models.AutoField(
+        unique=True, primary_key=True)
+    formative_assessment_number = models.CharField(max_length=5)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE)
+    fa_topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE, null=True)
+    mean = models.FloatField()
+    standard_deviation = models.FloatField()
+    median = models.FloatField()
+    minimum = models.FloatField()
+    maximum = models.FloatField()
+    mode = models.FloatField()
+    passing_rate = models.FloatField()
+    failing_rate = models.FloatField()
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
+
+
+class StudentScoresStatistic(models.Model):
+    student_scores_statistic_id = models.AutoField(
+        unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    mean = models.FloatField()
+    standard_deviation = models.FloatField()
+    median = models.FloatField()
+    minimum = models.FloatField()
+    maximum = models.FloatField()
+    mode = models.FloatField()
+    passing_rate = models.FloatField()
+    failing_rate = models.FloatField()
+
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} Statistics"
