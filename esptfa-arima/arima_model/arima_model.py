@@ -15,6 +15,7 @@ import re
 from scipy.stats import mode
 
 
+
 logger = logging.getLogger("arima_model")
 
 arima_results = []
@@ -294,6 +295,8 @@ def compute_document_statistics(analysis_document, passing_threshold=75, at_risk
             "passing_rate": None, "failing_rate": None, "at_risk_students": None
         }
 
+    
+
     # compute for mean using pandas
     mean = analysis_document["score"].mean()
 
@@ -340,6 +343,25 @@ def compute_document_statistics(analysis_document, passing_threshold=75, at_risk
         "mode": mode_value,
         "total_students": total_students
     }
+
+
+def compute_test_statistics(analysis_document, passing_threshold, at_risk_threshold):
+    # group by test number
+    for fa_number, fa_data in analysis_document.groupby("formative_assessment_number"):
+        # compute for mean using pandas
+        scores = fa_data["score"]
+        total_scores = len(scores)
+        mean = scores.mean()
+        median = scores.median()
+        standard_deviation = scores.std()
+        minimum = scores.min()
+        maximum = scores.max()
+        passing_scores = len(scores[scores >= passing_threshold])
+        failing_scores = len(scores[scores < passing_threshold])
+        passing_rate = (passing_scores / total_scores) * 100
+        failing_rate = (total_scores - passing_scores) / total_scores * 100
+        at_risk_students = len(scores[scores < at_risk_threshold])
+    
 
 
 def arima_driver(analysis_document):
