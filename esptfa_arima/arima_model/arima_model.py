@@ -338,6 +338,7 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         
         # compute for mean using pandas
         scores = fa_data["score"]
+        passing_threshold = 0.75 * fa_data["max_score"].iloc[0]
         logger.info(f"FA Number: {fa_number}, FA Scores: {scores}")
         total_scores = len(scores)
         mean = scores.mean()
@@ -386,6 +387,7 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
     # group by student id
     for student_id, student_data in processed_data.groupby("student_id"):
         # get student instance
+        passing_threshold = 0.75 * student_data["max_score"].iloc[0]
         student = Student.objects.get(student_id=student_id)
         scores = student_data["score"]
         logger.info(f"Student ID: {student_id}, Scores: {scores}")
