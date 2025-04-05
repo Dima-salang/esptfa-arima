@@ -9,7 +9,7 @@ from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, TestTopicMapping, TestTopic, FormativeAssessmentStatistic
+from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
 
 
 @login_required
@@ -169,3 +169,21 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         return context
 
+
+class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
+    model = StudentScoresStatistic
+    template_name = "student_detail.html"
+    context_object_name = "student_statistic"
+    pk_url_kwarg = "student_pk"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student_statistic = self.get_object()
+        context["formative_scores"] = FormativeAssessmentScore.objects.filter(
+            student_id= student_statistic.student,
+            analysis_document = student_statistic.analysis_document
+        )
+        context["predicted_score"] = PredictedScore.objects.filter(
+            student_id=student_statistic.student
+        )
+        return context
