@@ -276,5 +276,13 @@
             </a>
         </div>
     </div>
+    <div>
+        {% for fa in individual_formative_assessments %}
+        <div class="bg-white rounded-lg shadow-md p-6 mb-4">
+            <h1>Hello!</h1>
+            <a href="{% url 'individual_fa_detail' document.pk fa.pk %}">{{fa.formative_assessment_statistic_id}} - {{fa.formative_assessment_number}}</a>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

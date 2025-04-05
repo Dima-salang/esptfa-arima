@@ -238,13 +238,14 @@ def train_model(processed_data, analysis_document):
             train["normalized_score_diff"])
 
         if best_order:
+            last_max_score = train["max_score"].iloc[-1]
             # Base ARIMA Prediction
             arima_predictions = [arima_prediction(
-                best_model, train["normalized_score_diff"], train["normalized_scores"].iloc[-1], train["max_score"].iloc[-1])]
+                best_model, train["normalized_score_diff"], train["normalized_scores"].iloc[-1], last_max_score)]
 
             # Hybrid prediction
             hybrid_predictions = [hybrid_prediction(
-                train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], train["max_score"].iloc[-1])]
+                train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], last_max_score]
 
             mae_arima = mean_absolute_error(test["score"], arima_predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
@@ -272,7 +273,17 @@ def train_model(processed_data, analysis_document):
                 future_dates = pd.date_range(
                     start=test.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
 
+
+
                 for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
+                    
+                    # calculate for the predicted score status
+                    passing_threshold = 0.75 * last_max_score
+                    if predicted_score >= passing_threshold:
+                        predicted_status = "pass"
+                    else:
+                        predicted_status = "fail"
+
                     PredictedScore.objects.update_or_create(
                         analysis_document=analysis_document,
                         student_id=student,
@@ -280,6 +291,7 @@ def train_model(processed_data, analysis_document):
                             last_fa_number + i + 1),
                         date=date,
                         score=predicted_score,
+                        predicted_status=predicted_status
                     )
 
 # function for computing necessary statistics

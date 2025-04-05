@@ -77,6 +77,8 @@ class PredictedScore(models.Model):
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
     formative_assessment_number = models.CharField(max_length=5)
+    predicted_status = models.CharField(max_length=20, null=True)
+
 
     def __str__(self):
         return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"

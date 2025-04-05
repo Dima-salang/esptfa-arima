@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-semibold mb-4">Formative Assessment Details</h1>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Assessment Information</h2>
+            <p><strong>Title:</strong> {{ fa_statistic.formative_assessment_number }} - {{fa_statistic.formative_assessment_statistic_id}}</p>
+        </div>
+    </div>
+
+{% endblock content %}
