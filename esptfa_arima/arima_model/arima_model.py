@@ -245,7 +245,7 @@ def train_model(processed_data, analysis_document):
 
             # Hybrid prediction
             hybrid_predictions = [hybrid_prediction(
-                train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], last_max_score]
+                train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], last_max_score)]
 
             mae_arima = mean_absolute_error(test["score"], arima_predictions)
             mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
