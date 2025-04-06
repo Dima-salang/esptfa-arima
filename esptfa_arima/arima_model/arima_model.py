@@ -260,13 +260,15 @@ def train_model(processed_data, analysis_document):
                 f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
 
             with transaction.atomic():
-                for i, (date, actual_score) in enumerate(zip(student_data["date"], student_data["score"])):
+                for i, (date, actual_score, max_score) in enumerate(zip(student_data["date"], student_data["score"], student_data["max_score"])):
+                    passing_threshold = 0.75 * max_score
                     FormativeAssessmentScore.objects.update_or_create(
                         analysis_document=analysis_document,
                         student_id=student,
                         formative_assessment_number=str(first_fa_number + i),
                         date=date,
                         score=actual_score,
+                        passing_threshold=passing_threshold
                     )
 
                 last_fa_number = differenced_student_data["test_number"].iloc[-1]
@@ -291,7 +293,8 @@ def train_model(processed_data, analysis_document):
                             last_fa_number + i + 1),
                         date=date,
                         score=predicted_score,
-                        predicted_status=predicted_status
+                        predicted_status=predicted_status,
+                        passing_threshold=passing_threshold
                     )
 
 # function for computing necessary statistics
@@ -327,6 +330,9 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     # total students in the document
     total_students = processed_data["student_id"].nunique()
 
+    # mean passing threshold
+    passing_threshold = 0.75 * processed_data["max_score"].mean()
+
     # save statistics
     analysis_document = AnalysisDocumentStatistic.objects.update_or_create(
         analysis_document=analysis_document,
@@ -337,7 +343,8 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
             "minimum": minimum,
             "maximum": maximum,
             "mode": mode_value,
-            "total_students": total_students
+            "total_students": total_students,
+            "mean_passing_threshold": passing_threshold
         }
     )
 
@@ -352,7 +359,7 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         scores = fa_data["score"]
         passing_threshold = 0.75 * fa_data["max_score"].iloc[0]
         logger.info(f"FA Number: {fa_number}, FA Scores: {scores}")
-        total_scores = len(scores)
+        total_scores = scores.count()
         mean = scores.mean()
         median = scores.median()
         mode_series = scores.mode()
@@ -388,7 +395,8 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
                     "minimum": minimum,
                     "maximum": maximum,
                     "passing_rate": passing_rate,
-                    "failing_rate": failing_rate
+                    "failing_rate": failing_rate,
+                    "passing_threshold": passing_threshold
                 } 
             )
 

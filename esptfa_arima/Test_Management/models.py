@@ -65,6 +65,7 @@ class FormativeAssessmentScore(models.Model):
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
     formative_assessment_number = models.CharField(max_length=5)
+    passing_threshold = models.FloatField()
 
     def __str__(self):
         return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
@@ -78,6 +79,7 @@ class PredictedScore(models.Model):
     date = models.DateField(auto_now_add=True)
     formative_assessment_number = models.CharField(max_length=5)
     predicted_status = models.CharField(max_length=20, null=True)
+    passing_threshold = models.FloatField()
 
 
     def __str__(self):
@@ -129,6 +131,7 @@ class AnalysisDocumentStatistic(models.Model):
     maximum = models.FloatField()
     mode = models.FloatField()
     total_students = models.IntegerField()
+    mean_passing_threshold = models.FloatField()
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Statistics"
@@ -149,6 +152,7 @@ class FormativeAssessmentStatistic(models.Model):
     mode = models.FloatField()
     passing_rate = models.FloatField()
     failing_rate = models.FloatField()
+    passing_threshold = models.FloatField()
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
