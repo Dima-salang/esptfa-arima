@@ -157,6 +157,7 @@ class FormativeAssessmentStatistic(models.Model):
     max_score = models.FloatField(null=True)
     histogram = models.FileField(upload_to='histograms/', null=True)
     scatterplot = models.FileField(upload_to='scatterplots/', null=True)
+    bar_chart = models.FileField(upload_to='bar_charts/', null=True)
     boxplot = models.FileField(upload_to='boxplots/', null=True)
 
     def __str__(self):

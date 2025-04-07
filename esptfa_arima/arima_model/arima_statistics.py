@@ -45,7 +45,7 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     passing_threshold = 0.75 * processed_data["max_score"].mean()
 
     # Save the heatmap image to the model
-    heatmap_image = compute_heatmap(processed_data)
+    heatmap_image = generate_heatmap(processed_data)
     filename = f"heatmap_{analysis_document.pk}.png"
 
 
@@ -71,7 +71,7 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     return analysis_document_statistic
 
 
-def compute_heatmap(processed_data, value_column="normalized_scores"):
+def generate_heatmap(processed_data, value_column="normalized_scores"):
     """
         Plots and returns a heatmap image (as BytesIO) where rows are students, columns are test numbers, and cells are the specified value.
         """
@@ -139,6 +139,10 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         boxplot_image = generate_boxplot(fa_data, fa_number)
         boxplot_filename = f"boxplot_{analysis_document.pk}_{fa_number}.png"
 
+        bar_chart_image = generate_bar_chart(fa_data, fa_number)
+        bar_chart_filename = f"bar_chart_{analysis_document.pk}_{fa_number}.png"
+
+
         # commit to db
         with transaction.atomic():
 
@@ -160,16 +164,15 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
                 }
             )
 
-        # save images
-        fa_statistic.histogram.save(
-            histogram_filename, ContentFile(histogram_image.read(), save=True)
-        )
-        fa_statistic.scatterplot.save(
-            scatterplot_filename, ContentFile(scatterplot_image.read(), save=True)
-        )
-        fa_statistic.boxplot.save(
-            boxplot_filename, ContentFile(boxplot_image.read(), save=True)
-        )
+            # save images
+            fa_statistic.histogram.save(
+                histogram_filename, ContentFile(histogram_image.read()), save=True)
+            fa_statistic.scatterplot.save(
+                scatterplot_filename, ContentFile(scatterplot_image.read()), save=True)
+            fa_statistic.boxplot.save(
+                boxplot_filename, ContentFile(boxplot_image.read()), save=True)
+            fa_statistic.bar_chart.save(
+                bar_chart_filename, ContentFile(bar_chart_image.read()), save=True)
 
 
 
@@ -228,7 +231,8 @@ def generate_score_dist_chart(fa_data, fa_number):
     ax.set_ylabel("Frequency")
     plt.tight_layout()
     buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
+    fig.savefig(buffer, format='png')
+    plt.close(fig)
     buffer.seek(0)
     return buffer
 
@@ -240,7 +244,7 @@ def generate_scatterplot(fa_data, fa_number):
     ax.set_ylabel("Score")
     plt.tight_layout()
     buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
+    fig.savefig(buffer, format='png')
     buffer.seek(0)
     return buffer
 
@@ -251,6 +255,40 @@ def generate_boxplot(fa_data, fa_number):
     ax.set_xlabel("Score")
     plt.tight_layout()
     buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
+    fig.savefig(buffer, format='png')
+    buffer.seek(0)
+    return buffer
+
+def generate_bar_chart(fa_data, fa_number):
+    fig, ax = plt.subplots()
+    sns.barplot(x=fa_data["student_id"], y=fa_data["score"], ax=ax)
+    ax.set_title(f"Score Bar Chart for FA Number {fa_number}")
+    ax.set_xlabel("Student ID")
+    ax.set_ylabel("Score")
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format='png')
+    buffer.seek(0)
+    return buffer
+
+
+def generate_student_line_chart(student_data):
+    fig, ax = plt.subplots()
+
+    # actual scores
+    sns.lineplot(x=student_data["test_number"], y=student_data["score"], label="Score", marker="o", color="blue", ax=ax)
+    
+    # predicted scores
+    sns.lineplot(x=student_data["test_number"], y=student_data["predicted_score"], label="Predicted Score", marker="o", color="orange", ax=ax)
+    
+    
+    ax.set_title(f"Actual vs Predicted Scores Over Time")
+    ax.set_xlabel("FA Number")
+    ax.set_ylabel("Score")
+    ax.legend()
+    ax.grid(True)
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format='png')
     buffer.seek(0)
     return buffer

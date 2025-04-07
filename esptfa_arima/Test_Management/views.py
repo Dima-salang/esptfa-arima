@@ -12,6 +12,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
 from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
+from django.db import transaction
 
 logger = logging.getLogger("arima_model")
 
@@ -27,32 +28,33 @@ def upload_analysis_document(request):
     if request.method == "POST":
         form = AnalysisDocumentForm(request.POST, request.FILES)
         if form.is_valid():
-            document = form.save(commit=False)
-            document.teacher_id = teacher
-            # process the document and check if there are errors
-            document.save()
+            with transaction.atomic():
 
-            # Process test topics if provided
-            test_topics_str = form.cleaned_data.get('test_topics', '')
-            if test_topics_str:
-                process_test_topics(document, test_topics_str)
-            else:
-                # If no topics provided, use default naming based on CSV columns
-                process_default_topics(document, form.test_columns)
+                document = form.save(commit=False)
+                document.teacher_id = teacher
+                # process the document and check if there are errors
+                document.save()
 
-            try:
-                # try and process the document
-                process_analysis_document.delay(document.analysis_document_id)
+                # Process test topics if provided
+                test_topics_str = form.cleaned_data.get('test_topics', '')
+                if test_topics_str:
+                    process_test_topics(document, test_topics_str)
+                else:
+                    # If no topics provided, use default naming based on CSV columns
+                    process_default_topics(document, form.test_columns)
 
-            except Exception as e:
-                document.delete()
-                messages.error(
-                    request, "Error processing the document: " + str(e))
-            messages.success(
-                request, "Document uploaded successfully! Please wait at least 5 minutes for the analysis to finish.")
+                try:
+                    # try and process the document
+                    process_analysis_document.delay(document.analysis_document_id)
 
-            # Redirect after success
-            return redirect("formative_assessment_dashboard")
+                except Exception as e:
+                    messages.error(
+                        request, "Error processing the document: " + str(e))
+                messages.success(
+                    request, "Document uploaded successfully! Please wait at least 5 minutes for the analysis to finish.")
+
+                # Redirect after success
+                return redirect("formative_assessment_dashboard")
         
         else:
             messages.error(
@@ -249,6 +251,8 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
             analysis_document=analysis_document,
             formative_assessment_number=fa_statistic.formative_assessment_number
         )
+
+        context["normalized_mean_scaled"] = fa_statistic.mean / fa_statistic.max_score * 100 if fa_statistic.max_score else 0
 
 
         return context
