@@ -243,6 +243,14 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        fa_statistic = self.get_object()
+        analysis_document = fa_statistic.analysis_document
+        context["formative_scores"] = FormativeAssessmentScore.objects.filter(
+            analysis_document=analysis_document,
+            formative_assessment_number=fa_statistic.formative_assessment_number
+        )
+
+
         return context
 
 

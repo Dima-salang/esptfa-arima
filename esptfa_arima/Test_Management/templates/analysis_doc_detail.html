@@ -373,7 +373,14 @@
                         {% for prediction in predictions %}
                         {% if prediction.student_id == last_formative_assessment.student_id %}
                         <tr class="hover:bg-gray-50">
-                            <td class="py-3 text-gray-900">{{ last_formative_assessment.student_id }}</td>
+                            <td class="py-3 text-gray-900">{{ last_formative_assessment.student_id }} 
+                                <div class="mt-2">
+                                <a href="{% url 'individual_fa_detail' document.pk last_formative_assessment.pk %}"
+                                    class="text-blue-700 hover:text-blue-800 text-xs font-medium">
+                                    View Details →
+                                </a>
+                                </div>
+                            </td>
                             <td class="py-3 text-gray-900">FA{{ last_formative_assessment.formative_assessment_number }}</td>
                             <td class="py-3 font-medium text-gray-900">{{ last_formative_assessment.score|floatformat:1 }}</td>
                             <td class="py-3 text-gray-900">FA{{ prediction.formative_assessment_number }}</td>
@@ -385,23 +392,21 @@
                                 {{ prediction.score|floatformat:1 }}
                             </td>
                             <td class="py-3">
-                                {% if prediction.score > fa.score %}
+                                {% if prediction.score > last_formative_assessment.score %}
                                 <span class="inline-flex items-center text-green-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                     </svg>
-                                    +{{ prediction.score|add:fa.score|floatformat:1 }}
                                 </span>
-                                {% elif prediction.score < fa.score %} <span
+                                {% elif prediction.score < last_formative_assessment.score %} <span
                                     class="inline-flex items-center text-red-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                     </svg>
-                                    {{ prediction.score|add:fa.score|floatformat:1 }}
                                     </span>
                                     {% else %}
                                     <span class="inline-flex items-center text-gray-600">
@@ -417,7 +422,6 @@
                         </tr>
                         {% endif %}
                         {% endfor %}
-
                         {% empty %}
                         <tr>
                             <td colspan="6" class="py-4 text-center text-gray-500">No student data available.</td>

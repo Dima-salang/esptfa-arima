@@ -124,17 +124,25 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         minimum = scores.min()
         maximum = scores.max()
         passing_scores = len(scores[scores >= passing_threshold])
-        failing_scores = len(scores[scores < passing_threshold])
         passing_rate = (passing_scores / total_scores) * 100
         failing_rate = (total_scores - passing_scores) / total_scores * 100
 
         fa_topic = TestTopicMapping.objects.filter(
             analysis_document=analysis_document, test_number=fa_number).first().topic
+        
+        histogram_image = generate_score_dist_chart(fa_data, fa_number)
+        histogram_filename = f"histogram_{analysis_document.pk}_{fa_number}.png"
+
+        scatterplot_image = generate_scatterplot(fa_data, fa_number)
+        scatterplot_filename = f"scatterplot_{analysis_document.pk}_{fa_number}.png"
+        
+        boxplot_image = generate_boxplot(fa_data, fa_number)
+        boxplot_filename = f"boxplot_{analysis_document.pk}_{fa_number}.png"
 
         # commit to db
         with transaction.atomic():
 
-            FormativeAssessmentStatistic.objects.update_or_create(
+            fa_statistic, created = FormativeAssessmentStatistic.objects.update_or_create(
                 analysis_document=analysis_document,
                 formative_assessment_number=fa_number,
                 fa_topic=fa_topic,
@@ -151,6 +159,18 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
                     "max_score": max_score
                 }
             )
+
+        # save images
+        fa_statistic.histogram.save(
+            histogram_filename, ContentFile(histogram_image.read(), save=True)
+        )
+        fa_statistic.scatterplot.save(
+            scatterplot_filename, ContentFile(scatterplot_image.read(), save=True)
+        )
+        fa_statistic.boxplot.save(
+            boxplot_filename, ContentFile(boxplot_image.read(), save=True)
+        )
+
 
 
 def compute_student_statistics(processed_data, analysis_document, passing_threshold=75, at_risk_threshold=74):
@@ -198,3 +218,39 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
                     "failing_rate": failing_rate
                 }
             )
+
+
+def generate_score_dist_chart(fa_data, fa_number):
+    fig, ax = plt.subplots()
+    ax.hist(fa_data["score"], bins=10, edgecolor='black')
+    ax.set_title(f"Score Distribution for FA Number {fa_number}")
+    ax.set_xlabel("Score")
+    ax.set_ylabel("Frequency")
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    return buffer
+
+def generate_scatterplot(fa_data, fa_number):
+    fig, ax = plt.subplots()
+    ax.scatter(fa_data["student_id"], fa_data["score"])
+    ax.set_title(f"Score Scatter Plot for FA Number {fa_number}")
+    ax.set_xlabel("Student ID")
+    ax.set_ylabel("Score")
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    return buffer
+
+def generate_boxplot(fa_data, fa_number):
+    fig, ax = plt.subplots()
+    sns.boxplot(x=fa_data["score"], ax=ax)
+    ax.set_title(f"Score Box Plot for FA Number {fa_number}")
+    ax.set_xlabel("Score")
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    return buffer

@@ -155,6 +155,9 @@ class FormativeAssessmentStatistic(models.Model):
     failing_rate = models.FloatField()
     passing_threshold = models.FloatField()
     max_score = models.FloatField(null=True)
+    histogram = models.FileField(upload_to='histograms/', null=True)
+    scatterplot = models.FileField(upload_to='scatterplots/', null=True)
+    boxplot = models.FileField(upload_to='boxplots/', null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
