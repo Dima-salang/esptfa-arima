@@ -291,4 +291,13 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
         context["predicted_score"] = PredictedScore.objects.filter(
             student_id=student_statistic.student
         )
+
+        print(student_statistic.student.student_id)
+        print(student_statistic.student.first_name)
+        print(student_statistic.student.last_name)
+        print(student_statistic.mean)
+
+        print(student_statistic.lineplot.url if student_statistic.lineplot else None)
+        print(student_statistic.heatmap.url if student_statistic.heatmap else None)
+
         return context

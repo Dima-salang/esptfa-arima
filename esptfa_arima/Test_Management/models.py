@@ -183,4 +183,4 @@ class StudentScoresStatistic(models.Model):
 
 
     def __str__(self):
-        return f"{self.analysis_document.analysis_doc_title} Statistics"
+        return f"{self.analysis_document.analysis_doc_title} - {self.student.student_id} Statistics"

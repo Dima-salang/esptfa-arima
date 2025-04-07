@@ -161,7 +161,6 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
         passing_threshold = 0.75 * max_score
         student = Student.objects.get(student_id=student_id)
         scores = student_data["score"]
-        logger.info(f"Student ID: {student_id}, Scores: {scores}")
         total_scores = len(scores)
         mean = scores.mean()
         median = scores.median()
