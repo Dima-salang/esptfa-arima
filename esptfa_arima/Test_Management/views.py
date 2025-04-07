@@ -289,7 +289,8 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
             analysis_document = student_statistic.analysis_document
         )
         context["predicted_score"] = PredictedScore.objects.filter(
-            student_id=student_statistic.student
+            student_id=student_statistic.student,
+            analysis_document=student_statistic.analysis_document
         )
 
         print(student_statistic.student.student_id)

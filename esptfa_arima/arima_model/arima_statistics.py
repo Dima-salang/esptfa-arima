@@ -155,6 +155,8 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
     logger.info(
         f"Processing student statistics... Processed data: {processed_data}")
     # group by student id
+
+    # TO-DO: USE NORMALIZED THRESHOLD TO CALCULATE FOR PASSING RATE AND PASSING SCORES
     for student_id, student_data in processed_data.groupby("student_id"):
         # get student instance
         max_score = student_data["max_score"].iloc[0]
