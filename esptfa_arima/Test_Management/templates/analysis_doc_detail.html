@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+
 {% block title %}{{ document.analysis_doc_title }}{% endblock %}
 
 {% block content %}
@@ -9,7 +9,7 @@
 {{ test_topics_data|json_script:"test-topics" }}
 <!-- Load Chart.js and heatmap.js for data visualization -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'js/heatmap.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.6/dist/heatmap.min.js"></script>
 
 <div class="bg-gray-100 min-h-screen pb-12">
     <!-- Document Header -->
@@ -142,12 +142,30 @@
                         </div>
                         <div class="space-y-1 text-sm">
                             <div class="flex justify-between">
-                                <span class="text-gray-600">Passing:</span>
+                                <span class="text-gray-600">Mean Score:</span>
+                                <span class="font-medium text-gray-900">{{ fa.mean|floatformat:1 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Passing Percentage:</span>
                                 <span class="font-medium text-gray-900">{{ fa.passing_rate|floatformat:1 }}%</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Range:</span>
                                 <span class="font-medium text-gray-900">{{ fa.minimum }} - {{ fa.maximum }}</span>
+                            </div>
+                            <!-- Topic performance bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">                            
+                                    {% if fa.mean >= fa.passing_threshold %}
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% elif fa.mean >= fa.passing_threshold|add:-20 %}
+                                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% elif fa.mean >= fa.passing_threshold|add:-40 %}
+                                    <div class="bg-yellow-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% else %}
+                                    <div class="bg-red-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="mt-2">
                                 <a href="{% url 'individual_fa_detail' document.pk fa.pk %}"
@@ -174,23 +192,9 @@
 
                 <div class="overflow-x-auto">
                     <div class="min-w-full py-2">
-                        <div id="topicHeatmap" style="width:500px; height:500px"></div>
-                    </div>
-                </div>
-
-                <div class="mt-4 flex items-center justify-center">
-                    <div class="flex items-center">
-                        <div class="w-4 h-4 bg-red-500 rounded mr-1"></div>
-                        <span class="text-xs text-gray-600 mr-4">Struggling (0-69)</span>
-
-                        <div class="w-4 h-4 bg-yellow-400 rounded mr-1"></div>
-                        <span class="text-xs text-gray-600 mr-4">Average (70-79)</span>
-
-                        <div class="w-4 h-4 bg-blue-400 rounded mr-1"></div>
-                        <span class="text-xs text-gray-600 mr-4">Good (80-89)</span>
-
-                        <div class="w-4 h-4 bg-green-500 rounded mr-1"></div>
-                        <span class="text-xs text-gray-600">Excellent (90-100)</span>
+                        <div id="topicHeatmap" class="min-h-[400px]">
+                            <img src="{{ analysis_doc_statistic.heatmap.url }}" alt="Topic Heatmap"></img>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -211,7 +215,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {% for prediction in predictions %}
-                    {% if prediction.predicted_status == 'at_risk' or prediction.score < 70 %} <div
+                    {% if prediction.predicted_status == 'fail' %} <div
                         class="border border-red-100 rounded-lg p-4 bg-red-50">
                         <div class="flex justify-between items-start">
                             <div>
@@ -223,7 +227,7 @@
                         <div class="mt-3 pt-3 border-t border-red-100">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Gap to passing:</span>
-                                <span class="font-medium text-red-600">{{ prediction.score|add:"-70"|floatformat:1}} points</span>
+                                <span class="font-medium text-red-600">{{ prediction.gap_to_passing|floatformat:1}} points</span>
                             </div>
                             <div class="mt-2">
                                 <a href="#" class="text-xs text-blue-700 hover:text-blue-800 font-medium">View Student
@@ -232,58 +236,6 @@
                         </div>
                 </div>
                 {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Test Topics -->
-    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
-        <div class="bg-blue-700 px-6 py-4">
-            <h2 class="text-xl font-semibold text-white">Test Topics</h2>
-        </div>
-
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {% for topic in test_topics %}
-                <div class="flex items-start p-4 border border-gray-200 rounded-lg">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4 flex-shrink-0">
-                        <span class="font-medium text-blue-700">FA{{ topic.test_number }}</span>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-medium text-gray-900">{{ topic.topic.topic_name }}</h3>
-                        <p class="text-sm text-gray-600 mt-1">
-                            {% for fa in individual_formative_assessments %}
-                            {% if fa.formative_assessment_number == topic.test_number %}
-                            Average score: {{ fa.mean|floatformat:1 }} | Passing rate: {{ fa.passing_rate|floatformat:1}}%
-                            {% endif %}
-                            {% endfor %}
-                        </p>
-
-                        <!-- Topic performance bar -->
-                        <div class="mt-3">
-                            <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                {% for fa in individual_formative_assessments %}
-                                {% if fa.formative_assessment_number == topic.test_number %}
-                                {% if fa.mean >= 90 %}
-                                <div class="bg-green-500 h-1.5 rounded-full" style="width: {{ fa.mean }}%"></div>
-                                {% elif fa.mean >= 80 %}
-                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ fa.mean }}%"></div>
-                                {% elif fa.mean >= 70 %}
-                                <div class="bg-yellow-500 h-1.5 rounded-full" style="width: {{ fa.mean }}%"></div>
-                                {% else %}
-                                <div class="bg-red-500 h-1.5 rounded-full" style="width: {{ fa.mean }}%"></div>
-                                {% endif %}
-                                {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="col-span-2 text-center py-6 text-gray-500">
-                    No test topics available.
-                </div>
                 {% endfor %}
             </div>
         </div>
@@ -701,26 +653,6 @@
                 }
             }
         });
-
-        // Topic Performance Heatmap
-            const topicHeatmapContainer = document.getElementById('topicHeatmap');
-            const topicHeatmapData = JSON.parse(document.getElementById('topic-heatmap-data').textContent);
-            // Create heatmap instance
-            console.log(topicHeatmapData);
-            const heatmapInstance = h337.create({
-                container: topicHeatmapContainer,
-            });
-
-            // Set heatmap data
-            const data = {
-                min: 0,
-                max: topicHeatmapData["max"],
-                data: topicHeatmapData["data"]
-            };
-
-            console.log(data);
-
-            heatmapInstance.setData(data);
     });
 </script>
 {% endblock %}

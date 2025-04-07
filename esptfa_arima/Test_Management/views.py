@@ -10,7 +10,7 @@ from arima_model.arima_model import arima_driver
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
-from django.db.models import Avg, Max, Min, F
+from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
 
 logger = logging.getLogger("arima_model")
@@ -140,7 +140,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
         predictions = list(PredictedScore.objects.filter(analysis_document=document))
         test_topics = list(TestTopicMapping.objects.filter(analysis_document=document).order_by('test_number'))
         individual_fas = list(FormativeAssessmentStatistic.objects.filter(analysis_document=document))
-        context["analysis_doc_statistic"] = AnalysisDocumentStatistic.objects.filter(analysis_document=document)
+        context["analysis_doc_statistic"] = AnalysisDocumentStatistic.objects.filter(analysis_document=document).first()
         # 2. Prepare Data for Score Distribution Chart (Dynamic Ranges)
         score_distribution_data = self.prepare_score_distribution_data(assessments)
         context["score_distribution_data"] = score_distribution_data
@@ -149,18 +149,26 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
         test_performance_data = self.prepare_test_performance_data(individual_fas, assessments)
         context["test_performance_data"] = test_performance_data
 
-        # 4. Prepare Data for Topic Performance Heatmap
-        topic_heatmap_data = self.prepare_topic_heatmap_data(assessments, test_topics)
-        context["topic_heatmap_data"] = topic_heatmap_data
-
         # 5. Other Context Data (Keep as is)
         context["assessments"] = FormativeAssessmentScore.objects.filter(analysis_document=document)
         context["predictions"] = PredictedScore.objects.filter(
-            analysis_document=document)
+            analysis_document=document).annotate(
+                gap_to_passing=ExpressionWrapper(
+                    F('passing_threshold') - F('score'),
+                    output_field=FloatField()
+                ),
+            )
+        for prediction in context["predictions"]:
+            print(f"Prediction: {prediction.student_id}, Score: {prediction.score}, Passing Threshold: {prediction.passing_threshold}, Gap: {prediction.gap_to_passing}")
         context["test_topics"] = TestTopicMapping.objects.filter(
             analysis_document=document).order_by('test_number')
         context["individual_formative_assessments"] = FormativeAssessmentStatistic.objects.filter(
-            analysis_document=document)
+            analysis_document=document).annotate(
+            normalized_mean_scaled=ExpressionWrapper(
+                F('mean') / F('max_score') * 100,
+                output_field=FloatField()
+            ),
+        )
         
         # Serialize test_topics for use in JavaScript
         test_topics_data = [{
@@ -175,16 +183,6 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
             for mapping in test_topics
         }
         context["test_topic_dict"] = test_topic_dict
-
-        # log all data
-        logger.info(f"assessments: {context['assessments']}")
-        logger.info(f"predictions: {context['predictions']}")
-        logger.info(f"test_topics: {context['test_topics']}")
-        logger.info(f"individual_fas: {context['individual_formative_assessments']}")
-        logger.info(f"score_distribution_data: {context['score_distribution_data']}")
-        logger.info(f"test_performance_data: {context['test_performance_data']}")
-        logger.info(f"topic_heatmap_data: {context['topic_heatmap_data']}")
-        logger.info(f"test_topic_dict: {context['test_topic_dict']}")
 
         return context
 
@@ -230,35 +228,6 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
             "means": means,
             "passing_thresholds": passing_thresholds,
             "max_score": max_score
-        }
-
-    def prepare_topic_heatmap_data(self, assessments, test_topics):
-        """ Prepares data for the topic performance heatmap. """
-        heatmap_data = []
-        unique_student_ids = []
-        unique_fa_numbers = []
-        max_score = max(assessment.score for assessment in assessments)
-        
-        for i, assessment in enumerate(assessments):
-            normalized_score = assessment.score / max_score
-            fa_number = int(assessment.formative_assessment_number)
-            heatmap_data.append({
-                'x': i,
-                'y': fa_number,
-                'value': normalized_score,
-            })
-            unique_student_ids.append(assessment.student_id)
-            unique_fa_numbers.append(fa_number)
-
-        unique_student_ids = list(set(unique_student_ids))
-        unique_fa_numbers = list(set(unique_fa_numbers))
-
-        
-        return {
-            "data": heatmap_data,
-            "width": len(unique_student_ids),
-            "height": len(unique_fa_numbers),
-            "max": max_score
         }
 
 

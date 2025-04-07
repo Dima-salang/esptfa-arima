@@ -132,6 +132,7 @@ class AnalysisDocumentStatistic(models.Model):
     mode = models.FloatField()
     total_students = models.IntegerField()
     mean_passing_threshold = models.FloatField()
+    heatmap = models.FileField(upload_to='heatmaps/', null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Statistics"
@@ -153,6 +154,7 @@ class FormativeAssessmentStatistic(models.Model):
     passing_rate = models.FloatField()
     failing_rate = models.FloatField()
     passing_threshold = models.FloatField()
+    max_score = models.FloatField(null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
