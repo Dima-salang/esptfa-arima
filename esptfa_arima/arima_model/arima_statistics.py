@@ -7,7 +7,7 @@ import io
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Count, Sum, Avg, StdDev, Min, Max
-from Test_Management.models import AnalysisDocumentStatistic, FormativeAssessmentStatistic, StudentScoresStatistic, TestTopicMapping, Student
+from Test_Management.models import AnalysisDocumentStatistic, FormativeAssessmentStatistic, StudentScoresStatistic, TestTopicMapping, Student, PredictedScore
 
 logger = logging.getLogger("arima_model")
 
@@ -183,7 +183,7 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
         heatmap_image = generate_heatmap(student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
         heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
 
-        lineplot = generate_student_line_chart(student_data)
+        lineplot = generate_student_line_chart(student_data, analysis_document)
         lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
 
         # commit to db
@@ -291,15 +291,31 @@ def generate_heatmap(processed_data, value_column, title=None):
     return buffer
 
 
-def generate_student_line_chart(student_data):
+def generate_student_line_chart(student_data, analysis_document):
     fig, ax = plt.subplots()
 
-    # actual scores
-    sns.lineplot(x=student_data["test_number"], y=student_data["score"], label="Score", marker="o", color="blue", ax=ax)
-    
-    # predicted scores
-    sns.lineplot(x=student_data["test_number"], y=student_data["predicted_score"], label="Predicted Score", marker="o", color="orange", ax=ax)
-    
+    student_id = student_data["student_id"].iloc[0]
+    # get the predicted score
+    predicted_score = PredictedScore.objects.filter(student_id=student_id, analysis_document=analysis_document).first()
+
+    # Check if predicted_score exists
+    if predicted_score:
+        predicted_test_numbers = [int(predicted_score.formative_assessment_number)]
+        # assuming 'predicted_value' holds the predicted score
+        predicted_scores = [predicted_score.score]
+
+        # Overlay: Actual scores
+        sns.lineplot(x=student_data["test_number"].astype(int), y=student_data["score"],
+                     label="Actual Score", marker="o", color="blue", ax=ax)
+
+        # Overlay: Predicted scores (same X but with single Y value, repeated for each test number)
+        sns.lineplot(x=predicted_test_numbers, y=predicted_scores,
+                     label="Predicted Score", marker="o", color="orange", ax=ax)
+
+    else:
+        # If no predicted score found, just plot the actual scores
+        sns.lineplot(x=student_data["test_number"].astype(int), y=student_data["score"],
+                     label="Actual Score", marker="o", color="blue", ax=ax)
     
     ax.set_title(f"Actual vs Predicted Scores Over Time")
     ax.set_xlabel("FA Number")

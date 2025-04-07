@@ -319,23 +319,23 @@
                     additional support.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for prediction in predictions %}
-                    {% if prediction.predicted_status == 'fail' %} <div
+                    {% for entry in student_data %}
+                    {% if entry.prediction.predicted_status == 'fail' %} <div
                         class="border border-red-100 rounded-lg p-4 bg-red-50">
                         <div class="flex justify-between items-start">
                             <div>
-                                <h4 class="font-medium text-gray-900">Student {{ prediction.student_id }}</h4>
-                                <p class="text-sm text-gray-600 mt-1">FA{{ prediction.formative_assessment_number }}</p>
+                                <h4 class="font-medium text-gray-900">Student {{ entry.prediction.student_id }}</h4>
+                                <p class="text-sm text-gray-600 mt-1">FA{{ entry.prediction.formative_assessment_number }}</p>
                             </div>
-                            <span class="text-lg font-bold text-red-600">{{ prediction.score|floatformat:1 }}</span>
+                            <span class="text-lg font-bold text-red-600">{{ entry.prediction.score|floatformat:1 }}</span>
                         </div>
                         <div class="mt-3 pt-3 border-t border-red-100">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Gap to passing:</span>
-                                <span class="font-medium text-red-600">{{ prediction.gap_to_passing|floatformat:1}} points</span>
+                                <span class="font-medium text-red-600">{{ entry.prediction.gap_to_passing|floatformat:1}} points</span>
                             </div>
                             <div class="mt-2">
-                                <a href="#" class="text-xs text-blue-700 hover:text-blue-800 font-medium">View Student
+                                <a href="{% url 'individual_student_detail' document.pk entry.stat.pk %}" class="text-xs text-blue-700 hover:text-blue-800 font-medium">View Student
                                     Profile →</a>
                             </div>
                         </div>
@@ -369,59 +369,43 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        {% for last_formative_assessment in last_fa_scores %}
-                        {% for prediction in predictions %}
-                        {% if prediction.student_id == last_formative_assessment.student_id %}
+                        {% for entry in student_data %}
                         <tr class="hover:bg-gray-50">
-                            <td class="py-3 text-gray-900">{{ last_formative_assessment.student_id }} 
+                            <td class="py-3 text-gray-900">
+                                {{ entry.student }}
                                 <div class="mt-2">
-                                <a href="{% url 'individual_fa_detail' document.pk last_formative_assessment.pk %}"
-                                    class="text-blue-700 hover:text-blue-800 text-xs font-medium">
-                                    View Details →
-                                </a>
+                                    <a href="{% url 'individual_student_detail' document.pk entry.stat.pk %}"
+                                        class="text-blue-700 hover:text-blue-800 text-xs font-medium">
+                                        View Details →
+                                    </a>
                                 </div>
                             </td>
-                            <td class="py-3 text-gray-900">FA{{ last_formative_assessment.formative_assessment_number }}</td>
-                            <td class="py-3 font-medium text-gray-900">{{ last_formative_assessment.score|floatformat:1 }}</td>
-                            <td class="py-3 text-gray-900">FA{{ prediction.formative_assessment_number }}</td>
-                            <td class="py-3 font-medium 
-                                                    {% if prediction.score >= prediction.passing_threshold %}text-green-600
-                                                    {% elif prediction.score >= prediction.passing_threshold %}text-blue-600
-                                                    {% elif prediction.score >= predictoin.passing_threshold %}text-yellow-600
-                                                    {% else %}text-red-600{% endif %}">
-                                {{ prediction.score|floatformat:1 }}
+                            <td class="py-3">FA{{ entry.last_score.formative_assessment_number }}</td>
+                            <td class="py-3">{{ entry.last_score.score|floatformat:1 }}</td>
+                            <td class="py-3">FA{{ entry.prediction.formative_assessment_number }}</td>
+                            <td class="py-3 font-medium {% if entry.prediction.score >= entry.prediction.passing_threshold %}
+                                                          text-green-600
+                                                       {% else %}
+                                                          text-red-600
+                                                       {% endif %}">
+                                {{ entry.prediction.score|floatformat:1 }}
                             </td>
                             <td class="py-3">
-                                {% if prediction.score > last_formative_assessment.score %}
+                                {% if entry.prediction.score > entry.last_score.score %}
                                 <span class="inline-flex items-center text-green-600">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                    </svg>
+                                    ↑
                                 </span>
-                                {% elif prediction.score < last_formative_assessment.score %} <span
+                                {% elif entry.prediction.score < entry.last_score.score %} <span
                                     class="inline-flex items-center text-red-600">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                    </svg>
+                                    ↓
                                     </span>
                                     {% else %}
                                     <span class="inline-flex items-center text-gray-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 12h14" />
-                                        </svg>
-                                        0.0
+                                        —
                                     </span>
                                     {% endif %}
                             </td>
                         </tr>
-                        {% endif %}
-                        {% endfor %}
                         {% empty %}
                         <tr>
                             <td colspan="6" class="py-4 text-center text-gray-500">No student data available.</td>

@@ -77,8 +77,6 @@ def preprocess_data(csv_file, analysis_document):
     test_data_long["normalized_scores"] = test_data_long["score"] / \
         test_data_long["max_score"]
 
-    print(f"Preprocessed data: {test_data_long}")
-
     return test_data_long
 
 

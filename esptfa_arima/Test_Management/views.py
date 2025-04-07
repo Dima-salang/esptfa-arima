@@ -9,7 +9,7 @@ from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
+from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
 from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
 from django.db import transaction
@@ -142,6 +142,8 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
         test_topics = list(TestTopicMapping.objects.filter(analysis_document=document).order_by('test_number'))
         individual_fas = list(FormativeAssessmentStatistic.objects.filter(analysis_document=document))
 
+        student_stats = StudentScoresStatistic.objects.filter(analysis_document=document)  
+
         last_fa = len(individual_fas)
         context["last_fa"] = last_fa
         context["last_fa_scores"] = FormativeAssessmentScore.objects.filter(analysis_document=document, formative_assessment_number=context["last_fa"])
@@ -165,16 +167,15 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
                 ),
             )
         for prediction in context["predictions"]:
-            print(f"Prediction: {prediction.student_id}, Score: {prediction.score}, Passing Threshold: {prediction.passing_threshold}, Gap: {prediction.gap_to_passing}")
-        context["test_topics"] = TestTopicMapping.objects.filter(
-            analysis_document=document).order_by('test_number')
-        context["individual_formative_assessments"] = FormativeAssessmentStatistic.objects.filter(
-            analysis_document=document).annotate(
-            normalized_mean_scaled=ExpressionWrapper(
-                F('mean') / F('max_score') * 100,
-                output_field=FloatField()
-            ),
-        )
+            context["test_topics"] = TestTopicMapping.objects.filter(
+                analysis_document=document).order_by('test_number')
+            context["individual_formative_assessments"] = FormativeAssessmentStatistic.objects.filter(
+                analysis_document=document).annotate(
+                normalized_mean_scaled=ExpressionWrapper(
+                    F('mean') / F('max_score') * 100,
+                    output_field=FloatField()
+                ),
+            )
         
         # Serialize test_topics for use in JavaScript
         test_topics_data = [{
@@ -189,6 +190,22 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
             for mapping in test_topics
         }
         context["test_topic_dict"] = test_topic_dict
+
+        # Zip them up by student
+        student_data = []
+        for score in context["last_fa_scores"]:
+            prediction = context["predictions"].filter(
+                student_id=score.student_id).first()
+            statistic = student_stats.filter(student_id=score.student_id).first()
+            if prediction and statistic:
+                student_data.append({
+                    "student": score.student_id,
+                    "last_score": score,
+                    "prediction": prediction,
+                    "stat": statistic
+                })
+        context["student_data"] = student_data
+        print(f"Passed student data: {student_data}")
 
         return context
 

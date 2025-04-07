@@ -10,5 +10,5 @@ urlpatterns = [
     path("formative-assessments/<int:document_pk>/",
          FormativeAssessmentDetailView.as_view(), name="formative_assessment_detail"),
      path("formative-assessments/<int:document_pk>/test/<int:fa_pk>/", IndividualFADetailView.as_view(), name='individual_fa_detail'),
-     path("formative-assessments/<int:document_pk>/student/<int:student_pk>/", IndividualStudentDetailView.as_view(), name='individual_student_detail'),
+     path("formative-assessments/<int:document_pk>/student/<slug:student_pk>/", IndividualStudentDetailView.as_view(), name='individual_student_detail'),
 ]
