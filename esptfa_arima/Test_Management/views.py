@@ -137,9 +137,13 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
 
         # 1. Fetch Data (Efficiently)
         assessments = list(FormativeAssessmentScore.objects.filter(analysis_document=document))
-        predictions = list(PredictedScore.objects.filter(analysis_document=document))
         test_topics = list(TestTopicMapping.objects.filter(analysis_document=document).order_by('test_number'))
         individual_fas = list(FormativeAssessmentStatistic.objects.filter(analysis_document=document))
+
+        last_fa = len(individual_fas)
+        context["last_fa"] = last_fa
+        context["last_fa_scores"] = FormativeAssessmentScore.objects.filter(analysis_document=document, formative_assessment_number=context["last_fa"])
+
         context["analysis_doc_statistic"] = AnalysisDocumentStatistic.objects.filter(analysis_document=document).first()
         # 2. Prepare Data for Score Distribution Chart (Dynamic Ranges)
         score_distribution_data = self.prepare_score_distribution_data(assessments)

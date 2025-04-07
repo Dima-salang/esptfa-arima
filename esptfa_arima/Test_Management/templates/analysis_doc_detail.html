@@ -264,41 +264,39 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        {% regroup assessments by student_id as student_groups %}
-                        {% for student_group in student_groups %}
-                        {% with latest_assessment=student_group.list|dictsortreversed:"formative_assessment_number"|first %}
+                        {% for last_formative_assessment in last_fa_scores %}
                         {% for prediction in predictions %}
-                        {% if prediction.student_id.student_id == student_group.grouper and prediction.formative_assessment_number > latest_assessment.formative_assessment_number %}
+                        {% if prediction.student_id == last_formative_assessment.student_id %}
                         <tr class="hover:bg-gray-50">
-                            <td class="py-3 text-gray-900">{{ student_group.grouper }}</td>
-                            <td class="py-3 text-gray-900">FA{{ latest_assessment.formative_assessment_number }}</td>
-                            <td class="py-3 font-medium text-gray-900">{{ latest_assessment.score|floatformat:1 }}</td>
+                            <td class="py-3 text-gray-900">{{ last_formative_assessment.student_id }}</td>
+                            <td class="py-3 text-gray-900">FA{{ last_formative_assessment.formative_assessment_number }}</td>
+                            <td class="py-3 font-medium text-gray-900">{{ last_formative_assessment.score|floatformat:1 }}</td>
                             <td class="py-3 text-gray-900">FA{{ prediction.formative_assessment_number }}</td>
                             <td class="py-3 font-medium 
-                                                    {% if prediction.score >= 90 %}text-green-600
-                                                    {% elif prediction.score >= 80 %}text-blue-600
-                                                    {% elif prediction.score >= 70 %}text-yellow-600
+                                                    {% if prediction.score >= prediction.passing_threshold %}text-green-600
+                                                    {% elif prediction.score >= prediction.passing_threshold %}text-blue-600
+                                                    {% elif prediction.score >= predictoin.passing_threshold %}text-yellow-600
                                                     {% else %}text-red-600{% endif %}">
                                 {{ prediction.score|floatformat:1 }}
                             </td>
                             <td class="py-3">
-                                {% if prediction.score > latest_assessment.score %}
+                                {% if prediction.score > fa.score %}
                                 <span class="inline-flex items-center text-green-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                     </svg>
-                                    +{{ prediction.score|add:latest_assessment.score|floatformat:1 }}
+                                    +{{ prediction.score|add:fa.score|floatformat:1 }}
                                 </span>
-                                {% elif prediction.score < latest_assessment.score %} <span
+                                {% elif prediction.score < fa.score %} <span
                                     class="inline-flex items-center text-red-600">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                     </svg>
-                                    {{ prediction.score|add:latest_assessment.score|floatformat:1 }}
+                                    {{ prediction.score|add:fa.score|floatformat:1 }}
                                     </span>
                                     {% else %}
                                     <span class="inline-flex items-center text-gray-600">
@@ -314,7 +312,7 @@
                         </tr>
                         {% endif %}
                         {% endfor %}
-                        {% endwith %}
+
                         {% empty %}
                         <tr>
                             <td colspan="6" class="py-4 text-center text-gray-500">No student data available.</td>
