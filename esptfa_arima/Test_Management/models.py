@@ -178,6 +178,8 @@ class StudentScoresStatistic(models.Model):
     mode = models.FloatField()
     passing_rate = models.FloatField()
     failing_rate = models.FloatField()
+    lineplot = models.FileField(upload_to='lineplots/', null=True)
+    heatmap = models.FileField(upload_to='heatmaps/', null=True)
 
 
     def __str__(self):

@@ -45,7 +45,7 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     passing_threshold = 0.75 * processed_data["max_score"].mean()
 
     # Save the heatmap image to the model
-    heatmap_image = generate_heatmap(processed_data)
+    heatmap_image = generate_heatmap(processed_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
     filename = f"heatmap_{analysis_document.pk}.png"
 
 
@@ -71,32 +71,7 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     return analysis_document_statistic
 
 
-def generate_heatmap(processed_data, value_column="normalized_scores"):
-    """
-        Plots and returns a heatmap image (as BytesIO) where rows are students, columns are test numbers, and cells are the specified value.
-        """
-    heatmap_data = processed_data.pivot_table(
-        index="student_id",
-        columns="test_number",
-        values=value_column
-    )
 
-    fig, ax = plt.subplots(figsize=(12, 8))
-    sns.heatmap(heatmap_data, annot=True, fmt=".1f",
-                cmap="YlGnBu", linewidths=0.5, ax=ax)
-
-    ax.set_title(
-        f"Heatmap of {value_column.replace('_', ' ').title()} by Student and Test Number")
-    ax.set_xlabel("Formative Assessment Number")
-    ax.set_ylabel("Student ID")
-    plt.tight_layout()
-
-    # Save the plot to a BytesIO buffer instead of showing it
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format='png', bbox_inches='tight')
-    plt.close(fig)
-    buffer.seek(0)
-    return buffer
 
 
 def compute_test_statistics(processed_data, analysis_document, passing_threshold=75, at_risk_threshold=74):
@@ -182,7 +157,8 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
     # group by student id
     for student_id, student_data in processed_data.groupby("student_id"):
         # get student instance
-        passing_threshold = 0.75 * student_data["max_score"].iloc[0]
+        max_score = student_data["max_score"].iloc[0]
+        passing_threshold = 0.75 * max_score
         student = Student.objects.get(student_id=student_id)
         scores = student_data["score"]
         logger.info(f"Student ID: {student_id}, Scores: {scores}")
@@ -204,10 +180,16 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
         passing_rate = (passing_scores / total_scores) * 100
         failing_rate = (total_scores - passing_scores) / total_scores * 100
 
+        heatmap_image = generate_heatmap(student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
+        heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
+
+        lineplot = generate_student_line_chart(student_data)
+        lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
+
         # commit to db
         with transaction.atomic():
 
-            StudentScoresStatistic.objects.update_or_create(
+            student_statistic, created = StudentScoresStatistic.objects.update_or_create(
                 analysis_document=analysis_document,
                 student=student,
                 defaults={
@@ -221,6 +203,13 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
                     "failing_rate": failing_rate
                 }
             )
+
+            # save images
+            student_statistic.heatmap.save(
+                heatmap_filename, ContentFile(heatmap_image.read()), save=True)
+            student_statistic.lineplot.save(
+                lineplot_filename, ContentFile(lineplot.read()), save=True)
+
 
 
 def generate_score_dist_chart(fa_data, fa_number):
@@ -245,6 +234,7 @@ def generate_scatterplot(fa_data, fa_number):
     plt.tight_layout()
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png')
+    plt.close(fig)
     buffer.seek(0)
     return buffer
 
@@ -256,6 +246,7 @@ def generate_boxplot(fa_data, fa_number):
     plt.tight_layout()
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png')
+    plt.close(fig)
     buffer.seek(0)
     return buffer
 
@@ -268,6 +259,34 @@ def generate_bar_chart(fa_data, fa_number):
     plt.tight_layout()
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png')
+    plt.close(fig)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_heatmap(processed_data, value_column, title=None):
+    """
+        Plots and returns a heatmap image (as BytesIO) where rows are students, columns are test numbers, and cells are the specified value.
+        """
+    heatmap_data = processed_data.pivot_table(
+        index="student_id",
+        columns="test_number",
+        values=value_column
+    )
+
+    fig, ax = plt.subplots()
+    sns.heatmap(heatmap_data, annot=True, fmt=".1f",
+                cmap="YlGnBu", linewidths=0.5, ax=ax)
+
+    ax.set_title(title)
+    ax.set_xlabel("Formative Assessment Number")
+    ax.set_ylabel("Student ID")
+    plt.tight_layout()
+
+    # Save the plot to a BytesIO buffer instead of showing it
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format='png', bbox_inches='tight')
+    plt.close(fig)
     buffer.seek(0)
     return buffer
 
@@ -290,5 +309,6 @@ def generate_student_line_chart(student_data):
     plt.tight_layout()
     buffer = io.BytesIO()
     fig.savefig(buffer, format='png')
+    plt.close(fig)
     buffer.seek(0)
     return buffer
