@@ -7,7 +7,7 @@ from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver, preprocess_data
-from arima_model.arima_statistics import generate_heatmap, generate_student_line_chart
+from arima_model.arima_statistics import generate_heatmap, generate_student_line_chart, generate_score_dist_chart, generate_boxplot, generate_bar_chart
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
@@ -266,6 +266,39 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         fa_statistic = self.get_object()
         analysis_document = fa_statistic.analysis_document
+
+        if not fa_statistic.histogram or not fa_statistic.scatterplot or not fa_statistic.boxplot:
+            with transaction.atomic():
+                # Fetch the analysis document to which this FA statistic belongs
+                try:
+                    preprocessed_data = preprocess_data(analysis_document)
+                    fa_data = preprocessed_data[
+                        preprocessed_data["test_number"] == fa_statistic.formative_assessment_number]
+                    fa_number = fa_statistic.formative_assessment_number
+
+                    # generate charts at runtime
+                    histogram_image = generate_score_dist_chart(fa_data, fa_number)
+                    histogram_filename = f"histogram_{analysis_document.pk}_{fa_number}.png"
+
+                    boxplot_image = generate_boxplot(fa_data, fa_number)
+                    boxplot_filename = f"boxplot_{analysis_document.pk}_{fa_number}.png"
+
+                    bar_chart_image = generate_bar_chart(fa_data, fa_number)
+                    bar_chart_filename = f"bar_chart_{analysis_document.pk}_{fa_number}.png"
+
+                    # save images
+                    fa_statistic.histogram.save(
+                        histogram_filename, ContentFile(histogram_image.read()), save=True)
+                    fa_statistic.boxplot.save(
+                        boxplot_filename, ContentFile(boxplot_image.read()), save=True)
+                    fa_statistic.bar_chart.save(
+                        bar_chart_filename, ContentFile(bar_chart_image.read()), save=True)
+
+                except Exception as e:
+                    logger.error(f"Error generating charts: {e}")
+                    messages.error(self.request, "Error generating charts.")
+                    return redirect("formative_assessment_dashboard")
+
         context["formative_scores"] = FormativeAssessmentScore.objects.filter(
             analysis_document=analysis_document,
             formative_assessment_number=fa_statistic.formative_assessment_number
@@ -287,28 +320,35 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         student_statistic = self.get_object()
         
-        with transaction.atomic():
-            # Fetch the analysis document to which this student statistic belongs
-            analysis_document = student_statistic.analysis_document
-            student_id = student_statistic.student.student_id
-            
-            preprocessed_data = preprocess_data(analysis_document)
+        if not student_statistic.heatmap or not student_statistic.lineplot:
+            with transaction.atomic():
+                # Fetch the analysis document to which this student statistic belongs
+                try:
+                    analysis_document = student_statistic.analysis_document
+                    student_id = student_statistic.student.student_id
+                    
+                    preprocessed_data = preprocess_data(analysis_document)
 
-            student_data = preprocessed_data[preprocessed_data["student_id"] == student_id]
-            
-            # generate charts at runtime
-            heatmap_image = generate_heatmap(
-                student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
-            heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
+                    student_data = preprocessed_data[preprocessed_data["student_id"] == student_id]
+                    
+                    # generate charts at runtime
+                    heatmap_image = generate_heatmap(
+                        student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
+                    heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
 
-            lineplot = generate_student_line_chart(student_data, analysis_document)
-            lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
+                    lineplot = generate_student_line_chart(student_data, analysis_document)
+                    lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
 
-            # save images
-            student_statistic.heatmap.save(
-                heatmap_filename, ContentFile(heatmap_image.read()), save=True)
-            student_statistic.lineplot.save(
-                lineplot_filename, ContentFile(lineplot.read()), save=True)
+                    # save images
+                    student_statistic.heatmap.save(
+                        heatmap_filename, ContentFile(heatmap_image.read()), save=True)
+                    student_statistic.lineplot.save(
+                        lineplot_filename, ContentFile(lineplot.read()), save=True)
+
+                except Exception as e:
+                    logger.error(f"Error generating charts: {e}")
+                    messages.error(self.request, "Error generating charts.")
+                    return redirect("formative_assessment_dashboard")
 
 
 

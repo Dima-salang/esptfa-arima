@@ -104,17 +104,7 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         fa_topic = TestTopicMapping.objects.filter(
             analysis_document=analysis_document, test_number=fa_number).first().topic
         
-        histogram_image = generate_score_dist_chart(fa_data, fa_number)
-        histogram_filename = f"histogram_{analysis_document.pk}_{fa_number}.png"
 
-        scatterplot_image = generate_scatterplot(fa_data, fa_number)
-        scatterplot_filename = f"scatterplot_{analysis_document.pk}_{fa_number}.png"
-        
-        boxplot_image = generate_boxplot(fa_data, fa_number)
-        boxplot_filename = f"boxplot_{analysis_document.pk}_{fa_number}.png"
-
-        bar_chart_image = generate_bar_chart(fa_data, fa_number)
-        bar_chart_filename = f"bar_chart_{analysis_document.pk}_{fa_number}.png"
 
 
         # commit to db
@@ -138,15 +128,7 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
                 }
             )
 
-            # save images
-            fa_statistic.histogram.save(
-                histogram_filename, ContentFile(histogram_image.read()), save=True)
-            fa_statistic.scatterplot.save(
-                scatterplot_filename, ContentFile(scatterplot_image.read()), save=True)
-            fa_statistic.boxplot.save(
-                boxplot_filename, ContentFile(boxplot_image.read()), save=True)
-            fa_statistic.bar_chart.save(
-                bar_chart_filename, ContentFile(bar_chart_image.read()), save=True)
+
 
 
 
