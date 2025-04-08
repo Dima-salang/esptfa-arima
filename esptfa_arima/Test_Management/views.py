@@ -267,15 +267,19 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
         fa_statistic = self.get_object()
         analysis_document = fa_statistic.analysis_document
 
-        if not fa_statistic.histogram or not fa_statistic.scatterplot or not fa_statistic.boxplot:
+        print(fa_statistic.histogram.url if fa_statistic.histogram else None)
+        print(fa_statistic.bar_chart.url if fa_statistic.bar_chart else None)
+        print(fa_statistic.boxplot.url if fa_statistic.boxplot else None)
+
+        
+        # TO-DO: NOT PROPERLY CHECKING FOR FIELD EXISTENCE
+        if not fa_statistic.histogram or not fa_statistic.bar_chart or not fa_statistic.boxplot:
             with transaction.atomic():
                 # Fetch the analysis document to which this FA statistic belongs
                 try:
                     fa_number = int(fa_statistic.formative_assessment_number)
                     preprocessed_data = preprocess_data(analysis_document)
-                    print(f"Preprocessed data in test_stats: {preprocessed_data}")
                     fa_data = preprocessed_data[preprocessed_data["test_number"] == fa_number]
-                    print(f"FA data in test_stats: {fa_data}")
 
                     # generate charts at runtime
                     histogram_image = generate_score_dist_chart(fa_data, fa_number)
@@ -321,6 +325,10 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         student_statistic = self.get_object()
         
+        print(student_statistic.heatmap.url if student_statistic.heatmap else None)
+        print(student_statistic.lineplot.url if student_statistic.lineplot else None)
+
+        # TO-DO: NOT PROPERLY CHECKING WHETHER HEATMAP AND LINEPLOT ALREADY EXISTS
         if not student_statistic.heatmap or not student_statistic.lineplot:
             with transaction.atomic():
                 # Fetch the analysis document to which this student statistic belongs
