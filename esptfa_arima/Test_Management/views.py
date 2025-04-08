@@ -7,13 +7,14 @@ from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver, preprocess_data
-from arima_model.arima_statistics import compute_student_statistics
+from arima_model.arima_statistics import generate_heatmap, generate_student_line_chart
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
 from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
 from django.db import transaction
+from django.core.files.base import ContentFile
 
 logger = logging.getLogger("arima_model")
 
@@ -287,13 +288,27 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
         student_statistic = self.get_object()
         
         with transaction.atomic():
-            try:
-                preprocessed_data = preprocess_data(student_statistic.analysis_document)
-                compute_student_statistics(preprocessed_data, student_statistic.analysis_document)
-            except Exception as e:
-                messages.error(self.request, "Error processing the document: " + str(e))
-                return redirect("formative_assessment_dashboard")
-        
+            # Fetch the analysis document to which this student statistic belongs
+            analysis_document = student_statistic.analysis_document
+            student_id = student_statistic.student.student_id
+            
+            preprocessed_data = preprocess_data(analysis_document)
+
+            student_data = preprocessed_data[preprocessed_data["student_id"] == student_id]
+            
+            # generate charts at runtime
+            heatmap_image = generate_heatmap(
+                student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
+            heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
+
+            lineplot = generate_student_line_chart(student_data, analysis_document)
+            lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
+
+            # save images
+            student_statistic.heatmap.save(
+                heatmap_filename, ContentFile(heatmap_image.read()), save=True)
+            student_statistic.lineplot.save(
+                lineplot_filename, ContentFile(lineplot.read()), save=True)
 
 
 

@@ -11,7 +11,7 @@ from Test_Management.models import AnalysisDocumentStatistic, FormativeAssessmen
 
 logger = logging.getLogger("arima_model")
 
-def compute_document_statistics(processed_data, analysis_document, passing_threshold=75, at_risk_threshold=74):
+def compute_document_statistics(processed_data, analysis_document, passing_threshold=75):
     # get the necessary statistics for the analysis document
     # e.g., mean, median, standard deviation
 
@@ -74,9 +74,9 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
 
 
 
-def compute_test_statistics(processed_data, analysis_document, passing_threshold=75, at_risk_threshold=74):
+def compute_test_statistics(processed_data, analysis_document, passing_threshold=75):
     logger.info(
-        f"Processing test statistics... Processed data: {processed_data}")
+        f"Processing test statistics... for analysis document {analysis_document.pk}...")
     # group by test number
     for fa_number, fa_data in processed_data.groupby("test_number"):
 
@@ -84,7 +84,6 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         scores = fa_data["score"]
         max_score = fa_data["max_score"].iloc[0]
         passing_threshold = 0.75 * max_score
-        logger.info(f"FA Number: {fa_number}, FA Scores: {scores}")
         total_scores = scores.count()
         mean = scores.mean()
         median = scores.median()
@@ -180,11 +179,7 @@ def compute_student_statistics(processed_data, analysis_document):
         passing_rate = (passing_scores / total_scores) * 100
         failing_rate = (total_scores - passing_scores) / total_scores * 100
 
-        heatmap_image = generate_heatmap(student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
-        heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
 
-        lineplot = generate_student_line_chart(student_data, analysis_document)
-        lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
 
         # commit to db
         with transaction.atomic():
@@ -204,11 +199,7 @@ def compute_student_statistics(processed_data, analysis_document):
                 }
             )
 
-            # save images
-            student_statistic.heatmap.save(
-                heatmap_filename, ContentFile(heatmap_image.read()), save=True)
-            student_statistic.lineplot.save(
-                lineplot_filename, ContentFile(lineplot.read()), save=True)
+
 
 
 
