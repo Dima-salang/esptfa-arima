@@ -167,9 +167,9 @@
                             <div class="mt-2">
                                 <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
                                     <div class="h-2.5 rounded-full 
-                                        {% if fa_statistic.mean >= fa_statistic.passing_threshold %}bg-green-500
-                                        {% elif fa_statistic.mean >= fa_statistic.passing_threshold|add:-10 %}bg-blue-500
-                                        {% elif fa_statistic.mean >= fa_statistic.passing_threshold|add:-20 %}bg-yellow-500
+                                        {% if fa_statistic.mean >= fa_statistic.passing_threshold|add:15 %}bg-green-500
+                                        {% elif fa_statistic.mean >= fa_statistic.passing_threshold|add:10 %}bg-blue-500
+                                        {% elif fa_statistic.mean >= fa_statistic.passing_threshold %}bg-yellow-500
                                         {% else %}bg-red-500{% endif %}"
                                         style="width: {{ normalized_mean_scaled }}%">
                                     </div>
