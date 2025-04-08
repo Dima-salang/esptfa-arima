@@ -367,5 +367,8 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
             )
         )
 
+        context["test_topics"] = TestTopicMapping.objects.filter(
+            analysis_document=student_statistic.analysis_document)
+
         return context
     

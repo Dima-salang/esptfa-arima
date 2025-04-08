@@ -20,15 +20,6 @@
                         </svg>
                         Back to Document
                     </a>
-                    <button
-                        class="inline-flex items-center px-4 py-2 bg-white text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Export Report
-                    </button>
                 </div>
             </div>
         </div>
@@ -255,7 +246,7 @@
                         <tr class="hover:bg-gray-50">
                             <td class="py-3 font-medium text-gray-900">FA{{ score.formative_assessment_number }}</td>
                             <td class="py-3 text-gray-900">
-                                {% for topic in student_statistic.analysis_document.testtopicmapping_set.all %}
+                                {% for topic in test_topics %}
                                 {% if topic.test_number == score.formative_assessment_number %}
                                 {{ topic.topic.topic_name }}
                                 {% endif %}
@@ -324,22 +315,22 @@
                 <div class="mt-4 flex items-center justify-center">
                     <div class="flex flex-wrap items-center justify-center gap-4">
                         <div class="flex items-center">
-                            <div class="w-4 h-4 bg-red-100 rounded mr-1"></div>
+                            <div class="w-4 h-4 bg-yellow-100 rounded mr-1"></div>
                             <span class="text-xs text-gray-600">Struggling (0-0.75)</span>
                         </div>
 
                         <div class="flex items-center">
-                            <div class="w-4 h-4 bg-yellow-100 rounded mr-1"></div>
+                            <div class="w-4 h-4 bg-green-200 rounded mr-1"></div>
                             <span class="text-xs text-gray-600">Average (.70-.79)</span>
                         </div>
 
                         <div class="flex items-center">
-                            <div class="w-4 h-4 bg-blue-100 rounded mr-1"></div>
+                            <div class="w-4 h-4 bg-green-500 rounded mr-1"></div>
                             <span class="text-xs text-gray-600">Good (.80-.89)</span>
                         </div>
 
                         <div class="flex items-center">
-                            <div class="w-4 h-4 bg-green-100 rounded mr-1"></div>
+                            <div class="w-4 h-4 bg-blue-900 rounded mr-1"></div>
                             <span class="text-xs text-gray-600">Excellent (.90-1.0)</span>
                         </div>
                     </div>

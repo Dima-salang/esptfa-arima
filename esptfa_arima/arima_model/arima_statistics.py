@@ -247,7 +247,11 @@ def generate_heatmap(processed_data, value_column, title=None):
         values=value_column
     )
 
-    fig, ax = plt.subplots()
+
+
+    fig, ax = plt.subplots(figsize=(12, 8))  # set fig size
+
+
     sns.heatmap(heatmap_data, annot=True, fmt=".1f",
                 cmap="YlGnBu", linewidths=0.5, ax=ax)
 
