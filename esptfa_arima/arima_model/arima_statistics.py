@@ -151,19 +151,19 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
 
 
 
-def compute_student_statistics(processed_data, analysis_document, passing_threshold=75, at_risk_threshold=74):
+def compute_student_statistics(processed_data, analysis_document):
     logger.info(
-        f"Processing student statistics... Processed data: {processed_data}")
+        f"Processing student statistics for analysis document {analysis_document.pk}...")
     # group by student id
 
     # TO-DO: USE NORMALIZED THRESHOLD TO CALCULATE FOR PASSING RATE AND PASSING SCORES
     for student_id, student_data in processed_data.groupby("student_id"):
         # get student instance
-        max_score = student_data["max_score"].iloc[0]
-        passing_threshold = 0.75 * max_score
         student = Student.objects.get(student_id=student_id)
         scores = student_data["score"]
-        total_scores = len(scores)
+        normalized_scores = student_data["normalized_scores"]
+        normalized_passing_threshold = student_data["normalized_passing_threshold"]
+        total_scores = scores.count()
         mean = scores.mean()
         median = scores.median()
         mode_series = scores.mode()
@@ -176,8 +176,7 @@ def compute_student_statistics(processed_data, analysis_document, passing_thresh
 
         minimum = scores.min()
         maximum = scores.max()
-        passing_scores = len(scores[scores >= passing_threshold])
-        failing_scores = len(scores[scores < passing_threshold])
+        passing_scores = (normalized_scores >= normalized_passing_threshold).sum() 
         passing_rate = (passing_scores / total_scores) * 100
         failing_rate = (total_scores - passing_scores) / total_scores * 100
 

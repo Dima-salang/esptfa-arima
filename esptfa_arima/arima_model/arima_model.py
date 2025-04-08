@@ -24,8 +24,8 @@ lstm_model = None  # Global LSTM model
 window_size = 5  # Number of past scores to use for LSTM predictions
 
 
-def preprocess_data(csv_file, analysis_document):
-    test_data = pd.read_csv(csv_file)
+def preprocess_data(analysis_document):
+    test_data = pd.read_csv(analysis_document.analysis_doc.path)
 
     num_of_students = test_data["student_id"].nunique()
     logger.info(f"Number of students: {num_of_students}")
@@ -76,6 +76,9 @@ def preprocess_data(csv_file, analysis_document):
     # normalize test scores
     test_data_long["normalized_scores"] = test_data_long["score"] / \
         test_data_long["max_score"]
+    
+    # normalize passing threshold
+    test_data_long["normalized_passing_threshold"] = test_data_long["max_score"] * 0.75 / test_data_long["max_score"]
 
     return test_data_long
 
@@ -309,8 +312,7 @@ def arima_driver(analysis_document):
     logger.info(
         f"Processing Analysis Document... {analysis_document.analysis_document_id} - {analysis_document.analysis_doc_title}")
     try:
-        csv_path = analysis_document.analysis_doc.path
-        processed_data = preprocess_data(csv_path, analysis_document)
+        processed_data = preprocess_data(analysis_document)
 
         train_lstm_model(processed_data)  # Train LSTM first
         train_model(processed_data, analysis_document)

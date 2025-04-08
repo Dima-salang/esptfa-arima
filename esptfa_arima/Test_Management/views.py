@@ -6,7 +6,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
-from arima_model.arima_model import arima_driver
+from arima_model.arima_model import arima_driver, preprocess_data
+from arima_model.arima_statistics import compute_student_statistics
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
@@ -284,6 +285,18 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         student_statistic = self.get_object()
+        
+        with transaction.atomic():
+            try:
+                preprocessed_data = preprocess_data(student_statistic.analysis_document)
+                compute_student_statistics(preprocessed_data, student_statistic.analysis_document)
+            except Exception as e:
+                messages.error(self.request, "Error processing the document: " + str(e))
+                return redirect("formative_assessment_dashboard")
+        
+
+
+
         context["formative_scores"] = FormativeAssessmentScore.objects.filter(
             student_id= student_statistic.student,
             analysis_document = student_statistic.analysis_document
@@ -293,12 +306,5 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
             analysis_document=student_statistic.analysis_document
         )
 
-        print(student_statistic.student.student_id)
-        print(student_statistic.student.first_name)
-        print(student_statistic.student.last_name)
-        print(student_statistic.mean)
-
-        print(student_statistic.lineplot.url if student_statistic.lineplot else None)
-        print(student_statistic.heatmap.url if student_statistic.heatmap else None)
-
         return context
+    
