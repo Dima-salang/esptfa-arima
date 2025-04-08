@@ -359,6 +359,11 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
         context["predicted_score"] = PredictedScore.objects.filter(
             student_id=student_statistic.student,
             analysis_document=student_statistic.analysis_document
+        ).annotate(
+            normalized_score_scaled=ExpressionWrapper(
+                F('score') / (F('passing_threshold') / 0.75) * 100,
+                output_field=FloatField()
+            )
         )
 
         return context
