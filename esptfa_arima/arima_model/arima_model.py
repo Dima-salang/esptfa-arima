@@ -30,6 +30,9 @@ def preprocess_data(analysis_document):
     num_of_students = test_data["student_id"].nunique()
     logger.info(f"Number of students: {num_of_students}")
 
+    # convert student_id into str col
+    test_data["student_id"] = test_data["student_id"].astype(str)
+
     # Identify columns with test scores (e.g., "fa1:30", "fa2:20")
     test_columns = [col for col in test_data.columns if "fa" in col]
 

@@ -271,10 +271,11 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
             with transaction.atomic():
                 # Fetch the analysis document to which this FA statistic belongs
                 try:
+                    fa_number = int(fa_statistic.formative_assessment_number)
                     preprocessed_data = preprocess_data(analysis_document)
-                    fa_data = preprocessed_data[
-                        preprocessed_data["test_number"] == fa_statistic.formative_assessment_number]
-                    fa_number = fa_statistic.formative_assessment_number
+                    print(f"Preprocessed data in test_stats: {preprocessed_data}")
+                    fa_data = preprocessed_data[preprocessed_data["test_number"] == fa_number]
+                    print(f"FA data in test_stats: {fa_data}")
 
                     # generate charts at runtime
                     histogram_image = generate_score_dist_chart(fa_data, fa_number)
@@ -348,7 +349,7 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
                 except Exception as e:
                     logger.error(f"Error generating charts: {e}")
                     messages.error(self.request, "Error generating charts.")
-                    return redirect("formative_assessment_dashboard")
+                    redirect("formative_assessment_dashboard")
 
 
 
