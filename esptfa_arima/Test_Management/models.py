@@ -50,7 +50,7 @@ class AnalysisDocument(models.Model):
     teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
-    def __str__(self): 
+    def __str__(self):
         return self.analysis_doc_title
 
 

@@ -124,8 +124,8 @@ class FormativeAssessmentDashboardView(LoginRequiredMixin, ListView):
     context_object_name = "documents"
 
     def get_queryset(self):
-        # Show only the documents owned by the logged-in teacher
-        return AnalysisDocument.objects.filter(teacher_id=self.request.user.teacher)
+        # Show only the documents owned by the logged-in teacher and show the most recent ones
+        return AnalysisDocument.objects.filter(teacher_id=self.request.user.teacher).order_by('-created_at').reverse()
 
 
 # Detail View: Show individual formative assessments and predicted scores
