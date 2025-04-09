@@ -211,6 +211,14 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
 
         return context
 
+    def get_object(self, queryset=None):
+        document = super().get_object(queryset)
+
+        if not document.status:
+            messages.info("The document is still being processed. Please check back later by refreshing the page.")
+            return redirect("formative_assessment_dashboard")
+
+        return document
     def prepare_score_distribution_data(self, assessments):
         """ Prepares data for the score distribution chart with dynamic ranges. """
         # Determine score ranges dynamically

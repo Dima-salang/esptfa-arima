@@ -322,6 +322,10 @@ def arima_driver(analysis_document):
         compute_document_statistics(processed_data, analysis_document)
         compute_test_statistics(processed_data, analysis_document)
         compute_student_statistics(processed_data, analysis_document)
+
+        # Update the status of the analysis document to True (processed)
+        analysis_document.status = True
+        analysis_document.save()
     except Exception as e:
         logger.error(
             f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
