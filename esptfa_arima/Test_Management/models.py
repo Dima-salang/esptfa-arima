@@ -49,8 +49,8 @@ class AnalysisDocument(models.Model):
     analysis_doc = models.FileField(upload_to='analysis_documents/')
     teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
-
-    def __str__(self):
+    status = models.BooleanField(default=False)  # True if processed, False if not
+    def __str__(self): 
         return self.analysis_doc_title
 
 

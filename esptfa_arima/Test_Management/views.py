@@ -267,12 +267,20 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
         fa_statistic = self.get_object()
         analysis_document = fa_statistic.analysis_document
 
-        print(fa_statistic.histogram.url if fa_statistic.histogram else None)
-        print(fa_statistic.bar_chart.url if fa_statistic.bar_chart else None)
-        print(fa_statistic.boxplot.url if fa_statistic.boxplot else None)
+        context["formative_scores"] = FormativeAssessmentScore.objects.filter(
+            analysis_document=analysis_document,
+            formative_assessment_number=fa_statistic.formative_assessment_number
+        )
 
-        
-        # TO-DO: NOT PROPERLY CHECKING FOR FIELD EXISTENCE
+        context["normalized_mean_scaled"] = fa_statistic.mean / fa_statistic.max_score * 100 if fa_statistic.max_score else 0
+
+
+        return context
+
+    def get_object(self, queryset=None):
+        """Override to ensure the object is fetched from the database."""
+        fa_statistic = super().get_object(queryset)
+        analysis_document = fa_statistic.analysis_document 
         if not fa_statistic.histogram or not fa_statistic.bar_chart or not fa_statistic.boxplot:
             with transaction.atomic():
                 # Fetch the analysis document to which this FA statistic belongs
@@ -303,17 +311,7 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
                     logger.error(f"Error generating charts: {e}")
                     messages.error(self.request, "Error generating charts.")
                     return redirect("formative_assessment_dashboard")
-
-        context["formative_scores"] = FormativeAssessmentScore.objects.filter(
-            analysis_document=analysis_document,
-            formative_assessment_number=fa_statistic.formative_assessment_number
-        )
-
-        context["normalized_mean_scaled"] = fa_statistic.mean / fa_statistic.max_score * 100 if fa_statistic.max_score else 0
-
-
-        return context
-
+        return fa_statistic
 
 class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
     model = StudentScoresStatistic
@@ -325,42 +323,6 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         student_statistic = self.get_object()
         
-        print(student_statistic.heatmap.url if student_statistic.heatmap else None)
-        print(student_statistic.lineplot.url if student_statistic.lineplot else None)
-
-        # TO-DO: NOT PROPERLY CHECKING WHETHER HEATMAP AND LINEPLOT ALREADY EXISTS
-        if not student_statistic.heatmap or not student_statistic.lineplot:
-            with transaction.atomic():
-                # Fetch the analysis document to which this student statistic belongs
-                try:
-                    analysis_document = student_statistic.analysis_document
-                    student_id = student_statistic.student.student_id
-                    
-                    preprocessed_data = preprocess_data(analysis_document)
-
-                    student_data = preprocessed_data[preprocessed_data["student_id"] == student_id]
-                    
-                    # generate charts at runtime
-                    heatmap_image = generate_heatmap(
-                        student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students per FA")
-                    heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
-
-                    lineplot = generate_student_line_chart(student_data, analysis_document)
-                    lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
-
-                    # save images
-                    student_statistic.heatmap.save(
-                        heatmap_filename, ContentFile(heatmap_image.read()), save=True)
-                    student_statistic.lineplot.save(
-                        lineplot_filename, ContentFile(lineplot.read()), save=True)
-
-                except Exception as e:
-                    logger.error(f"Error generating charts: {e}")
-                    messages.error(self.request, "Error generating charts.")
-                    redirect("formative_assessment_dashboard")
-
-
-
         context["formative_scores"] = FormativeAssessmentScore.objects.filter(
             student_id= student_statistic.student,
             analysis_document = student_statistic.analysis_document
@@ -379,4 +341,37 @@ class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
             analysis_document=student_statistic.analysis_document)
 
         return context
-    
+
+
+    def get_object(self, queryset=None):
+        student_statistic = super().get_object(queryset) 
+        if not student_statistic.heatmap or not student_statistic.lineplot:
+            with transaction.atomic():
+                # fetch the analysis document to which this student statistic belongs
+                try:
+                    analysis_document = student_statistic.analysis_document
+                    student_id = student_statistic.student.student_id
+                    
+                    preprocessed_data = preprocess_data(analysis_document)
+
+                    student_data = preprocessed_data[preprocessed_data["student_id"] == student_id]
+                    
+                    # generate charts at runtime
+                    heatmap_image = generate_heatmap(
+                        student_data, "normalized_scores", title="heatmap of normalized scores of students per fa")
+                    heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
+
+                    lineplot = generate_student_line_chart(student_data, analysis_document)
+                    lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
+
+                    # save images
+                    student_statistic.heatmap.save(
+                        heatmap_filename, ContentFile(heatmap_image.read()), save=True)
+                    student_statistic.lineplot.save(
+                        lineplot_filename, ContentFile(lineplot.read()), save=True)
+
+                except Exception as e:
+                    logger.error(f"Error generating charts: {e}")
+                    messages.error(self.request, "Error generating charts.")
+                    redirect("formative_assessment_dashboard")
+        return student_statistic
