@@ -328,3 +328,4 @@ def arima_driver(analysis_document):
         logger.error(
             f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
         logger.error(traceback.format_exc())
+        raise
