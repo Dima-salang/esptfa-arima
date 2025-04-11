@@ -55,6 +55,7 @@ def preprocess_data(analysis_document):
                                     value_vars=[col for col,
                                                 _, _ in test_info],
                                     value_name="score")
+                                
 
     # Extract test number & assign correct dates
     # Extract test number and assign corresponding max score
@@ -283,7 +284,6 @@ def train_model(processed_data, analysis_document):
                     start=test.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
 
 
-
                 for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
                     
                     # calculate for the predicted score status
@@ -305,8 +305,6 @@ def train_model(processed_data, analysis_document):
                     )
 
 # function for computing necessary statistics
-
-
 
 
 def arima_driver(analysis_document):

@@ -36,7 +36,7 @@
             </div>
         </div>
 
-        {% if documents %}
+        {% if page_obj %}
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
             <!-- Table Header -->
             <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
@@ -44,13 +44,12 @@
                     <div class="col-span-6 md:col-span-5 font-medium text-gray-700">Document Title</div>
                     <div class="col-span-4 md:col-span-3 font-medium text-gray-700">Date</div>
                     <div class="col-span-2 md:col-span-2 font-medium text-gray-700">Status</div>
-                    <div class="hidden md:block md:col-span-2 font-medium text-gray-700">Actions</div>
                 </div>
             </div>
 
             <!-- Table Body -->
-            <div class="divide-y divide-gray-200">
-                {% for document in documents %}
+           <div class="divide-y divide-gray-200">
+                {% for document in page_obj %}
                 <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
                     <div class="grid grid-cols-12 gap-4 items-center">
                         <div class="col-span-6 md:col-span-5">
@@ -63,31 +62,17 @@
                             {{ document.test_start_date }}
                         </div>
                         <div class="col-span-2 md:col-span-2">
+                            {% if document.status %}
                             <span
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 Analyzed
                             </span>
-                        </div>
-                        <div class="hidden md:flex md:col-span-2 space-x-2">
-                            <a href="{% url 'formative_assessment_detail' document.pk %}"
-                                class="p-2 text-gray-500 hover:text-blue-700 rounded-full hover:bg-gray-100"
-                                title="View Details">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            </a>
-                            <button class="p-2 text-gray-500 hover:text-blue-700 rounded-full hover:bg-gray-100"
-                                title="Download Report">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </button>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Processing
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -95,19 +80,42 @@
             </div>
         </div>
 
-        <!-- Pagination -->
-        <div class="mt-6 flex justify-between items-center">
-            <p class="text-sm text-gray-600">Showing <span class="font-medium">{{ documents|length }}</span> documents
-            </p>
-            <div class="flex space-x-1">
-                <button
-                    class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                    disabled>Previous</button>
-                <button
-                    class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                    disabled>Next</button>
-            </div>
-        </div>
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="mt-6 flex justify-between items-center">
+    <p class="text-sm text-gray-600">
+        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} documents
+    </p>
+    <div class="flex space-x-1">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+            class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">Previous</a>
+        {% else %}
+        <span
+            class="px-3 py-1 rounded border border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed">Previous</span>
+        {% endif %}
+
+        {% for num in paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="px-3 py-1 rounded border border-blue-700 text-white bg-blue-700">{{ num }}</span>
+        {% else %}
+        <a href="?page={{ num }}"
+            class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+            class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">Next</a>
+        {% else %}
+        <span
+            class="px-3 py-1 rounded border border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed">Next</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+
 
         {% else %}
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center">

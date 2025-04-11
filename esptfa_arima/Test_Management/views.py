@@ -1,3 +1,5 @@
+from django.http import HttpRequest
+from django.http.response import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.forms import forms
@@ -15,10 +17,12 @@ from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
 from django.db import transaction
 from django.core.files.base import ContentFile
-
+from utils.decorators.decorators import teacher_required
+from utils.mixins.mixins import TeacherRequiredMixin
 logger = logging.getLogger("arima_model")
 
 @login_required
+@teacher_required
 def upload_analysis_document(request):
     """Handle document uploads with error handling."""
     try:
@@ -116,24 +120,37 @@ def process_default_topics(document, test_columns):
 def home(request):
     return render(request, "home.html")
 
-
 # Dashboard: List all formative assessment documents for the teacher
-class FormativeAssessmentDashboardView(LoginRequiredMixin, ListView):
+class FormativeAssessmentDashboardView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
     model = AnalysisDocument
     template_name = "dashboard.html"
     context_object_name = "documents"
+    paginate_by = 10
 
     def get_queryset(self):
         # Show only the documents owned by the logged-in teacher and show the most recent ones
-        return AnalysisDocument.objects.filter(teacher_id=self.request.user.teacher).order_by('-created_at').reverse()
+       return AnalysisDocument.objects.filter(teacher_id=self.request.user.teacher).order_by('-upload_date')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["documents"] = context["page_obj"]
+        return context
 
 
 # Detail View: Show individual formative assessments and predicted scores
-class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
+class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailView):
     model = AnalysisDocument
     template_name = "analysis_doc_detail.html"
     context_object_name = "document"
     pk_url_kwarg = "document_pk"
+
+
+    def dispatch(self, request, *args, **kwargs):
+        document = self.get_object()
+        if not document.status:
+            messages.info(request, message="The document is still being processed. Please check back later by refreshing the page.")
+            return redirect("formative_assessment_dashboard")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -211,14 +228,6 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
 
         return context
 
-    def get_object(self, queryset=None):
-        document = super().get_object(queryset)
-
-        if not document.status:
-            messages.info("The document is still being processed. Please check back later by refreshing the page.")
-            return redirect("formative_assessment_dashboard")
-
-        return document
     def prepare_score_distribution_data(self, assessments):
         """ Prepares data for the score distribution chart with dynamic ranges. """
         # Determine score ranges dynamically
@@ -264,7 +273,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, DetailView):
         }
 
 
-class IndividualFADetailView(LoginRequiredMixin, DetailView):
+class IndividualFADetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailView):
     model = FormativeAssessmentStatistic
     template_name = "fa_detail.html"
     context_object_name = "fa_statistic"
@@ -285,13 +294,11 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
 
         return context
 
-    def get_object(self, queryset=None):
-        """Override to ensure the object is fetched from the database."""
-        fa_statistic = super().get_object(queryset)
-        analysis_document = fa_statistic.analysis_document 
+    def dispatch(self, request, *args, **kwargs):
+        fa_statistic = self.get_object()
+        analysis_document = fa_statistic.analysis_document
         if not fa_statistic.histogram or not fa_statistic.bar_chart or not fa_statistic.boxplot:
             with transaction.atomic():
-                # Fetch the analysis document to which this FA statistic belongs
                 try:
                     fa_number = int(fa_statistic.formative_assessment_number)
                     preprocessed_data = preprocess_data(analysis_document)
@@ -314,14 +321,14 @@ class IndividualFADetailView(LoginRequiredMixin, DetailView):
                         boxplot_filename, ContentFile(boxplot_image.read()), save=True)
                     fa_statistic.bar_chart.save(
                         bar_chart_filename, ContentFile(bar_chart_image.read()), save=True)
-
                 except Exception as e:
                     logger.error(f"Error generating charts: {e}")
                     messages.error(self.request, "Error generating charts.")
                     return redirect("formative_assessment_dashboard")
-        return fa_statistic
+        return super().dispatch(request, *args, **kwargs)
 
-class IndividualStudentDetailView(LoginRequiredMixin, DetailView):
+
+class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailView):
     model = StudentScoresStatistic
     template_name = "student_detail.html"
     context_object_name = "student_statistic"
