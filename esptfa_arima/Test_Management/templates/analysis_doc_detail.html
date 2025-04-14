@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.analysis_doc_title }}{% endblock %}
+
+{% block content %}
+{{ test_performance_data|json_script:"test-performance-data" }}
+{{ score_distribution_data|json_script:"score-distribution-data" }}
+{{ topic_heatmap_data|json_script:"topic-heatmap-data" }}
+{{ test_topics_data|json_script:"test-topics" }}
+<!-- Load Chart.js and heatmap.js for data visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heatmap.js@2.0.6/dist/heatmap.min.js"></script>
+
+<div class="bg-gray-100 min-h-screen pb-12">
+    <!-- Document Header -->
+    <div class="bg-blue-700 text-white py-8">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold">{{ document.analysis_doc_title }}</h1>
+                    <p class="text-blue-100 mt-2">Assessment Analysis and Predictions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Overview Card -->
+    <div class="container mx-auto px-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6 -mt-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Test Date</p>
+                        <p class="font-medium text-gray-900">{{ document.test_start_date }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Subject</p>
+                        <p class="font-medium text-gray-900">{{ document.subject }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Quarter</p>
+                        <p class="font-medium text-gray-900">{{ document.quarter }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Students</p>
+                        <p class="font-medium text-gray-900">{{ analysis_doc_statistic.total_students }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 mt-8">
+
+        <div class="container mx-auto px-6 mt-8">
+            <!-- Document Statistics Summary -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                <div class="bg-blue-700 px-6 py-4">
+                    <h2 class="text-xl font-semibold text-white">Document Statistics</h2>
+                </div>
+            
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <h3 class="text-md font-medium text-gray-900 mb-2">Overall Performance</h3>
+                            <div class="flex items-end mb-2">
+                                <span class="text-2xl font-bold text-blue-700">{{ analysis_doc_statistic.mean|floatformat:1}}</span>
+                                <span class="text-sm text-gray-500 ml-2 mb-1">avg</span>
+                            </div>
+                            <div class="space-y-1 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Median:</span>
+                                    <span class="font-medium text-gray-900">{{ analysis_doc_statistic.median|floatformat:1 }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Mode:</span>
+                                    <span class="font-medium text-gray-900">{{ analysis_doc_statistic.mode|floatformat:1 }}</span>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <h3 class="text-md font-medium text-gray-900 mb-2">Score Distribution</h3>
+                            <div class="space-y-1 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Range:</span>
+                                    <span class="font-medium text-gray-900">{{ analysis_doc_statistic.minimum|floatformat:1 }} - {{analysis_doc_statistic.maximum|floatformat:1 }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Std Deviation:</span>
+                                    <span class="font-medium text-gray-900">{{analysis_doc_statistic.standard_deviation|floatformat:1 }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Passing Threshold:</span>
+                                    <span class="font-medium text-gray-900">{{analysis_doc_statistic.mean_passing_threshold|floatformat:1 }}</span>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 col-span-1 md:col-span-2">
+                            <h3 class="text-md font-medium text-gray-900 mb-2">Performance Summary</h3>
+                            <div class="flex flex-col">
+                                <p class="text-sm text-gray-600 mb-4">
+                                    This assessment document contains data for <span
+                                        class="font-medium">{{analysis_doc_statistic.total_students }}</span> students across
+                                    <span class="font-medium">{{ individual_formative_assessments|length }}</span> formative
+                                    assessments.
+                                    The overall average score is <span
+                                        class="font-medium">{{analysis_doc_statistic.mean|floatformat:1 }}</span>,
+                                    {% if analysis_doc_statistic.mean >= analysis_doc_statistic.mean_passing_threshold %}
+                                    which is <span class="text-green-600 font-medium">above</span> the passing threshold of
+                                    {{analysis_doc_statistic.mean_passing_threshold|floatformat:1 }}.
+                                    {% else %}
+                                    which is <span class="text-red-600 font-medium">below</span> the passing threshold of
+                                    {{analysis_doc_statistic.mean_passing_threshold|floatformat:1 }}.
+                                    {% endif %}
+                                </p>
+            
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                        <h4 class="text-xs font-medium text-gray-700 mb-1">Highest Performing Topic</h4>
+                                        {% with highest_fa=individual_formative_assessments|dictsort:"mean"|last %}
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-2">
+                                                <span
+                                                    class="text-xs font-medium text-green-700">FA{{highest_fa.formative_assessment_number}}</span>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p class="text-sm font-medium truncate">{{ highest_fa.fa_topic }}</p>
+                                                <p class="text-xs text-gray-500">Avg: {{ highest_fa.mean|floatformat:1 }}</p>
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    </div>
+            
+                                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                        <h4 class="text-xs font-medium text-gray-700 mb-1">Lowest Performing Topic</h4>
+                                        {% with lowest_fa=individual_formative_assessments|dictsort:"mean"|first %}
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-2">
+                                                <span
+                                                    class="text-xs font-medium text-red-700">FA{{lowest_fa.formative_assessment_number}}</span>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <p class="text-sm font-medium truncate">{{ lowest_fa.fa_topic }}</p>
+                                                <p class="text-xs text-gray-500">Avg: {{ lowest_fa.mean|floatformat:1 }}</p>
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        <!-- Performance Overview with Charts -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-blue-700 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Performance Overview</h2>
+            </div>
+
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Score Distribution Chart -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Score Distribution</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <canvas id="scoreDistributionChart" height="250"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Performance by Test Chart -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Performance by Test</h3>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <canvas id="testPerformanceChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Statistics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+                    {% for fa in individual_formative_assessments %}
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <h3 class="text-md font-medium text-gray-900 mb-2">FA{{ fa.formative_assessment_number }}: {{fa.fa_topic }}</h3>
+                        <div class="flex items-end mb-2">
+                            <span class="text-2xl font-bold text-blue-700">{{ fa.mean|floatformat:1 }}</span>
+                            <span class="text-sm text-gray-500 ml-2 mb-1">avg</span>
+                        </div>
+                        <div class="space-y-1 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Mean Score:</span>
+                                <span class="font-medium text-gray-900">{{ fa.mean|floatformat:1 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Passing Percentage:</span>
+                                <span class="font-medium text-gray-900">{{ fa.passing_rate|floatformat:1 }}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Range:</span>
+                                <span class="font-medium text-gray-900">{{ fa.minimum }} - {{ fa.maximum }}</span>
+                            </div>
+                            <!-- Topic performance bar -->
+                            <div class="mt-3">
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">                            
+                                    {% if fa.mean >= fa.passing_threshold|add:15 %}
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% elif fa.mean >= fa.passing_threshold|add:10 %}
+                                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% elif fa.mean >= fa.passing_threshold %}
+                                    <div class="bg-yellow-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% else %}
+                                    <div class="bg-red-500 h-1.5 rounded-full" style="width: {{ fa.normalized_mean_scaled }}%"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{% url 'individual_fa_detail' document.pk fa.pk %}"
+                                    class="text-blue-700 hover:text-blue-800 text-xs font-medium">
+                                    View Details →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Topic Performance Heatmap -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-blue-700 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Topic Performance Heatmap</h2>
+            </div>
+
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">This heatmap shows student performance across different topics, helping
+                    identify areas where students are excelling or struggling.</p>
+
+                <div class="overflow-x-auto">
+                    <div class="min-w-full py-2">
+                        <div id="topicHeatmap" class="min-h-[400px]">
+                            <img src="{{ analysis_doc_statistic.heatmap.url }}" alt="Topic Heatmap"></img>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students at Risk -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-red-600 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-white">Students at Risk</h2>
+                <span class="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
+                    Attention Required
+                </span>
+            </div>
+
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">These students are performing below the passing threshold and may need
+                    additional support.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for entry in student_data %}
+                    {% if entry.prediction.predicted_status == 'fail' %} <div
+                        class="border border-red-100 rounded-lg p-4 bg-red-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Student {{ entry.prediction.student_id }}</h4>
+                                <p class="text-sm text-gray-600 mt-1">FA{{ entry.prediction.formative_assessment_number }}</p>
+                            </div>
+                            <span class="text-lg font-bold text-red-600">{{ entry.prediction.score|floatformat:1 }}</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-red-100">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Gap to passing:</span>
+                                <span class="font-medium text-red-600">{{ entry.prediction.gap_to_passing|floatformat:1}} points</span>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{% url 'individual_student_detail' document.pk entry.stat.pk %}" class="text-xs text-blue-700 hover:text-blue-800 font-medium">View Student
+                                    Profile →</a>
+                            </div>
+                        </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Actual vs Predicted Scores -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+        <div class="bg-blue-700 px-6 py-4">
+            <h2 class="text-xl font-semibold text-white">Actual vs Predicted Scores</h2>
+        </div>
+
+        <div class="p-6">
+            <p class="text-gray-600 mb-4">Compare actual student performance with AI-predicted scores to identify trends
+                and potential interventions.</p>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left border-b border-gray-200">
+                            <th class="pb-3 font-semibold text-gray-700">Student ID</th>
+                            <th class="pb-3 font-semibold text-gray-700">Latest Assessment</th>
+                            <th class="pb-3 font-semibold text-gray-700">Actual Score</th>
+                            <th class="pb-3 font-semibold text-gray-700">Next Assessment</th>
+                            <th class="pb-3 font-semibold text-gray-700">Predicted Score</th>
+                            <th class="pb-3 font-semibold text-gray-700">Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for entry in student_data %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 text-gray-900">
+                                {{ entry.student }}
+                                <div class="mt-2">
+                                    <a href="{% url 'individual_student_detail' document.pk entry.stat.pk %}"
+                                        class="text-blue-700 hover:text-blue-800 text-xs font-medium">
+                                        View Details →
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="py-3">FA{{ entry.last_score.formative_assessment_number }}</td>
+                            <td class="py-3">{{ entry.last_score.score|floatformat:1 }}</td>
+                            <td class="py-3">FA{{ entry.prediction.formative_assessment_number }}</td>
+                            <td class="py-3 font-medium {% if entry.prediction.score >= entry.prediction.passing_threshold %}
+                                                          text-green-600
+                                                       {% else %}
+                                                          text-red-600
+                                                       {% endif %}">
+                                {{ entry.prediction.score|floatformat:1 }}
+                            </td>
+                            <td class="py-3">
+                                {% if entry.prediction.score > entry.last_score.score %}
+                                <span class="inline-flex items-center text-green-600">
+                                    ↑
+                                </span>
+                                {% elif entry.prediction.score < entry.last_score.score %} <span
+                                    class="inline-flex items-center text-red-600">
+                                    ↓
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center text-gray-600">
+                                        —
+                                    </span>
+                                    {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-4 text-center text-gray-500">No student data available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Dashboard Button -->
+    <div class="mt-8 text-center">
+        <a href="{% url 'formative_assessment_dashboard' %}"
+            class="inline-flex items-center px-4 py-2 text-blue-700 hover:text-blue-800">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+</div>
+
+<!-- JavaScript for Charts and Heatmap -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Score Distribution Chart
+        const scoreDistributionCtx = document.getElementById('scoreDistributionChart').getContext('2d');
+        const scoreDistributionData = JSON.parse(document.getElementById('score-distribution-data').textContent);
+        const scoreDistributionChart = new Chart(scoreDistributionCtx, {
+            type: 'bar',
+            data: {
+                labels: scoreDistributionData.labels,
+                datasets: [{
+                    label: 'Number of Students',
+                    data: scoreDistributionData.data,
+                    backgroundColor: [
+                        'rgba(239, 68, 68, 0.7)',
+                        'rgba(245, 158, 11, 0.7)',
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(5, 150, 105, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgb(239, 68, 68)',
+                        'rgb(245, 158, 11)',
+                        'rgb(59, 130, 246)',
+                        'rgb(16, 185, 129)',
+                        'rgb(5, 150, 105)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw} students`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Students'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Score Range'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Test Performance Chart
+        const testPerformanceCtx = document.getElementById('testPerformanceChart').getContext('2d');
+        const testPerformanceData = JSON.parse(document.getElementById('test-performance-data').textContent);
+        console.log(testPerformanceData);
+        const testPerformanceChart = new Chart(testPerformanceCtx, {
+            
+            type: 'line',
+            data: {
+                labels: testPerformanceData["labels"],
+                datasets: [{
+                    label: 'Average Score',
+                    data: testPerformanceData["means"],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                },
+                {
+                    label: 'Passing Threshold',
+                    data: testPerformanceData["passing_thresholds"],
+                    borderColor: 'rgba(239, 68, 68, 0.5)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Average: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: testPerformanceData["max_score"],
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Formative Assessment'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

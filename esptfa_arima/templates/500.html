@@ -1,0 +1,88 @@
+{% etends "base.html" %}
+
+{% block title %}Server Error - 500 Internal Server Error{% endblock %}
+
+{% block meta %}
+<meta name="description" content="We're experiencing some technical difficulties. Our team has been notified and is working to resolve the issue.">
+<meta name="robots" content="noindex, follow">
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="max-w-lg w-full bg-white rounded-2xl shadow-lg overflow-hidden">
+        <!-- Error Header -->
+        <div class="bg-red-600 px-6 py-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">500</h1>
+            <p class="text-red-100 text-lg">Internal Server Error</p>
+        </div>
+        
+        <div class="p-6 md:p-8">
+            <!-- Friendly Message -->
+            <div class="text-center mb-8">
+                <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Something went wrong on our end</h2>
+                <p class="text-gray-600 mb-2">We're experiencing some technical difficulties. This is not your fault.</p>
+                <p class="text-gray-600">Our technical team has been automatically notified and is working to fix the issue.</p>
+            </div>
+            
+            <!-- Help Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <a href="{% url 'formative_assessment_dashboard' %}" class="flex items-center justify-center p-4 bg-blue-700 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+                    </svg>
+                    Return to Dashboard
+                </a>
+                <a href="javascript:location.reload()" class="flex items-center justify-center p-4 border border-blue-700 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Try Again
+                </a>
+            </div>
+            
+            <!-- What You Can Do -->
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-100">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">What you can do</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-gray-600">Wait a few minutes and try again. The issue might be temporary.</p>
+                    </li>
+                    <li class="flex items-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <p class="text-gray-600">Refresh your browser or clear your cache and try again.</p>
+                    </li>
+                    <li class="flex items-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-700 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <p class="text-gray-600">If the problem persists, please contact our support team.</p>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Alternative Access -->
+            <div class="mt-8">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Alternative Ways to Access</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <a href="{% url 'formative_assessment_dashboard' %}" class="text-blue-700 hover:text-blue-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+                        </svg>
+                        Main Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
