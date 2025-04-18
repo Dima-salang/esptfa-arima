@@ -241,7 +241,11 @@ def generate_heatmap(processed_data, value_column, title=None):
     """
         Plots and returns a heatmap image (as BytesIO) where rows are students, columns are test numbers, and cells are the specified value.
         """
-    heatmap_data = processed_data.pivot_table(
+    
+    plot_data = processed_data.copy()
+    plot_data[value_column] = plot_data[value_column] * 100
+
+    heatmap_data = plot_data.pivot_table(
         index="student_id",
         columns="test_number",
         values=value_column
@@ -279,10 +283,13 @@ def generate_student_line_chart(student_data, analysis_document):
     if predicted_score:
         predicted_test_numbers = [int(predicted_score.formative_assessment_number)]
         # assuming 'predicted_value' holds the predicted score
-        predicted_scores = [predicted_score.score]
+        # normalize the predicted score
+        predicted_scores = [(predicted_score.score / predicted_score.max_score) * 100]
+        student_data_score_percentage = student_data["normalized_scores"] * 100
+
 
         # Overlay: Actual scores
-        sns.lineplot(x=student_data["test_number"].astype(int), y=student_data["score"],
+        sns.lineplot(x=student_data["test_number"].astype(int), y=student_data_score_percentage,
                      label="Actual Score", marker="o", color="blue", ax=ax)
 
         # Overlay: Predicted scores (same X but with single Y value, repeated for each test number)
@@ -291,7 +298,7 @@ def generate_student_line_chart(student_data, analysis_document):
 
     else:
         # If no predicted score found, just plot the actual scores
-        sns.lineplot(x=student_data["test_number"].astype(int), y=student_data["score"],
+        sns.lineplot(x=student_data["test_number"].astype(int), y=student_data_score_percentage,
                      label="Actual Score", marker="o", color="blue", ax=ax)
     
     ax.set_title(f"Actual vs Predicted Scores Over Time")

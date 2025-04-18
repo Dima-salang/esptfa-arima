@@ -7,7 +7,7 @@
         <div class="container mx-auto px-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-bold">Student {{ student_statistic.student.student_id }}</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold">Student {{student_statistic.student.last_name}} {{student_statistic.student.first_name}} - {{ student_statistic.student.student_id }}</h1>
                     <p class="text-blue-100 mt-2">{{ student_statistic.analysis_document.analysis_doc_title }}</p>
                 </div>
                 <div class="mt-4 md:mt-0 flex space-x-3">

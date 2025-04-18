@@ -84,6 +84,9 @@ def preprocess_data(analysis_document):
     # normalize passing threshold
     test_data_long["normalized_passing_threshold"] = test_data_long["max_score"] * 0.75 / test_data_long["max_score"]
 
+    # make test number into int
+    test_data_long["test_number"] = test_data_long["test_number"].astype(int)
+
     return test_data_long
 
 
@@ -160,7 +163,7 @@ def train_lstm_model(processed_data):
 
     # Build and train the LSTM model
     lstm_model = build_lstm_model(window_size)
-    lstm_model.fit(X_train, y_train, epochs=50, batch_size=16)
+    lstm_model.fit(X_train, y_train, epochs=32, batch_size=16)
 
 
 def hybrid_prediction(student_scores, arima_model, last_normalized_score, last_max_score):
@@ -301,7 +304,8 @@ def train_model(processed_data, analysis_document):
                         date=date,
                         score=predicted_score,
                         predicted_status=predicted_status,
-                        passing_threshold=passing_threshold
+                        passing_threshold=passing_threshold,
+                        max_score=last_max_score
                     )
 
 # function for computing necessary statistics

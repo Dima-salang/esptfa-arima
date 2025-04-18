@@ -373,7 +373,7 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
                     
                     # generate charts at runtime
                     heatmap_image = generate_heatmap(
-                        student_data, "normalized_scores", title="heatmap of normalized scores of students per fa")
+                        student_data, "normalized_scores", title="Heatmap of Normalized Scores of Students Per FA in Percentage")
                     heatmap_filename = f"student_heatmap_{analysis_document.pk}_{student_id}.png"
 
                     lineplot = generate_student_line_chart(student_data, analysis_document)

@@ -80,6 +80,7 @@ class PredictedScore(models.Model):
     formative_assessment_number = models.CharField(max_length=5)
     predicted_status = models.CharField(max_length=20, null=True)
     passing_threshold = models.FloatField()
+    max_score = models.FloatField(null=True)
 
 
     def __str__(self):
