@@ -1,0 +1,152 @@
+{% if insights %}
+<div class="card mb-4 shadow">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-lightbulb"></i> AI-Generated Insights
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if insights.overall %}
+        <div class="insights-section mb-3">
+            <h6 class="fw-bold">Overall Summary</h6>
+            <p>{{ insights.overall.summary }}</p>
+            
+            {% if insights.overall.performance %}
+            <div class="insights-detail">
+                <p><i class="fas fa-chart-line text-primary"></i> <strong>Performance:</strong> {{ insights.overall.performance }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.overall.consistency %}
+            <div class="insights-detail">
+                <p><i class="fas fa-balance-scale text-primary"></i> <strong>Consistency:</strong> {{ insights.overall.consistency }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.overall.trends %}
+            <div class="insights-detail">
+                <p><i class="fas fa-chart-bar text-primary"></i> <strong>Trends:</strong></p>
+                <ul class="mb-0">
+                    {% for trend in insights.overall.trends %}
+                    <li>{{ trend }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if insights.heatmap %}
+        <div class="insights-section mb-3">
+            <h6 class="fw-bold">Heatmap Analysis</h6>
+            <p>{{ insights.heatmap.summary }}</p>
+            
+            {% if insights.heatmap.trends %}
+            <div class="insights-detail">
+                <p><i class="fas fa-chart-line text-primary"></i> <strong>Key Findings:</strong></p>
+                <ul class="mb-0">
+                    {% for trend in insights.heatmap.trends %}
+                    <li>{{ trend }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if insights.distribution %}
+        <div class="insights-section mb-3">
+            <h6 class="fw-bold">Score Distribution</h6>
+            <p>{{ insights.distribution.summary }}</p>
+            
+            {% if insights.distribution.distribution %}
+            <div class="insights-detail">
+                <p><i class="fas fa-chart-area text-primary"></i> <strong>Distribution:</strong> {{ insights.distribution.distribution }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.distribution.central_tendency %}
+            <div class="insights-detail">
+                <p><i class="fas fa-bullseye text-primary"></i> <strong>Central Tendency:</strong> {{ insights.distribution.central_tendency }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.distribution.spread %}
+            <div class="insights-detail">
+                <p><i class="fas fa-expand-arrows-alt text-primary"></i> <strong>Spread:</strong> {{ insights.distribution.spread }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if insights.bar_chart %}
+        <div class="insights-section mb-3">
+            <h6 class="fw-bold">Student Performance</h6>
+            <p>{{ insights.bar_chart.summary }}</p>
+            
+            {% if insights.bar_chart.distribution %}
+            <div class="insights-detail">
+                <p><i class="fas fa-users text-primary"></i> <strong>Class Overview:</strong> {{ insights.bar_chart.distribution }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.bar_chart.top_performers and insights.bar_chart.top_performers|length <= 3 %}
+            <div class="insights-detail">
+                <p><i class="fas fa-medal text-primary"></i> <strong>Top Performers:</strong> 
+                    {% for student in insights.bar_chart.top_performers %}
+                    <span class="badge bg-success me-1">{{ student }}</span>
+                    {% endfor %}
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if insights.bar_chart.struggling_students and insights.bar_chart.struggling_students|length <= 3 %}
+            <div class="insights-detail">
+                <p><i class="fas fa-exclamation-triangle text-primary"></i> <strong>Needs Support:</strong> 
+                    {% for student in insights.bar_chart.struggling_students %}
+                    <span class="badge bg-warning me-1">{{ student }}</span>
+                    {% endfor %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if insights.line_chart %}
+        <div class="insights-section mb-3">
+            <h6 class="fw-bold">Performance Trend</h6>
+            <p>{{ insights.line_chart.summary }}</p>
+            
+            {% if insights.line_chart.trend %}
+            <div class="insights-detail">
+                <p><i class="fas fa-chart-line text-primary"></i> <strong>Trend Analysis:</strong> {{ insights.line_chart.trend }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.line_chart.progress %}
+            <div class="insights-detail">
+                <p><i class="fas fa-history text-primary"></i> <strong>Recent Progress:</strong> {{ insights.line_chart.progress }}</p>
+            </div>
+            {% endif %}
+            
+            {% if insights.line_chart.prediction_context %}
+            <div class="insights-detail">
+                <p><i class="fas fa-crystal-ball text-primary"></i> <strong>Prediction:</strong> {{ insights.line_chart.prediction_context }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if actionable_insights %}
+        <div class="insights-section">
+            <h6 class="fw-bold text-success">Recommended Actions</h6>
+            <ul class="mb-0">
+                {% for action in actionable_insights %}
+                <li><i class="fas fa-check-circle text-success"></i> {{ action }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %} 

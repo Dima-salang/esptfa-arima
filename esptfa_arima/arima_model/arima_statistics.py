@@ -266,7 +266,7 @@ def generate_heatmap(processed_data, value_column, title=None):
 
     # Save the plot to a BytesIO buffer instead of showing it
     buffer = io.BytesIO()
-    fig.savefig(buffer, format='png', bbox_inches='tight')
+    fig.savefig(buffer, format='png')
     plt.close(fig)
     buffer.seek(0)
     return buffer
