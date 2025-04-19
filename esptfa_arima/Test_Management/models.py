@@ -61,7 +61,7 @@ class AnalysisDocument(models.Model):
 class FormativeAssessmentScore(models.Model):
     formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
     analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
-    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE) 
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
     formative_assessment_number = models.CharField(max_length=5)

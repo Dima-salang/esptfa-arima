@@ -126,7 +126,7 @@
                                     <span class="font-medium text-gray-900">{{analysis_doc_statistic.standard_deviation|floatformat:1 }}</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-gray-600">Passing Threshold:</span>
+                                    <span class="text-gray-600">Passing Score:</span>
                                     <span class="font-medium text-gray-900">{{analysis_doc_statistic.mean_passing_threshold|floatformat:1 }}</span>
                                 </div>
                             </div>
@@ -143,10 +143,10 @@
                                     The overall average score is <span
                                         class="font-medium">{{analysis_doc_statistic.mean|floatformat:1 }}</span>,
                                     {% if analysis_doc_statistic.mean >= analysis_doc_statistic.mean_passing_threshold %}
-                                    which is <span class="text-green-600 font-medium">above</span> the passing threshold of
+                                    which is <span class="text-green-600 font-medium">above</span> the passing score of
                                     {{analysis_doc_statistic.mean_passing_threshold|floatformat:1 }}.
                                     {% else %}
-                                    which is <span class="text-red-600 font-medium">below</span> the passing threshold of
+                                    which is <span class="text-red-600 font-medium">below</span> the passing score of
                                     {{analysis_doc_statistic.mean_passing_threshold|floatformat:1 }}.
                                     {% endif %}
                                 </p>
@@ -205,6 +205,9 @@
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <canvas id="scoreDistributionChart" height="250"></canvas>
                         </div>
+                        <p class="text-sm text-gray-600 mt-2">
+                            This chart shows how students’ scores are distributed across different score ranges. It helps identify the overall performance spread — whether scores are clustered high, low, or vary widely.
+                        </p>
                     </div>
 
                     <!-- Performance by Test Chart -->
@@ -213,6 +216,9 @@
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <canvas id="testPerformanceChart" height="250"></canvas>
                         </div>
+                        <p class="text-sm text-gray-600 mt-2">
+                            This line chart compares the average score of each formative assessment with the passing threshold. It highlights tests where students excelled or struggled, helping identify patterns over time.
+                        </p>
                     </div>
                 </div>
 
@@ -295,7 +301,7 @@
             </div>
 
             <div class="p-6">
-                <p class="text-gray-600 mb-4">These students are performing below the passing threshold and may need
+                <p class="text-gray-600 mb-4">These students are performing below the passing score and may need
                     additional support.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -450,7 +456,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return `${context.raw} students`;
+                                return `${context.raw} student scores`;
                             }
                         }
                     }
@@ -460,7 +466,7 @@
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Number of Students'
+                            text: 'Number of Student Scores'
                         }
                     },
                     x: {
@@ -492,7 +498,7 @@
                     fill: true
                 },
                 {
-                    label: 'Passing Threshold',
+                    label: 'Passing Score',
                     data: testPerformanceData["passing_thresholds"],
                     borderColor: 'rgba(239, 68, 68, 0.5)',
                     borderWidth: 2,
