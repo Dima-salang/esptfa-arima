@@ -160,6 +160,7 @@ class FormativeAssessmentStatistic(models.Model):
     scatterplot = models.FileField(upload_to='scatterplots/', null=True)
     bar_chart = models.FileField(upload_to='bar_charts/', null=True)
     boxplot = models.FileField(upload_to='boxplots/', null=True)
+    student_comparison_chart = models.FileField(upload_to='student_comparison_charts/', null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
@@ -181,7 +182,7 @@ class StudentScoresStatistic(models.Model):
     failing_rate = models.FloatField()
     lineplot = models.FileField(upload_to='lineplots/', null=True)
     heatmap = models.FileField(upload_to='heatmaps/', null=True)
-
+    performance_comparison_chart = models.FileField(upload_to='performance_comparisons/', null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - {self.student.student_id} Statistics"

@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="bg-gray-100 min-h-screen pb-12">
-    <!-- Header -->
-    <div class="bg-blue-700 text-white py-8">
+    <!-- Header with Gradient Background -->
+    <div class="bg-gradient-to-r from-blue-700 to-blue-600 text-white py-8">
         <div class="container mx-auto px-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
@@ -90,7 +90,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Detailed Statistics -->
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="bg-blue-700 px-6 py-4">
+                <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-4">
                     <h2 class="text-xl font-semibold text-white">Statistical Analysis</h2>
                 </div>
                 <div class="p-6">
@@ -190,7 +190,7 @@
 
             <!-- Score Distribution Histogram -->
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="bg-blue-700 px-6 py-4">
+                <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-4">
                     <h2 class="text-xl font-semibold text-white">Score Distribution</h2>
                 </div>
                 <div class="p-6">
@@ -206,36 +206,77 @@
                     </div>
                     {% endif %}
 
+                    <!-- Score Distribution Insights -->
+                    {% if insights.distribution %}
+                    <div class="bg-blue-50 rounded-xl p-4 mt-4">
+                        <div class="flex items-center mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                            <h4 class="text-md font-medium text-blue-800">Distribution Analysis</h4>
+                        </div>
+                        
+                        {% if insights.distribution.summary %}
+                            <p class="text-sm text-gray-700 mb-3">{{ insights.distribution.summary }}</p>
+                        {% endif %}
+                        
+                        {% if insights.distribution.distribution %}
+                            <div class="flex items-start mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <p class="text-sm text-gray-700">{{ insights.distribution.distribution }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if insights.distribution.central_tendency %}
+                            <div class="flex items-start mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <p class="text-sm text-gray-700">{{ insights.distribution.central_tendency }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if insights.distribution.spread %}
+                            <div class="flex items-start mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <p class="text-sm text-gray-700">{{ insights.distribution.spread }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
                     <div class="mt-4">
                         <h3 class="text-md font-medium text-gray-900 mb-2">Distribution Analysis</h3>
                         <p class="text-sm text-gray-600">
                             This histogram shows the distribution of student scores for this assessment.
-                            {% if fa_statistic.standard_deviation < 10 %} The scores are tightly clustered (low standard
-                                deviation of {{ fa_statistic.standard_deviation|floatformat:1 }}), indicating consistent
-                                performance across students. {% elif fa_statistic.standard_deviation < 20 %} The scores
-                                show moderate variation (standard deviation of {{fa_statistic.standard_deviation|floatformat:1 }}), indicating some differences in
-                                student performance. {% else %} The scores show high variation (high standard deviation
-                                of {{ fa_statistic.standard_deviation|floatformat:1 }}), indicating significant
-                                differences in student performance. {% endif %} {% if fa_statistic.mean < fa_statistic.median %} The mean ({{ fa_statistic.mean|floatformat:1 }}) is lower than
-                                the median ({{ fa_statistic.median|floatformat:1 }}), suggesting a negative skew with
-                                some students scoring significantly lower than others. {% elif fa_statistic.mean > fa_statistic.median %}
-                                The mean ({{ fa_statistic.mean|floatformat:1 }}) is higher than the median ({{fa_statistic.median|floatformat:1 }}),
-                                suggesting a positive skew with some students scoring significantly higher than others.
-                                {% else %}
-                                The mean and median are approximately equal, suggesting a symmetric distribution of
-                                scores.
-                                {% endif %}
+                            {% if fa_statistic.standard_deviation < 10 %} 
+                                The scores are tightly clustered (low standard deviation of {{ fa_statistic.standard_deviation|floatformat:1 }}), indicating consistent performance across students.
+                            {% elif fa_statistic.standard_deviation < 15 %} 
+                                The scores show moderate spread (standard deviation of {{ fa_statistic.standard_deviation|floatformat:1 }}), indicating some variance in student performance.
+                            {% else %} 
+                                The scores show significant spread (high standard deviation of {{ fa_statistic.standard_deviation|floatformat:1 }}), indicating widely varying levels of mastery among students.
+                            {% endif %}
                         </p>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Additional Visualizations -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Box Plot Section -->
+        <div class="grid gap-8 mb-8">
             <!-- Box Plot -->
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="bg-blue-700 px-6 py-4">
+                <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-4">
                     <h2 class="text-xl font-semibold text-white">Score Distribution Box Plot</h2>
                 </div>
                 <div class="p-6">
@@ -250,139 +291,240 @@
                     </div>
                     {% endif %}
 
-                    <div class="mt-4">
-                        <h3 class="text-md font-medium text-gray-900 mb-2">Box Plot Analysis</h3>
-                        <p class="text-sm text-gray-600">
-                            This box plot shows the distribution of scores, highlighting the median, quartiles, and
-                            potential outliers.
-                            The box represents the middle 50% of scores, with the line inside showing the median ({{fa_statistic.median|floatformat:1 }}).
-                            The whiskers extend to show the range of scores, excluding any outliers which appear as
-                            individual points.
-                        </p>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-md font-medium text-gray-900 mb-2">Box Plot Analysis</h3>
+                            <p class="text-sm text-gray-600">
+                                This box plot shows the distribution of scores, highlighting the median, quartiles, and
+                                potential outliers. The box represents the middle 50% of scores, with the line inside showing the median ({{fa_statistic.median|floatformat:1 }}).
+                                The whiskers extend to show the range of scores, excluding any outliers which appear as
+                                individual points.
+                            </p>
+                        </div>
+                        
+                        <!-- Box Plot Insights -->
+                        {% if insights.distribution %}
+                        <div class="bg-blue-50 rounded-xl p-4">
+                            <div class="flex items-center mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                                <h4 class="text-md font-medium text-blue-800">Statistical Insights</h4>
+                            </div>
+                            
+                            {% if insights.distribution.quartiles %}
+                                <div class="flex items-start mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <p class="text-sm text-gray-700">{{ insights.distribution.quartiles }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            {% if insights.distribution.outliers %}
+                                <div class="flex items-start mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <p class="text-sm text-gray-700">{{ insights.distribution.outliers }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            {% if insights.distribution.spread and not insights.distribution.outliers %}
+                                <div class="flex items-start mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <p class="text-sm text-gray-700">{{ insights.distribution.spread }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-
-            <!-- Bar Chart -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="bg-blue-700 px-6 py-4">
-                    <h2 class="text-xl font-semibold text-white">Student Performance Bar Chart</h2>
-                </div>
-                <div class="p-6">
-                    {% if fa_statistic.bar_chart %}
-                    <div class="rounded-lg overflow-hidden mb-4">
-                        <img src="{{ fa_statistic.bar_chart.url }}" alt="Performance Bar Chart"
-                            class="w-full h-auto">
-                    </div>
-                    {% else %}
-                    <div class="bg-gray-100 rounded-lg p-8 text-center">
-                        <p class="text-gray-500">Bar Chart plot not available</p>
-                        <p class="text-gray-500">(Try refreshing the page if chart is not loading.)</p>
-                    </div>
-                    {% endif %}
-
-                    <div class="mt-4">
-                        <h3 class="text-md font-medium text-gray-900 mb-2">Scatter Plot Analysis</h3>
-                        <p class="text-sm text-gray-600">
-                            This scatter plot shows individual student performance. Each point represents a student's
-                            score.
-                            The horizontal line indicates the passing threshold ({{fa_statistic.passing_threshold|floatformat:1 }}).
-                            Students above this line have passed the assessment, while those below need additional
-                            support.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            
         </div>
 
-        <!-- Recommendations -->
+        <!-- Student Performance Comparison (Full Width Row) -->
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
-            <div class="bg-blue-700 px-6 py-4">
-                <h2 class="text-xl font-semibold text-white">Recommendations</h2>
+            <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Student Performance Comparison</h2>
             </div>
             <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {% if fa_statistic.mean < fa_statistic.passing_threshold %} <div
-                        class="bg-red-50 rounded-xl p-4 border border-red-100">
-                        <h3 class="text-md font-medium text-red-800 mb-2">Performance Concerns</h3>
-                        <p class="text-sm text-red-700">
-                            The class average ({{ fa_statistic.mean|floatformat:1 }}) is below the passing threshold ({{
-                            fa_statistic.passing_threshold|floatformat:1 }}).
-                            Consider reviewing the material covered in this assessment and providing additional support
-                            or remediation.
-                        </p>
-                        <div class="mt-3">
-                            <h4 class="text-sm font-medium text-red-800">Suggested Actions:</h4>
-                            <ul class="list-disc list-inside text-sm text-red-700 mt-1">
-                                <li>Review key concepts from this topic with the entire class</li>
-                                <li>Provide targeted intervention for students scoring below {{
-                                    fa_statistic.passing_threshold|floatformat:0 }}</li>
-                                <li>Consider a re-assessment after remediation</li>
-                            </ul>
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Chart Container with Fixed Height for Better Readability -->
+                    <div class="rounded-lg overflow-hidden">
+                        {% if fa_statistic.student_comparison_chart %}
+                        <div class="h-[400px] flex items-center justify-center">
+                            <img src="{{ fa_statistic.student_comparison_chart.url }}" alt="Student Performance Comparison"
+                                class="max-h-full max-w-full object-contain">
                         </div>
-                </div>
-                {% else %}
-                <div class="bg-green-50 rounded-xl p-4 border border-green-100">
-                    <h3 class="text-md font-medium text-green-800 mb-2">Positive Performance</h3>
-                    <p class="text-sm text-green-700">
-                        The class average ({{ fa_statistic.mean|floatformat:1 }}) is above the passing threshold ({{
-                        fa_statistic.passing_threshold|floatformat:1 }}).
-                        The majority of students have demonstrated understanding of this topic.
-                    </p>
-                    <div class="mt-3">
-                        <h4 class="text-sm font-medium text-green-800">Suggested Actions:</h4>
-                        <ul class="list-disc list-inside text-sm text-green-700 mt-1">
-                            <li>Provide enrichment activities for high-performing students</li>
-                            <li>Continue to the next topic in the curriculum</li>
-                            <li>Offer targeted support for any students who scored below threshold</li>
-                        </ul>
+                        {% else %}
+                        <div class="bg-gray-100 rounded-lg p-8 text-center h-[400px] flex items-center justify-center">
+                            <div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                                <p class="text-gray-500">Comparison chart not available</p>
+                                <p class="text-gray-500 text-sm">(Try refreshing the page if chart is not loading.)</p>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
-                </div>
-                {% endif %}
 
-                {% if fa_statistic.standard_deviation > 15 %}
-                <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
-                    <h3 class="text-md font-medium text-yellow-800 mb-2">High Variance in Scores</h3>
-                    <p class="text-sm text-yellow-700">
-                        There is significant variation in student performance (standard deviation: {{
-                        fa_statistic.standard_deviation|floatformat:1 }}).
-                        This suggests that while some students have mastered the material, others are struggling.
-                    </p>
-                    <div class="mt-3">
-                        <h4 class="text-sm font-medium text-yellow-800">Suggested Actions:</h4>
-                        <ul class="list-disc list-inside text-sm text-yellow-700 mt-1">
-                            <li>Implement differentiated instruction strategies</li>
-                            <li>Form study groups mixing high and low-performing students</li>
-                            <li>Provide additional resources for struggling students</li>
-                        </ul>
+                    <!-- Analysis and Insights in Two Columns -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-md font-medium text-gray-900 mb-2">Comparison Analysis</h3>
+                            <p class="text-sm text-gray-600">
+                                This chart compares individual student mean scores against class averages for each formative assessment.
+                                This visualization helps identify students who are consistently performing above or below the class average,
+                                allowing for targeted interventions and personalized learning approaches.
+                            </p>
+                        </div>
+                        
+                        <!-- Student Performance Insights -->
+                        {% if insights.student_comparison %}
+                        <div class="bg-blue-50 rounded-xl p-4">
+                            <div class="flex items-center mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                                <h4 class="text-md font-medium text-blue-800">Performance Insights</h4>
+                            </div>
+                            
+                            {% if insights.student_comparison.summary %}
+                                <p class="text-sm text-gray-700 mb-3">{{ insights.student_comparison.summary }}</p>
+                            {% endif %}
+                            
+                            {% if insights.student_comparison.top_performers %}
+                                <div class="flex items-start mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <p class="text-sm text-gray-700">{{ insights.student_comparison.top_performers }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            {% if insights.student_comparison.struggling_students %}
+                                <div class="flex items-start mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <p class="text-sm text-gray-700">{{ insights.student_comparison.struggling_students }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            {% if insights.student_comparison.trends %}
+                                <div class="flex items-start mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <p class="text-sm text-gray-700">{{ insights.student_comparison.trends }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="bg-blue-50 rounded-xl p-4">
+                            <div class="flex items-center mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                                <h4 class="text-md font-medium text-blue-800">Performance Insights</h4>
+                            </div>
+                            <p class="text-sm text-gray-700">
+                                This comparison helps identify students who may need additional support or enrichment.
+                                {% if fa_statistic.mean >= fa_statistic.passing_threshold %}
+                                    Overall, the class is performing well on this assessment, but individual student performance varies.
+                                {% else %}
+                                    The class is generally struggling with this topic, and targeted interventions may be necessary.
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-                {% else %}
-                <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                    <h3 class="text-md font-medium text-blue-800 mb-2">Consistent Performance</h3>
-                    <p class="text-sm text-blue-700">
-                        Student performance is relatively consistent (standard deviation: {{
-                        fa_statistic.standard_deviation|floatformat:1 }}).
-                        This suggests that most students have a similar level of understanding of the material.
-                    </p>
-                    <div class="mt-3">
-                        <h4 class="text-sm font-medium text-blue-800">Suggested Actions:</h4>
-                        <ul class="list-disc list-inside text-sm text-blue-700 mt-1">
-                            <li>Continue with current teaching strategies</li>
-                            <li>Introduce more challenging material at an appropriate pace</li>
-                            <li>Monitor for any students who may be falling behind</li>
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
+
+        <!-- Actionable Insights -->
+        {% if insights.distribution.actionable or insights.bar_chart.actionable or insights.student_comparison.actionable %}
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-green-600 to-blue-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Recommended Actions</h2>
+            </div>
+
+            <div class="p-6">
+                <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-100">
+                    <div class="space-y-4">
+                        {% if insights.distribution.actionable %}
+                            {% for action in insights.distribution.actionable %}
+                                <div class="bg-white rounded-lg p-3 border border-green-100 hover:shadow-md transition-shadow">
+                                    <div class="flex items-start">
+                                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-0.5 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 6 9 17l-5-5"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-gray-700">{{ action }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if insights.bar_chart.actionable %}
+                            {% for action in insights.bar_chart.actionable %}
+                                <div class="bg-white rounded-lg p-3 border border-green-100 hover:shadow-md transition-shadow">
+                                    <div class="flex items-start">
+                                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-0.5 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 6 9 17l-5-5"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-gray-700">{{ action }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if insights.student_comparison.actionable %}
+                            {% for action in insights.student_comparison.actionable %}
+                                <div class="bg-white rounded-lg p-3 border border-green-100 hover:shadow-md transition-shadow">
+                                    <div class="flex items-start">
+                                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-0.5 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 6 9 17l-5-5"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-gray-700">{{ action }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Back Button -->
     <div class="mt-8 text-center">
         <a href="{% url 'formative_assessment_detail' fa_statistic.analysis_document.pk %}"
-            class="inline-flex items-center px-4 py-2 text-blue-700 hover:text-blue-800">
+            class="inline-flex items-center px-4 py-2 text-blue-700 hover:text-blue-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -390,6 +532,5 @@
             Back to Analysis Document
         </a>
     </div>
-</div>
 </div>
 {% endblock content %}

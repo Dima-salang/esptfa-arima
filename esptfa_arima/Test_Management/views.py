@@ -9,7 +9,7 @@ from .forms import AnalysisDocumentForm
 from django.contrib.auth.decorators import login_required
 from Authentication.models import Teacher
 from arima_model.arima_model import arima_driver, preprocess_data
-from arima_model.arima_statistics import generate_heatmap, generate_student_line_chart, generate_score_dist_chart, generate_boxplot, generate_bar_chart
+from arima_model.visualization_manager import generate_heatmap, generate_student_line_chart, generate_score_dist_chart, generate_boxplot, generate_bar_chart, generate_student_vs_class_chart, generate_student_comparison_chart
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
@@ -19,7 +19,9 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 from utils.decorators.decorators import teacher_required
 from utils.mixins.mixins import TeacherRequiredMixin
+from utils.insights import get_visualization_insights
 logger = logging.getLogger("arima_model")
+import pandas as pd
 
 @login_required
 @teacher_required
@@ -167,7 +169,76 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
         context["last_fa"] = last_fa
         context["last_fa_scores"] = FormativeAssessmentScore.objects.filter(analysis_document=document, formative_assessment_number=context["last_fa"])
 
-        context["analysis_doc_statistic"] = AnalysisDocumentStatistic.objects.filter(analysis_document=document).first()
+        document_statistic = AnalysisDocumentStatistic.objects.filter(analysis_document=document).first()
+        context["analysis_doc_statistic"] = document_statistic
+        
+        # Generate document-level insights
+        if document_statistic:
+            # Convert assessments to DataFrame for insight generation
+            import pandas as pd
+            
+            # Create a DataFrame from all assessments
+            all_scores_data = []
+            for assessment in assessments:
+                all_scores_data.append({
+                    'student_id': assessment.student_id.student_id,
+                    'test_number': assessment.formative_assessment_number,
+                    'score': assessment.score,
+                    'max_score': assessment.passing_threshold / 0.75, # Reconstruct max score
+                    'passing_threshold': assessment.passing_threshold,
+                    'normalized_scores': assessment.score / (assessment.passing_threshold / 0.75)
+                })
+            
+            if all_scores_data:
+                processed_data = pd.DataFrame(all_scores_data)
+                
+                # Generate overall document insights
+                document_stats = {
+                    "mean": document_statistic.mean,
+                    "median": document_statistic.median, 
+                    "standard_deviation": document_statistic.standard_deviation,
+                    "minimum": document_statistic.minimum,
+                    "maximum": document_statistic.maximum,
+                    "mean_passing_threshold": document_statistic.mean_passing_threshold
+                }
+                
+                assessment_count = processed_data["test_number"].nunique()
+                student_count = processed_data["student_id"].nunique()
+                
+                overall_insights = get_visualization_insights(
+                    'overall', 
+                    document_stats,
+                    assessment_count,
+                    student_count
+                )
+                
+                # Generate heatmap insights
+                heatmap_insights = get_visualization_insights(
+                    'heatmap',
+                    processed_data,
+                    value_column="normalized_scores"
+                )
+                
+                context['insights'] = {
+                    'overall': overall_insights,
+                    'heatmap': heatmap_insights
+                }
+                
+                # Add actionable recommendations
+                context['actionable_insights'] = []
+                if 'actionable' in overall_insights:
+                    context['actionable_insights'].extend(overall_insights['actionable'])
+                if 'actionable' in heatmap_insights:
+                    for item in heatmap_insights['actionable']:
+                        if item not in context['actionable_insights']:
+                            context['actionable_insights'].append(item)
+                
+                # Add notable student lists from heatmap insights
+                if 'outliers' in heatmap_insights:
+                    context['high_performers'] = heatmap_insights['outliers'].get('high_performers', [])
+                    context['low_performers'] = heatmap_insights['outliers'].get('low_performers', [])
+                    context['inconsistent_performers'] = heatmap_insights['outliers'].get('inconsistent_performers', [])
+        
         # 2. Prepare Data for Score Distribution Chart (Dynamic Ranges)
         score_distribution_data = self.prepare_score_distribution_data(assessments)
         context["score_distribution_data"] = score_distribution_data
@@ -291,13 +362,75 @@ class IndividualFADetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailVie
 
         context["normalized_mean_scaled"] = fa_statistic.mean / fa_statistic.max_score * 100 if fa_statistic.max_score else 0
 
+        # Generate insights for the visualizations
+        import pandas as pd
+        fa_data = pd.DataFrame(list(context["formative_scores"].values(
+            'student_id__student_id', 'student_id__first_name', 
+            'student_id__last_name', 'score'
+        )))
+        
+        if not fa_data.empty:
+            # Rename columns for compatibility with insight generator
+            fa_data.rename(columns={
+                'student_id__student_id': 'student_id',
+                'student_id__first_name': 'first_name',
+                'student_id__last_name': 'last_name'
+            }, inplace=True)
+            
+            # Generate insights
+            topic = fa_statistic.fa_topic.topic_name if fa_statistic.fa_topic else None
+            
+            distribution_insights = get_visualization_insights(
+                'distribution',
+                fa_data['score'],
+                fa_number=int(fa_statistic.formative_assessment_number),
+                topic=topic
+            )
+            
+            bar_insights = get_visualization_insights(
+                'bar_chart',
+                fa_data['student_id'].tolist(),
+                fa_data['score'].tolist(),
+                fa_number=int(fa_statistic.formative_assessment_number),
+                topic=topic
+            )
+            
+            # Generate student comparison insights
+            student_comparison_insights = get_visualization_insights(
+                'student_comparison',
+                fa_data['student_id'].tolist(),
+                fa_data['score'].tolist(),
+                class_average=fa_data['score'].mean(),
+                passing_threshold=fa_statistic.passing_threshold,
+                fa_number=int(fa_statistic.formative_assessment_number),
+                topic=topic
+            )
+            
+            context['insights'] = {
+                'distribution': distribution_insights,
+                'bar_chart': bar_insights,
+                'student_comparison': student_comparison_insights
+            }
+            
+            # Add actionable recommendations
+            context['actionable_insights'] = []
+            if 'actionable' in distribution_insights:
+                context['actionable_insights'].extend(distribution_insights['actionable'])
+            if 'actionable' in bar_insights:
+                for item in bar_insights['actionable']:
+                    if item not in context['actionable_insights']:
+                        context['actionable_insights'].append(item)
+            if 'actionable' in student_comparison_insights:
+                for item in student_comparison_insights['actionable']:
+                    if item not in context['actionable_insights']:
+                        context['actionable_insights'].append(item)
 
         return context
 
     def dispatch(self, request, *args, **kwargs):
         fa_statistic = self.get_object()
         analysis_document = fa_statistic.analysis_document
-        if not fa_statistic.histogram or not fa_statistic.bar_chart or not fa_statistic.boxplot:
+        if True:  # Always regenerate charts to ensure we use the latest implementation
             with transaction.atomic():
                 try:
                     fa_number = int(fa_statistic.formative_assessment_number)
@@ -313,6 +446,10 @@ class IndividualFADetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailVie
 
                     bar_chart_image = generate_bar_chart(fa_data, fa_number)
                     bar_chart_filename = f"bar_chart_{analysis_document.pk}_{fa_number}.png"
+                    
+                    # Generate student comparison chart
+                    student_comparison_chart = generate_student_comparison_chart(fa_data, None, fa_number)
+                    student_comparison_filename = f"student_comparison_{analysis_document.pk}_{fa_number}.png"
 
                     # save images
                     fa_statistic.histogram.save(
@@ -321,6 +458,8 @@ class IndividualFADetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailVie
                         boxplot_filename, ContentFile(boxplot_image.read()), save=True)
                     fa_statistic.bar_chart.save(
                         bar_chart_filename, ContentFile(bar_chart_image.read()), save=True)
+                    fa_statistic.student_comparison_chart.save(
+                        student_comparison_filename, ContentFile(student_comparison_chart.read()), save=True)
                 except Exception as e:
                     logger.error(f"Error generating charts: {e}")
                     messages.error(self.request, "Error generating charts.")
@@ -354,13 +493,132 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
 
         context["test_topics"] = TestTopicMapping.objects.filter(
             analysis_document=student_statistic.analysis_document)
+        
+        # Generate insights for student performance
+        import pandas as pd
+        student_data = pd.DataFrame(list(context["formative_scores"].values(
+            'formative_assessment_number', 'score', 'passing_threshold'
+        )))
+        
+        if not student_data.empty:
+            # Add student_id column for compatibility
+            student_data['student_id'] = student_statistic.student.student_id
+            
+            # Calculate normalized scores for insights
+            student_data['max_score'] = student_data['passing_threshold'] / 0.75
+            student_data['normalized_scores'] = student_data['score'] / student_data['max_score']
+            student_data['test_number'] = student_data['formative_assessment_number'].astype(int)
+            
+            # Get predicted score if available
+            predicted_score_obj = context["predicted_score"].first()
+            predicted_score = predicted_score_obj.score if predicted_score_obj else None
+            
+            try:
+                # Generate performance trend insights
+                line_insights = get_visualization_insights(
+                    'line_chart',
+                    student_data['normalized_scores'] * 100,  # As percentage
+                    student_data['test_number'].tolist(),
+                    predicted_score
+                )
+                
+                # Generate topic-specific insights
+                test_topic_data = []
+                for _, row in student_data.iterrows():
+                    test_num = int(row['formative_assessment_number'])
+                    topic_obj = TestTopicMapping.objects.filter(
+                        analysis_document=student_statistic.analysis_document,
+                        test_number=test_num
+                    ).first()
+                    
+                    if topic_obj:
+                        test_topic_data.append({
+                            'test_number': test_num,
+                            'topic': topic_obj.topic.topic_name,
+                            'score': row['score'],
+                            'normalized_score': row['normalized_scores'] * 100,
+                        })
+                
+                # Group by topic and analyze performance
+                topic_insights = []
+                if test_topic_data:
+                    topics_df = pd.DataFrame(test_topic_data)
+                    for topic, group in topics_df.groupby('topic'):
+                        avg_score = group['normalized_score'].mean()
+                        if avg_score >= 90:
+                            topic_insights.append(f"Strong performance in {topic} (avg {avg_score:.1f}%)")
+                        elif avg_score >= 75:
+                            topic_insights.append(f"Good understanding of {topic} (avg {avg_score:.1f}%)")
+                        elif avg_score >= 60:
+                            topic_insights.append(f"Average performance in {topic} (avg {avg_score:.1f}%)")
+                        else:
+                            topic_insights.append(f"Needs improvement in {topic} (avg {avg_score:.1f}%)")
+                
+                # Add topic insights to line_insights
+                if topic_insights:
+                    line_insights['topic_insights'] = topic_insights
+                
+                context['insights'] = {
+                    'line_chart': line_insights
+                }
+                
+                # Generate comparison insights
+                # Get all scores for the document (for class comparison)
+                all_scores = FormativeAssessmentScore.objects.filter(
+                    analysis_document=student_statistic.analysis_document
+                )
+                
+                if all_scores.exists():
+                    # Prepare data for comparison insights
+                    student_scores = student_data["score"].tolist()
+                    test_numbers = student_data["test_number"].tolist()
+                    
+                    # Calculate class averages for each test
+                    class_data = pd.DataFrame(list(all_scores.values('formative_assessment_number', 'score')))
+                    class_data['test_number'] = class_data['formative_assessment_number'].astype(int)
+                    
+                    class_averages = []
+                    for test_num in test_numbers:
+                        test_data = class_data[class_data['test_number'] == test_num]
+                        class_avg = test_data['score'].mean()
+                        class_averages.append(class_avg)
+                    
+                    comparison_insights = get_visualization_insights(
+                        'student_vs_class_comparison',
+                        test_numbers,
+                        student_scores,
+                        class_averages,
+                        student_id=student_statistic.student.student_id,
+                        student_name=f"{student_statistic.student.first_name} {student_statistic.student.last_name}"
+                    )
+                    
+                    # Add comparison insights to context
+                    context['insights']['comparison'] = comparison_insights
+                
+                # Add actionable recommendations
+                context['actionable_insights'] = []
+                if 'actionable' in line_insights:
+                    context['actionable_insights'].extend(line_insights['actionable'])
+                if 'comparison' in context['insights'] and 'actionable' in context['insights']['comparison']:
+                    for item in context['insights']['comparison']['actionable']:
+                        if item not in context['actionable_insights']:
+                            context['actionable_insights'].append(item)
+                    
+                logger.info(f"Generated insights for student {student_statistic.student.student_id}")
+            except Exception as e:
+                logger.error(f"Error generating insights: {str(e)}")
+                context['insights'] = {
+                    'line_chart': {
+                        'summary': "Unable to generate insights due to insufficient data or an error."
+                    }
+                }
 
         return context
 
 
     def get_object(self, queryset=None):
         student_statistic = super().get_object(queryset) 
-        if not student_statistic.heatmap or not student_statistic.lineplot:
+        if not student_statistic.heatmap or not student_statistic.lineplot or not student_statistic.performance_comparison_chart:
             with transaction.atomic():
                 # fetch the analysis document to which this student statistic belongs
                 try:
@@ -378,15 +636,31 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
 
                     lineplot = generate_student_line_chart(student_data, analysis_document)
                     lineplot_filename = f"student_line_plot_{analysis_document.pk}_{student_id}.png"
+                    
+                    # Generate comparison chart
+                    performance_comparison_chart = None
+                    # Get all scores for the document (for class comparison)
+                    class_data = preprocessed_data[preprocessed_data["student_id"] != student_id]
+                    if not class_data.empty:
+                        class_data.rename(columns={'formative_assessment_number': 'test_number'}, inplace=True)
+                        print(f"DEBUG student_data: {student_data.head()}")
+                        print(f"DEBUG class_data: {class_data.head()}")
+                        performance_comparison_chart = generate_student_vs_class_chart(student_data, class_data)
+                        comparison_filename = f"performance_comparison_{analysis_document.pk}_{student_id}.png"
 
                     # save images
                     student_statistic.heatmap.save(
                         heatmap_filename, ContentFile(heatmap_image.read()), save=True)
                     student_statistic.lineplot.save(
                         lineplot_filename, ContentFile(lineplot.read()), save=True)
+                    
+                    # Save comparison chart if generated
+                    if performance_comparison_chart:
+                        student_statistic.performance_comparison_chart.save(
+                            comparison_filename, ContentFile(performance_comparison_chart.read()), save=True)
 
                 except Exception as e:
                     logger.error(f"Error generating charts: {e}")
                     messages.error(self.request, "Error generating charts.")
-                    redirect("formative_assessment_dashboard")
+                    return redirect("formative_assessment_dashboard")
         return student_statistic
