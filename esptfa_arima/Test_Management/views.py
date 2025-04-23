@@ -19,7 +19,7 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 from utils.decorators.decorators import teacher_required
 from utils.mixins.mixins import TeacherRequiredMixin
-from utils.insights import get_visualization_insights
+from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
 
@@ -223,6 +223,12 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                     'overall': overall_insights,
                     'heatmap': heatmap_insights
                 }
+
+                try:
+                    context['gemini_insights'] = get_gemini_insights(context['insights'])
+                except Exception as e:
+                    logger.error(f"Error generating gemini insights: {e}")
+                    context['gemini_insights'] = None
                 
                 # Add actionable recommendations
                 context['actionable_insights'] = []
