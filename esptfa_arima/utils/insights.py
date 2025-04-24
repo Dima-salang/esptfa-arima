@@ -51,11 +51,6 @@ class InsightGenerator:
             "actionable": []
         }
 
-        # dictionary to collect the data for the gemini prompt
-        gemini_insights_data = {
-            "student_names": [],
-
-        }
         
         try:
             # Prepare data
@@ -116,9 +111,12 @@ class InsightGenerator:
                 # Create string with student IDs and names
                 high_performer_details = []
                 for student_id in high_performers:
-                    if student_id in student_names:
+                    if student_id:
+                        # get student name from data
+                        student_first_name = data.loc[data['student_id'] == student_id, 'first_name'].values[0]
+                        student_last_name = data.loc[data['student_id'] == student_id, 'last_name'].values[0]
                         high_performer_details.append(
-                            f"{student_names[student_id]['last_name']}, {student_names[student_id]['first_name']} ({student_id})"
+                            f"{student_last_name}, {student_first_name} ({student_id})"
                         )
                     else:
                         high_performer_details.append(f"{student_id}")
@@ -144,9 +142,11 @@ class InsightGenerator:
                 # Create string with student IDs and names
                 low_performer_details = []
                 for student_id in low_performers:
-                    if student_id in student_names:
+                    if student_id:
+                        student_first_name = data.loc[data['student_id'] == student_id, 'first_name'].values[0]
+                        student_last_name = data.loc[data['student_id'] == student_id, 'last_name'].values[0]
                         low_performer_details.append(
-                            f"{student_names[student_id]['last_name']}, {student_names[student_id]['first_name']} ({student_id})"
+                            f"{student_last_name}, {student_last_name} ({student_id})"
                         )
                     else:
                         low_performer_details.append(f"{student_id}")
@@ -172,9 +172,11 @@ class InsightGenerator:
                 # Create string with student IDs and names
                 inconsistent_performer_details = []
                 for student_id in inconsistent_performers:
-                    if student_id in student_names:
+                    if student_id:
+                        student_first_name = data.loc[data['student_id'] == student_id, 'first_name'].values[0]
+                        student_last_name = data.loc[data['student_id'] == student_id, 'last_name'].values[0]
                         inconsistent_performer_details.append(
-                            f"{student_names[student_id]['last_name']}, {student_names[student_id]['first_name']} ({student_id})"
+                            f"{student_first_name}, {student_last_name} ({student_id})"
                         )
                     else:
                         inconsistent_performer_details.append(f"{student_id}")

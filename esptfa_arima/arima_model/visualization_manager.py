@@ -597,7 +597,8 @@ class VisualizationManager:
                 "insights": {
                     "heatmap": heatmap_insights,
                     "overall": overall_insights
-                }
+                },
+                "document_statistics": document_stats,
             }
             
             # Save to model if requested
