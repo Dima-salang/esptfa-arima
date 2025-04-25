@@ -182,6 +182,8 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
             for assessment in assessments:
                 all_scores_data.append({
                     'student_id': assessment.student_id.student_id,
+                    'first_name': assessment.student_id.first_name,
+                    'last_name': assessment.student_id.last_name,
                     'test_number': assessment.formative_assessment_number,
                     'score': assessment.score,
                     'max_score': assessment.passing_threshold / 0.75, # Reconstruct max score
@@ -205,7 +207,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                 assessment_count = processed_data["test_number"].nunique()
                 student_count = processed_data["student_id"].nunique()
                 
-                overall_insights = get_visualization_insights(
+                raw_overall_insights, overall_insights = get_visualization_insights(
                     'overall', 
                     document_stats,
                     assessment_count,
@@ -213,7 +215,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                 )
                 
                 # Generate heatmap insights
-                heatmap_insights = get_visualization_insights(
+                raw_heatmap_insight_data, heatmap_insights = get_visualization_insights(
                     'heatmap',
                     processed_data,
                     value_column="normalized_scores"
@@ -224,8 +226,14 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                     'heatmap': heatmap_insights
                 }
 
+                insights_gemini = {
+                    'overall_insights_data': raw_overall_insights,
+                    'raw_heatmap_insight_data': raw_heatmap_insight_data,
+                    'document_stats': document_stats,
+                }
+
                 try:
-                    context['gemini_insights'] = get_gemini_insights(context['insights'])
+                   context['gemini_insights'] = get_gemini_insights(insights_gemini)
                 except Exception as e:
                     logger.error(f"Error generating gemini insights: {e}")
                     context['gemini_insights'] = None
@@ -301,7 +309,6 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                     "stat": statistic
                 })
         context["student_data"] = student_data
-        print(f"Passed student data: {student_data}")
 
         return context
 
@@ -649,8 +656,6 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
                     class_data = preprocessed_data[preprocessed_data["student_id"] != student_id]
                     if not class_data.empty:
                         class_data.rename(columns={'formative_assessment_number': 'test_number'}, inplace=True)
-                        print(f"DEBUG student_data: {student_data.head()}")
-                        print(f"DEBUG class_data: {class_data.head()}")
                         performance_comparison_chart = generate_student_vs_class_chart(student_data, class_data)
                         comparison_filename = f"performance_comparison_{analysis_document.pk}_{student_id}.png"
 

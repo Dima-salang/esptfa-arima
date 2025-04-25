@@ -48,8 +48,10 @@ class InsightGenerator:
                 "low_performers": [],
                 "inconsistent_performers": []
             },
-            "actionable": []
+            "actionable": [],
         }
+
+        raw_heatmap_data_insights = {}
 
         
         try:
@@ -59,6 +61,9 @@ class InsightGenerator:
                 columns="test_number", 
                 values=value_column
             )
+
+            logger.info(f"Data: {data.head()}")
+            logger.info(data.columns)
             
             # Make sure we have first and last names
             student_names = {}
@@ -74,6 +79,8 @@ class InsightGenerator:
             # Look for clear class trends across assessments
             test_means = pivot_data.mean()
             test_trend = test_means.pct_change().mean() * 100  # percentage change
+            raw_heatmap_data_insights["test_means"] = test_means.tolist()
+            raw_heatmap_data_insights["test_trend"] = test_trend
 
             if abs(test_trend) < 1:
                 trend_description = "maintaining consistent performance"
@@ -96,6 +103,8 @@ class InsightGenerator:
             # Identify student groups that need attention
             student_means = pivot_data.mean(axis=1)
             student_stds = pivot_data.std(axis=1)
+            raw_heatmap_data_insights["student_means"] = student_means.tolist()
+            raw_heatmap_data_insights["student_stds"] = student_stds.tolist()
             
             # Top performers (top 10% with low variability)
             high_threshold = student_means.quantile(0.9)
@@ -103,6 +112,7 @@ class InsightGenerator:
                 (student_means >= high_threshold) & 
                 (student_stds <= student_stds.median())
             ]
+            raw_heatmap_data_insights["consistent_high"] = consistent_high.tolist()
             
             if not consistent_high.empty:
                 high_performers = consistent_high.index.tolist()
@@ -111,12 +121,9 @@ class InsightGenerator:
                 # Create string with student IDs and names
                 high_performer_details = []
                 for student_id in high_performers:
-                    if student_id:
-                        # get student name from data
-                        student_first_name = data.loc[data['student_id'] == student_id, 'first_name'].values[0]
-                        student_last_name = data.loc[data['student_id'] == student_id, 'last_name'].values[0]
+                    if student_id in student_names:
                         high_performer_details.append(
-                            f"{student_last_name}, {student_first_name} ({student_id})"
+                            f"{student_names[student_id]['last_name']}, {student_names[student_id]['first_name']} ({student_id})"
                         )
                     else:
                         high_performer_details.append(f"{student_id}")
@@ -125,6 +132,8 @@ class InsightGenerator:
                 insights["trends"].append(
                     f"These {len(high_performers)} students are consistently strong performers across all topics: {high_performer_list}."
                 )
+                raw_heatmap_data_insights["high_performer_list"] = high_performer_list
+                raw_heatmap_data_insights["high_performer_count"] = len(high_performers)
                     
                 # Add actionable insight for high performers
                 insights["actionable"].append(
@@ -134,6 +143,8 @@ class InsightGenerator:
             # Struggling students (bottom 15%)
             low_threshold = student_means.quantile(0.15)
             consistent_low = student_means[student_means <= low_threshold]
+
+            raw_heatmap_data_insights["consistent_low"] = consistent_low.tolist()
             
             if not consistent_low.empty:
                 low_performers = consistent_low.index.tolist()
@@ -142,11 +153,9 @@ class InsightGenerator:
                 # Create string with student IDs and names
                 low_performer_details = []
                 for student_id in low_performers:
-                    if student_id:
-                        student_first_name = data.loc[data['student_id'] == student_id, 'first_name'].values[0]
-                        student_last_name = data.loc[data['student_id'] == student_id, 'last_name'].values[0]
+                    if student_id in student_names:
                         low_performer_details.append(
-                            f"{student_last_name}, {student_last_name} ({student_id})"
+                            f"{student_names[student_id]['last_name']}, {student_names[student_id]['first_name']} ({student_id})"
                         )
                     else:
                         low_performer_details.append(f"{student_id}")
@@ -155,6 +164,8 @@ class InsightGenerator:
                 insights["trends"].append(
                     f"These {len(low_performers)} students need additional support across most topics: {low_performer_list}."
                 )
+                raw_heatmap_data_insights["low_performer_list"] = low_performer_list
+                raw_heatmap_data_insights["low_performer_count"] = len(low_performers)
                 
                 # Add specific actionable insight for struggling students
                 insights["actionable"].append(
@@ -164,6 +175,8 @@ class InsightGenerator:
             # Inconsistent performers (high std)
             std_threshold = student_stds.quantile(0.85)
             inconsistent = student_stds[student_stds >= std_threshold]
+
+            raw_heatmap_data_insights["inconsistent"] = inconsistent.tolist()
             
             if not inconsistent.empty:
                 inconsistent_performers = inconsistent.index.tolist()
@@ -172,11 +185,9 @@ class InsightGenerator:
                 # Create string with student IDs and names
                 inconsistent_performer_details = []
                 for student_id in inconsistent_performers:
-                    if student_id:
-                        student_first_name = data.loc[data['student_id'] == student_id, 'first_name'].values[0]
-                        student_last_name = data.loc[data['student_id'] == student_id, 'last_name'].values[0]
+                    if student_id in student_names:
                         inconsistent_performer_details.append(
-                            f"{student_first_name}, {student_last_name} ({student_id})"
+                            f"{student_names[student_id]['last_name']}, {student_names[student_id]['first_name']} ({student_id})"
                         )
                     else:
                         inconsistent_performer_details.append(f"{student_id}")
@@ -185,6 +196,9 @@ class InsightGenerator:
                 insights["trends"].append(
                     f"These {len(inconsistent_performers)} students show inconsistent performance across topics: {inconsistent_performer_list}."
                 )
+
+                raw_heatmap_data_insights["inconsistent_performer_list"] = inconsistent_performer_list
+                raw_heatmap_data_insights["inconsistent_performer_count"] = len(inconsistent_performers)
                 
                 # Add specific actionable insight for inconsistent performers
                 insights["actionable"].append(
@@ -197,6 +211,12 @@ class InsightGenerator:
             insights["trends"].append(
                 f"FA {lowest_test} was the most challenging with an average score of {lowest_test_score:.1f}%."
             )
+
+            highest_test = test_means.idxmax()
+            highest_test_score = test_means.max() * 100  # Percentage
+
+            raw_heatmap_data_insights["lowest_test"] = f"FA {lowest_test}"
+            raw_heatmap_data_insights["lowest_test_score"] = lowest_test_score
             
             # Add actionable insight for most challenging assessment
             insights["actionable"].append(
@@ -211,6 +231,9 @@ class InsightGenerator:
                     f"FA {highest_test} was the strongest with an average score of {highest_test_score:.1f}%."
                 )
             
+            raw_heatmap_data_insights["highest_test"] = f"FA {highest_test}"
+            raw_heatmap_data_insights["highest_test_score"] = highest_test_score
+            
             # Build a clear, actionable summary
             insights["summary"] = (
                 f"Class overview: Your class is {trend_description} with {len(consistent_high)} consistently high performers "
@@ -222,7 +245,8 @@ class InsightGenerator:
             logger.error(f"Error generating heatmap insights: {str(e)}")
             insights["summary"] = "Unable to generate insights due to insufficient or invalid data."
             
-        return insights
+        print(raw_heatmap_data_insights)
+        return raw_heatmap_data_insights, insights
     
     @staticmethod
     def get_distribution_insights(data: pd.Series, fa_number: Optional[int] = None, topic: Optional[str] = None) -> Dict[str, Any]:
@@ -935,6 +959,8 @@ class InsightGenerator:
             "trends": [],
             "actionable": []
         }
+
+        raw_data_insights = {}
         
         try:
             # Extract basic statistics
@@ -950,7 +976,11 @@ class InsightGenerator:
             pass_rate_estimate = 0.5 + 0.5 * ((mean - passing_threshold) / passing_threshold) if passing_threshold > 0 else 0.5
             pass_rate_estimate = max(0, min(1, pass_rate_estimate))
             pass_rate_pct = pass_rate_estimate * 100
+
+            raw_data_insights["pass_rate_percentage"] = pass_rate_pct
+
             
+
             # Interpret overall performance in clear terms
             if pass_rate_pct >= 85:
                 performance_desc = "excellent class performance"
@@ -975,7 +1005,9 @@ class InsightGenerator:
             
             # Interpret consistency in simple language
             cv = std_dev / mean if mean > 0 else float('inf')
-            
+            raw_data_insights["consistency"] = cv
+
+
             if cv < 0.15:
                 consistency_desc = "very similar"
                 consistency_explanation = "almost all students are scoring at similar levels"
@@ -1000,7 +1032,8 @@ class InsightGenerator:
             
             # Add trend insights in plain language
             skewness = ((mean - median) / std_dev) if std_dev > 0 else 0
-            
+            raw_data_insights["skewness"] = skewness
+
             if abs(skewness) > 0.5:
                 if skewness > 0:
                     insights["trends"].append(
@@ -1028,7 +1061,9 @@ class InsightGenerator:
             logger.error(f"Error generating overall insights: {str(e)}")
             insights["summary"] = "Unable to generate class-level insights due to insufficient or invalid data."
             
-        return insights
+
+        print(raw_data_insights)
+        return raw_data_insights, insights
 
 
 # Helper functions for external use
@@ -1079,23 +1114,34 @@ def get_gemini_insights(insights: Dict[str, Any]):
         text insight generated by Gemini
     """
     system_instruction = """
-    You are an expert education analyst and assistant built for teachers. You analyze student performance data to generate meaningful, concise insights that help teachers make better decisions.
+    You are an expert education analyst and assistant built for teachers. You are also the best statistician and data analyst in the world. You analyze student performance data to generate meaningful, concise insights that help teachers make better decisions.
 
     You will be given a JSON structure containing statistics and student scores from formative assessments. Based on that data, generate helpful insights that are easy to understand and actionable.
 
     Be specific, avoid generic observations. Highlight important trends, anomalies, and opportunities to improve teaching outcomes. Write in plain, teacher-friendly language using short, clear sentences.
+    Be detailed in your analysis and give an in-depth analysis of the data. Explain or elaborate the reasons for the analysis per line or observation you give as well as the number that justifies or proves it.
+    Give at least 5 observations or insights per section. Strictly follow giving at least 5 insights per section.
+    Refer to a test as a Formative Assessment.
+    The test scores are also percentages so append them with a percentage sign.
 
     ### Your output must strictly follow this JSON format:
     {
     "summary": "A concise but detailed summary of the most important takeaway.",
-    "trends": ["One-line trends in the data (e.g., 'Average scores are declining across assessments.')"],
+    "trends": [trends in the data (e.g., 'Average scores are declining across assessments.')"],
     "insights": ["Concise observations from the data (e.g., 'Most students performed better in Geometry than in Algebra.')"],
-    "outliers": ["Unusual scores or patterns (e.g., 'Student 104 scored 95 in FA3 but 30 in FA4.')"],
+    "outliers": {
+        "high_performers": str,
+        "low_performers": str,
+        "inconsistent_performers": str,
+    },
     "actionable": ["Immediate actions the teacher can take (e.g., 'Re-teach Algebra before the next assessment.')"],
     "recommendations": ["Longer-term advice (e.g., 'Monitor students with scores below 60 across 3 or more tests.')"]
     }
 
-    Use bullet points only inside lists. Limit each list to a maximum of 5 items. Be precise and helpful. Do not include explanations outside of the JSON.
+    make sure that the high_performers, low_performers, and inconsistent_performers are strings.
+
+
+    Use bullet points only inside lists. Be precise and helpful. Do not include explanations outside of the JSON.
     """
 
 
@@ -1108,8 +1154,9 @@ def get_gemini_insights(insights: Dict[str, Any]):
         model="gemini-2.0-flash",
         contents=insights_json,
         config=types.GenerateContentConfig(
-            temperature=0.1,
-            system_instruction=system_instruction
+            temperature=0.5,
+            system_instruction=system_instruction,
+            max_output_tokens=2048
         ),
     )
 

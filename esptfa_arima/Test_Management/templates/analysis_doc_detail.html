@@ -180,8 +180,7 @@
                 <h3 class="text-lg font-semibold text-gray-800">Student Groups</h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {% for outlier in gemini_insights.outliers %}
-                    {% if "High performers" in outlier %}
+                    {% if "high_performers" in gemini_insights.outliers %}
                         <div class="bg-green-50 rounded-xl p-4 border border-green-100">
                             <div class="flex items-center mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -190,9 +189,10 @@
                                 </svg>
                                 <h4 class="text-md font-medium text-green-800">High Performers</h4>
                             </div>
-                            <p class="text-sm text-gray-700 ml-7">{{ outlier|cut:"High performers: " }}</p>
+                            <p class="text-sm text-gray-700 ml-7">{{ gemini_insights.outliers.high_performers|cut:"High performers: " }}</p>
                         </div>
-                    {% elif "Low performers" in outlier %}
+                    {% endif %}
+                    {% if "low_performers" in gemini_insights.outliers %}
                         <div class="bg-red-50 rounded-xl p-4 border border-red-100">
                             <div class="flex items-center mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -202,9 +202,10 @@
                                 </svg>
                                 <h4 class="text-md font-medium text-red-800">Low Performers</h4>
                             </div>
-                            <p class="text-sm text-gray-700 ml-7">{{ outlier|cut:"Low performers: " }}</p>
+                            <p class="text-sm text-gray-700 ml-7">{{ gemini_insights.outliers.low_performers|cut:"Low performers: " }}</p>
                         </div>
-                    {% elif "Inconsistent performers" in outlier %}
+                    {%endif%}
+                    {% if "inconsistent_performers" in gemini_insights.outliers %}
                         <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
                             <div class="flex items-center mb-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -214,10 +215,9 @@
                                 </svg>
                                 <h4 class="text-md font-medium text-yellow-800">Inconsistent Performers</h4>
                             </div>
-                            <p class="text-sm text-gray-700 ml-7">{{ outlier|cut:"Inconsistent performers: " }}</p>
+                            <p class="text-sm text-gray-700 ml-7">{{ gemini_insights.outliers.inconsistent_performers|cut:"Inconsistent performers: " }}</p>
                         </div>
                     {% endif %}
-                {% endfor %}
             </div>
         </div>
         

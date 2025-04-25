@@ -138,6 +138,16 @@ class AnalysisDocumentStatistic(models.Model):
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Statistics"
 
+class AnalysisDocumentInsights(models.Model):
+    analysis_document_insights_id = models.AutoField(
+        unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE)
+    insights = models.JSONField(null=True)
+    ai_insights = models.JSONField(null=True)
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} Insights"
 
 class FormativeAssessmentStatistic(models.Model):
     formative_assessment_statistic_id = models.AutoField(
