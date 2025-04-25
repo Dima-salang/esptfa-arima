@@ -12,7 +12,7 @@ from arima_model.arima_model import arima_driver, preprocess_data
 from arima_model.visualization_manager import generate_heatmap, generate_student_line_chart, generate_score_dist_chart, generate_boxplot, generate_bar_chart, generate_student_vs_class_chart, generate_student_comparison_chart
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic
+from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic, AnalysisDocumentInsights
 from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
 from django.db import transaction
@@ -233,7 +233,21 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                 }
 
                 try:
-                   context['gemini_insights'] = get_gemini_insights(insights_gemini)
+                   # get gemini insights
+                   gemini_insights_obj = AnalysisDocumentInsights.objects.filter(analysis_document=document).first()
+                   if not gemini_insights_obj:
+                       gemini_insights = get_gemini_insights(insights_gemini)
+                       AnalysisDocumentInsights.objects.create(
+                           analysis_document=document,
+                           insights=insights_gemini,
+                           ai_insights=gemini_insights)
+                   elif not gemini_insights_obj.ai_insights:
+                       gemini_insights = get_gemini_insights(insights_gemini)
+                       gemini_insights_obj.ai_insights = gemini_insights
+                       gemini_insights_obj.save()
+                   else:
+                        gemini_insights = gemini_insights.ai_insights
+                   context['gemini_insights'] = gemini_insights
                 except Exception as e:
                     logger.error(f"Error generating gemini insights: {e}")
                     context['gemini_insights'] = None
