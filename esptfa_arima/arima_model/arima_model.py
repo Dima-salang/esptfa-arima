@@ -251,8 +251,8 @@ def train_model(processed_data, analysis_document):
                 train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], last_max_score)]
 
             # calculate the nearest prediction from the last test score
-            mae_arima = mean_absolute_error(train["score"].iloc[-1], arima_predictions)
-            mae_hybrid = mean_absolute_error(train["score"].iloc[-1], hybrid_predictions)
+            mae_arima = mean_absolute_error([train["score"].iloc[-1]], arima_predictions)
+            mae_hybrid = mean_absolute_error([train["score"].iloc[-1]], hybrid_predictions)
 
             # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
             if mae_arima < mae_hybrid:
