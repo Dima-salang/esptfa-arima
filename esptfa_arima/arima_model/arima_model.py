@@ -3,9 +3,6 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error
-import tensorflow as tf
-from keras.api.models import Sequential
-from keras.api.layers import LSTM, Dense, Dropout, Bidirectional, Input
 from django.db import transaction
 from django.db.models import Avg
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, FormativeAssessmentStatistic, StudentScoresStatistic, TestTopicMapping
@@ -121,80 +118,6 @@ def grid_search_arima(train_series):
     return best_order, best_model
 
 
-def prepare_lstm_data(data, window_size):
-    """ Converts the dataset into sequences for LSTM training. """
-    X, y = [], []
-    for i in range(len(data) - window_size):
-        X.append(data[i:i+window_size])
-        y.append(data[i+window_size])
-    return np.array(X), np.array(y)
-
-
-def build_lstm_model(window_size):
-    """ Builds and compiles an LSTM model. """
-    model = Sequential([
-        Input(shape=(window_size, 1)),
-        Bidirectional(LSTM(64, activation="tanh", return_sequences=True)),
-        Dropout(0.2),
-        Bidirectional(LSTM(32, activation="tanh")),
-        Dense(16, activation="relu"),
-        Dense(1)  # Predicts one score
-    ])
-    model.compile(optimizer="adam", loss="mse")
-    return model
-
-
-def train_lstm_model(processed_data):
-    """ Trains a single LSTM model across all students. """
-    global lstm_model
-
-    # Prepare data for LSTM training
-    all_scores = []
-    for _, student_data in processed_data.groupby("student_id"):
-        normalized_diff_scores = make_stationary(student_data.copy())
-        scores = normalized_diff_scores.sort_values(
-            "date")["normalized_score_diff"].tolist()
-        all_scores.extend(scores)  # Collect all scores
-
-    # Convert data into sequences
-    X_train, y_train = prepare_lstm_data(all_scores, window_size)
-    X_train = X_train.reshape(
-        (X_train.shape[0], X_train.shape[1], 1))  # Reshape for LSTM
-
-    # Build and train the LSTM model
-    lstm_model = build_lstm_model(window_size)
-    lstm_model.fit(X_train, y_train, epochs=32, batch_size=16)
-
-
-def hybrid_prediction(student_scores, arima_model, last_normalized_score, last_max_score):
-    """ Generates a hybrid prediction using both ARIMA and LSTM. """
-    global lstm_model
-
-    arima_pred = arima_prediction(arima_model=arima_model, student_scores=student_scores,
-                                  last_normalized_score=last_normalized_score, last_max_score=last_max_score)
-
-    # Use LSTM for refinement
-    X_input = np.array(
-        student_scores[-window_size:]).reshape(1, window_size, 1)
-    lstm_pred = lstm_model.predict(X_input)[0][0]
-
-    # reverse difference the lstm_pred
-    lstm_pred_normalized = lstm_pred + last_normalized_score
-
-    # reverse normalization
-    lstm_pred = lstm_pred_normalized * last_max_score
-
-    # Hybrid prediction: Combine both models
-    hybrid_prediction = (arima_pred * 0.5) + (lstm_pred * 0.5)
-
-    return hybrid_prediction
-
-
-def train_arima(train_series):
-    """ Trains an ARIMA model for a given student's time series. """
-    model = ARIMA(train_series, order=(1, 1, 1))
-    model_fit = model.fit()
-    return model_fit
 
 
 def arima_prediction(arima_model, student_scores, last_normalized_score, last_max_score):
@@ -230,7 +153,6 @@ def train_model(processed_data, analysis_document):
             )
 
         differenced_student_data = make_stationary(student_data.copy())
-        num_tests = differenced_student_data.shape[0]
 
         train = differenced_student_data.copy()
 
@@ -246,20 +168,12 @@ def train_model(processed_data, analysis_document):
             arima_predictions = [arima_prediction(
                 best_model, train["normalized_score_diff"], train["normalized_scores"].iloc[-1], last_max_score)]
 
-            # Hybrid prediction
-            hybrid_predictions = [hybrid_prediction(
-                train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], last_max_score)]
 
             # calculate the nearest prediction from the last test score
             mae_arima = mean_absolute_error([train["score"].iloc[-1]], arima_predictions)
-            mae_hybrid = mean_absolute_error([train["score"].iloc[-1]], hybrid_predictions)
 
             # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
-            if mae_arima < mae_hybrid:
-                best_prediction = arima_predictions
-            else:
-                best_prediction = hybrid_predictions
-
+            best_prediction = arima_predictions[0]
 
             with transaction.atomic():
                 for i, (date, actual_score, max_score) in enumerate(zip(student_data["date"], student_data["score"], student_data["max_score"])):
@@ -275,7 +189,7 @@ def train_model(processed_data, analysis_document):
 
                 last_fa_number = differenced_student_data["test_number"].iloc[-1]
                 future_dates = pd.date_range(
-                    start=train.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
+                    start=train.index[-1] + pd.Timedelta(days=7), periods=len(arima_predictions), freq="7D")
 
 
                 for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
@@ -310,7 +224,6 @@ def arima_driver(analysis_document):
     try:
         processed_data = preprocess_data(analysis_document)
 
-        train_lstm_model(processed_data)  # Train LSTM first
         train_model(processed_data, analysis_document)
         compute_document_statistics(processed_data, analysis_document)
         compute_test_statistics(processed_data, analysis_document)
