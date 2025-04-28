@@ -24,6 +24,7 @@ window_size = 5  # Number of past scores to use for LSTM predictions
 def preprocess_data(analysis_document):
     test_data = pd.read_csv(analysis_document.analysis_doc.path)
 
+    test_data.columns = test_data.columns.str.lower()
     num_of_students = test_data["student_id"].nunique()
     logger.info(f"Number of students: {num_of_students}")
 
@@ -31,7 +32,7 @@ def preprocess_data(analysis_document):
     test_data["student_id"] = test_data["student_id"].astype(str)
 
     # Identify columns with test scores (e.g., "fa1:30", "fa2:20")
-    test_columns = [col for col in test_data.columns if col.lower().startswith("fa")]
+    test_columns = [col for col in test_data.columns if col.startswith("fa")]
 
     # Extract test numbers and max scores from column names
     test_info = []
