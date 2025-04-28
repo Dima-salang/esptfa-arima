@@ -34,7 +34,7 @@ def preprocess_data(analysis_document):
     test_data["student_id"] = test_data["student_id"].astype(str)
 
     # Identify columns with test scores (e.g., "fa1:30", "fa2:20")
-    test_columns = [col for col in test_data.columns if "fa" in col]
+    test_columns = [col for col in test_data.columns if col.lower().startswith("fa")]
 
     # Extract test numbers and max scores from column names
     test_info = []
@@ -218,7 +218,6 @@ def train_model(processed_data, analysis_document):
 
     for student_id, student_data in processed_data.groupby("student_id"):
         logger.info(f"Processing Student {student_id}...")
-
         logger.info(f"Student Data: {student_data}")
 
         student = Student.objects.filter(student_id=student_id).first()
@@ -231,19 +230,12 @@ def train_model(processed_data, analysis_document):
             )
 
         differenced_student_data = make_stationary(student_data.copy())
-        logger.info(
-            f"Student data after differencing: {differenced_student_data}")
         num_tests = differenced_student_data.shape[0]
-        logger.info(f"Number of tests: {num_tests}")
 
-        train = differenced_student_data.iloc[:num_tests-1].copy()
-        test = differenced_student_data.iloc[num_tests-1:].copy()
+        train = differenced_student_data.copy()
 
-        logger.info(f"Train data: {train}")
-        logger.info(f"Test data: {test}")
 
         train.set_index("date", inplace=True)
-        test.set_index("date", inplace=True)
 
         best_order, best_model = grid_search_arima(
             train["normalized_score_diff"])
@@ -258,8 +250,9 @@ def train_model(processed_data, analysis_document):
             hybrid_predictions = [hybrid_prediction(
                 train["normalized_score_diff"], best_model, train["normalized_scores"].iloc[-1], last_max_score)]
 
-            mae_arima = mean_absolute_error(test["score"], arima_predictions)
-            mae_hybrid = mean_absolute_error(test["score"], hybrid_predictions)
+            # calculate the nearest prediction from the last test score
+            mae_arima = mean_absolute_error(train["score"].iloc[-1], arima_predictions)
+            mae_hybrid = mean_absolute_error(train["score"].iloc[-1], hybrid_predictions)
 
             # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
             if mae_arima < mae_hybrid:
@@ -267,8 +260,6 @@ def train_model(processed_data, analysis_document):
             else:
                 best_prediction = hybrid_predictions
 
-            logger.info(
-                f"ARIMA MAE: {mae_arima:.2f}, Hybrid MAE: {mae_hybrid:.2f}")
 
             with transaction.atomic():
                 for i, (date, actual_score, max_score) in enumerate(zip(student_data["date"], student_data["score"], student_data["max_score"])):
@@ -284,7 +275,7 @@ def train_model(processed_data, analysis_document):
 
                 last_fa_number = differenced_student_data["test_number"].iloc[-1]
                 future_dates = pd.date_range(
-                    start=test.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
+                    start=train.index[-1] + pd.Timedelta(days=7), periods=len(hybrid_predictions), freq="7D")
 
 
                 for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
