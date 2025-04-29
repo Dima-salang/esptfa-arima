@@ -231,11 +231,11 @@ def arima_driver(analysis_document):
         compute_student_statistics(processed_data, analysis_document)
 
         # Update the status of the analysis document to True (processed)
-        analysis_document.status = True
-        analysis_document.save()
+        document_status = True
+        return document_status
     except Exception as e:
         logger.error(
             f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        analysis_document.delete()
-        raise
+        document_status = False
+        return document_status

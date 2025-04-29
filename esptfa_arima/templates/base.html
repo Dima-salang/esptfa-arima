@@ -5,14 +5,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}ESPTFA ARIMA{% endblock %}</title>
+    <title>{% block title %}SJLSHS ARIMA{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 
 <body class="">
 
-    {% if messages %}
     <div class="fixed top-4 right-4 left-4 md:left-auto md:max-w-md z-50 space-y-3" id="message-container">
+    {% if messages %}
         {% for message in messages %}
         <div class="flex items-center justify-between p-4 rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ease-in-out animate-slide-in
             {% if message.tags == 'success' %} bg-green-50 border-green-500 text-green-800
@@ -70,7 +70,6 @@
             </button>
         </div>
         {% endfor %}
-    </div>
     
     <style>
         @keyframes slide-in {
@@ -140,13 +139,12 @@
         }
     </script>
     {% endif %}
-
+</div>
     {% include "navbar.html" %} <!-- Include the navbar in all pages -->
 
-    <div class="">
         {% block content %}{% endblock %} <!-- Page-specific content goes here -->
-    </div>
 
+        {% block extra_js %}{% endblock %}
 </body>
 
 </html>

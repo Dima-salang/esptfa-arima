@@ -53,7 +53,7 @@ def upload_analysis_document(request):
 
                 try:
                     # try and process the document
-                    process_analysis_document.delay(document.analysis_document_id)
+                    process_analysis_document.delay(document.analysis_document_id, request.user.pk)
 
                 except Exception as e:
                     messages.error(

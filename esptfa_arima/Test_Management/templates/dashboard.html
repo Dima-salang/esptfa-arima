@@ -21,7 +21,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900">Your Assessment Documents</h2>
-                <p class="text-gray-600 mt-1">View and manage your formative assessments</p>
+                <p class="text-gray-600 mt-1">View and manage your formative assessments. Periodically refresh the page to see updates.</p>
             </div>
 
             <div class="mt-4 md:mt-0">
@@ -61,7 +61,7 @@
                         <div class="col-span-4 md:col-span-3 text-gray-600">
                             {{ document.test_start_date }}
                         </div>
-                        <div class="col-span-2 md:col-span-2">
+                        <div id="doc-status-{{document.pk}}" class="col-span-2 md:col-span-2">
                             {% if document.status %}
                             <span
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -140,4 +140,172 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Ensure the teacher object and its pk are available in the context
+    // This assumes the standard Django user model setup where request.user has the teacher relation
+    const teacherPk = "{{ request.user.pk|escapejs }}"; // Use escapejs filter for safety
+// Function to display a dynamic message using the existing base.html structure
+    function displayDynamicMessage(messageText, type) {
+        // create message container
+
+        const messageContainer = document.getElementById('message-container');
+        // If the base message container doesn't exist, we can't display messages.
+        if (!messageContainer) {
+            console.error("Message container '#message-container' not found in base template.");
+            return;
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.setAttribute('role', 'alert');
+
+        // Base classes from base.html message structure
+        const baseClasses = 'flex items-center justify-between p-4 rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ease-in-out animate-slide-in';
+        let typeClasses = '';
+        let iconSvg = '';
+
+        // Determine classes and icon based on type (matching base.html)
+        switch (type) {
+            case 'success':
+                typeClasses = 'bg-green-50 border-green-500 text-green-800';
+                iconSvg = `
+                    <svg class="w-5 h-5 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`;
+                break;
+            case 'error':
+                typeClasses = 'bg-red-50 border-red-500 text-red-800';
+                iconSvg = `
+                    <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`;
+                break;
+            case 'info':
+            default: // Default to info style if type is unknown or 'info'
+                typeClasses = 'bg-blue-50 border-blue-500 text-blue-800';
+                iconSvg = `
+                    <svg class="w-5 h-5 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`;
+                break;
+        }
+
+        messageDiv.className = `${baseClasses} ${typeClasses}`;
+
+        // Build the inner HTML matching base.html structure
+        messageDiv.innerHTML = `
+            <div class="flex items-center">
+                ${iconSvg}
+                <div>${messageText}</div>
+            </div>
+            <button type="button" class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none" onclick="dismissMessage(this.parentNode)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+
+        // Append to the existing message container
+        messageContainer.appendChild(messageDiv);
+
+        // Optional: Auto-dismiss using the existing logic from base.html
+        // The base.html script might already handle newly added messages,
+        // but if not, we can explicitly trigger the auto-dismiss for this new message.
+        const currentMessageCount = messageContainer.children.length;
+        setTimeout(() => {
+            // Check if the message still exists before trying to dismiss
+            if (messageDiv.parentNode === messageContainer) {
+                 // Call the global dismissMessage function defined in base.html
+                 if (typeof dismissMessage === 'function') {
+                     dismissMessage(messageDiv);
+                 } else {
+                     // Fallback if dismissMessage isn't global (less likely)
+                     messageDiv.remove();
+                 }
+            }
+        }, 5000 + ((currentMessageCount -1) * 500)); // Use similar staggered timing
+
+    }
+    if (teacherPk) {
+        const eventSourceUrl = `/events/?channel=user-${teacherPk}`;
+        const eventSource = new EventSource(eventSourceUrl);
+
+        console.log(`[SSE] Listening for events on channel: user-${teacherPk}`);
+
+        eventSource.onmessage = function(event) {
+            console.log("[SSE] Received event:", event);
+            try {
+                const data = JSON.parse(event.data);
+                console.log("[SSE] Parsed data:", data);
+
+                if (data.document_id) {
+                    // 1. Update Status Badge (same logic)
+                    const statusContainer = document.getElementById(`doc-status-${data.document_id}`);
+                    if (statusContainer) {
+                        console.log(`[SSE] Updating status for document ${data.document_id}`);
+                        let statusHtml = '';
+                        let messageType = 'info';
+
+                        if (data.status === true) {
+                            statusHtml = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${ data.status_text || 'Analyzed' }</span>`;
+                            messageType = 'success';
+                        } else if (data.status === false && data.status_text === 'Processing Error') {
+                            statusHtml = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" title="Processing failed">Error</span>`;
+                            messageType = 'error';
+                        } else {
+                             statusHtml = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 animate-pulse">${ data.status_text || 'Processing' }</span>`;
+                             messageType = null; // Don't show message for intermediate status
+                        }
+                        statusContainer.innerHTML = statusHtml;
+
+                        // 2. Display Dynamic Message (if final status)
+                        if (messageType && data.status_text) {
+                            let docTitle = `Document ID ${data.document_id}`; // Fallback
+                            const linkElement = statusContainer.closest('.grid').querySelector('a');
+                            if (linkElement) {
+                                docTitle = `"${linkElement.textContent.trim()}"`;
+                            }
+                            var fullMessageText = `${docTitle}: ${data.status_text} <strong>Reloading page...</strong>`;
+                            displayDynamicMessage(fullMessageText, messageType); // Use the updated function
+                            if (data.status === false) {
+                                // reload the page
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 4000); // Reload after 5 seconds
+                            }
+                        }
+
+                    } else {
+                         console.warn(`[SSE] Could not find status container for document ${data.document_id}`);
+                         if(data.status !== null && data.status_text) {
+                             displayDynamicMessage(`Document ID ${data.document_id}: ${data.status_text}`, data.status ? 'success' : 'error');
+                         }
+                    }
+                }
+            } catch (e) {
+                console.error("[SSE] Error processing event data:", e);
+                displayDynamicMessage('Error processing update.', 'error');
+            }
+        };
+
+        eventSource.onerror = function(err) {
+            console.error("[SSE] EventSource failed:", err);
+            displayDynamicMessage('Real-time update connection failed. Please refresh the page.', 'error');
+            eventSource.close();
+        };
+
+        eventSource.onopen = function() {
+            console.log("[SSE] Connection opened successfully.");
+        };
+
+    } else {
+         console.error("[SSE] Teacher primary key not found in template context. Cannot subscribe to events.");
+         // Display error using the dynamic message function if container exists
+         displayDynamicMessage('Could not initialize real-time updates.', 'error');
+    }
+</script>
+
+
 {% endblock %}
