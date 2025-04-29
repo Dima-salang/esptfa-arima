@@ -174,7 +174,7 @@ def train_model(processed_data, analysis_document):
             mae_arima = mean_absolute_error([train["score"].iloc[-1]], arima_predictions)
 
             # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
-            best_prediction = arima_predictions[0]
+            best_prediction = arima_predictions
 
             with transaction.atomic():
                 for i, (date, actual_score, max_score) in enumerate(zip(student_data["date"], student_data["score"], student_data["max_score"])):
@@ -237,4 +237,5 @@ def arima_driver(analysis_document):
         logger.error(
             f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
         logger.error(traceback.format_exc())
+        analysis_document.delete()
         raise

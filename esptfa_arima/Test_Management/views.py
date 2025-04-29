@@ -58,6 +58,7 @@ def upload_analysis_document(request):
                 except Exception as e:
                     messages.error(
                         request, "Error processing the document: " + str(e))
+                    return redirect("formative_assessment_dashboard")
                 messages.success(
                     request, "Document uploaded successfully! Please wait at least 5 minutes for the analysis to finish.")
 
@@ -233,6 +234,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                 }
 
                 try:
+                   
                    # get gemini insights
                    gemini_insights_obj = AnalysisDocumentInsights.objects.filter(analysis_document=document).first()
                    if not gemini_insights_obj:
@@ -241,13 +243,15 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                            analysis_document=document,
                            insights=insights_gemini,
                            ai_insights=gemini_insights)
+                       context['gemini_insights'] = gemini_insights
                    elif not gemini_insights_obj.ai_insights:
                        gemini_insights = get_gemini_insights(insights_gemini)
                        gemini_insights_obj.ai_insights = gemini_insights
                        gemini_insights_obj.save()
+                       context['gemini_insights'] = gemini_insights
                    else:
-                        gemini_insights = gemini_insights.ai_insights
-                   context['gemini_insights'] = gemini_insights
+                        gemini_insights = gemini_insights_obj.ai_insights
+                        context['gemini_insights'] = gemini_insights
                 except Exception as e:
                     logger.error(f"Error generating gemini insights: {e}")
                     context['gemini_insights'] = None
@@ -421,6 +425,8 @@ class IndividualFADetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailVie
                 fa_number=int(fa_statistic.formative_assessment_number),
                 topic=topic
             )
+
+            
             
             # Generate student comparison insights
             student_comparison_insights = get_visualization_insights(

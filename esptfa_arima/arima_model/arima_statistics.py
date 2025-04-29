@@ -50,6 +50,7 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     passing_threshold = 0.75 * processed_data["max_score"].mean()
 
     # save statistics
+
     analysis_document_statistic, created = AnalysisDocumentStatistic.objects.update_or_create(
         analysis_document=analysis_document,
         defaults={
@@ -68,8 +69,6 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     visualizations_with_insights = get_document_visualizations_with_insights(
         processed_data, analysis_document_statistic
     )
-    
-    logger.info(f"Generated document insights: {visualizations_with_insights['insights']['overall']['summary']}")
 
     return analysis_document_statistic
 
@@ -124,12 +123,6 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
                 }
             )
             
-            # Generate visualizations and insights
-            visualizations_with_insights = get_fa_visualizations_with_insights(
-                fa_data, fa_statistic
-            )
-            
-            logger.info(f"Generated FA #{fa_number} insights: {visualizations_with_insights['insights']['distribution']['summary']}")
 
 
 def compute_student_statistics(processed_data, analysis_document):
@@ -177,12 +170,6 @@ def compute_student_statistics(processed_data, analysis_document):
                 }
             )
             
-            # Generate visualizations and insights
-            visualizations_with_insights = get_student_visualizations_with_insights(
-                student_data, student_statistic
-            )
-            
-            logger.info(f"Generated student {student_id} insights: {visualizations_with_insights['insights']['line_chart']['summary']}")
 
 
 def generate_heatmap(processed_data, value_column, title=None):
