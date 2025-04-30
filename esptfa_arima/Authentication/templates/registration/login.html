@@ -16,43 +16,52 @@
                     <h2 class="text-white text-3xl font-bold">Welcome back</h2>
                     <p class="text-blue-200 mt-3 text-base">Sign in to continue your teaching journey</p>
                 </div>
-                <div class="hidden md:block">
-                    <svg class="w-40 h-40 text-white opacity-20" fill="currentColor" viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838l-2.328.996.002 1.069c0 .527-.226 1.028-.631 1.378l-.356.349a1.97 1.97 0 001.09 3.29l.011.001 1.869-.499a1.97 1.97 0 001.112-.828l3.992-7.185a1 1 0 00-.364-1.118L10.394 2.08z">
-                        </path>
-                        <path d="M14.2 10.8a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4-1.4l-2-2z"></path>
-                    </svg>
-                </div>
             </div>
 
             <!-- Right side / Bottom on mobile -->
             <div class="p-10 md:w-3/5">
                 <h3 class="text-2xl font-semibold text-gray-900 mb-8">Teacher Login</h3>
+                
+                {% if form.errors %}
+                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <p class="text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-red-600">Please correct the errors below.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <form method="post">
                     {% csrf_token %}
                     <div class="space-y-6">
                         <div>
                             <label class="block text-base font-medium text-gray-800 mb-2">Username</label>
                             <input type="text" name="username"
-                                class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
-                                placeholder="Enter your username">
+                                class="w-full px-5 py-4 text-base rounded-lg border {% if form.username.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                placeholder="Enter your username" value="{{ form.username.value|default:'' }}">
+                            {% if form.username.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.username.errors %}
+                                <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
                         <div>
                             <label class="block text-base font-medium text-gray-800 mb-2">Password</label>
                             <input type="password" name="password"
-                                class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                class="w-full px-5 py-4 text-base rounded-lg border {% if form.password.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
                                 placeholder="Enter your password">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <input id="remember-me" name="remember-me" type="checkbox"
-                                    class="h-4 w-4 text-blue-700 focus:ring-blue-600 border-gray-300 rounded">
-                                <label for="remember-me" class="ml-2 block text-base text-gray-800">Remember me</label>
+                            {% if form.password.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.password.errors %}
+                                <p>{{ error }}</p>
+                                {% endfor %}
                             </div>
-                            <a href="#" class="text-base font-medium text-blue-700 hover:text-blue-800">Forgot
-                                password?</a>
+                            {% endif %}
                         </div>
                         <button type="submit"
                             class="w-full bg-blue-700 text-white py-4 rounded-lg text-lg font-medium shadow-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition-all duration-200">
@@ -71,7 +80,7 @@
 
         <!-- Footer text -->
         <p class="text-center text-gray-600 text-sm mt-6">
-            © 2025 School System. All rights reserved.
+            © 2025 SJLSHS. All rights reserved.
         </p>
     </div>
 </div>

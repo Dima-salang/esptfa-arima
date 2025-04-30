@@ -235,10 +235,8 @@
         console.log(`[SSE] Listening for events on channel: user-${teacherPk}`);
 
         eventSource.onmessage = function(event) {
-            console.log("[SSE] Received event:", event);
             try {
                 const data = JSON.parse(event.data);
-                console.log("[SSE] Parsed data:", data);
 
                 if (data.document_id) {
                     // 1. Update Status Badge (same logic)

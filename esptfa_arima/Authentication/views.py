@@ -5,6 +5,7 @@ from django.contrib.auth import logout
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from Authentication.forms import UserRegisterForm
+from django.contrib import messages
 
 
 def register(request):
@@ -14,8 +15,10 @@ def register(request):
             user = form.save(commit=False)
             user.is_active = False
             user.save()  # Save the new user
+            messages.success(request, "Your account has been created successfully. Please wait for approval from the administrator.")
             return redirect("home")  # Redirect to home or dashboard
     else:
+        messages.error(request, "Invalid form submission, try checking all fields again.")
         form = UserRegisterForm()
 
     return render(request, "registration/register.html", {"form": form})

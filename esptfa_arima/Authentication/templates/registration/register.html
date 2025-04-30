@@ -13,17 +13,18 @@
                     <h2 class="text-white text-3xl font-bold">Join Our Teaching Team</h2>
                     <p class="text-blue-200 mt-2">Create your account to get started</p>
                 </div>
-                <svg class="w-24 h-24 text-white opacity-20" fill="currentColor" viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838l-2.328.996.002 1.069c0 .527-.226 1.028-.631 1.378l-.356.349a1.97 1.97 0 001.09 3.29l.011.001 1.869-.499a1.97 1.97 0 001.112-.828l3.992-7.185a1 1 0 00-.364-1.118L10.394 2.08z">
-                    </path>
-                    <path d="M14.2 10.8a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4-1.4l-2-2z"></path>
-                </svg>
             </div>
 
             <!-- Form section with logical grouping -->
             <div class="p-8">
+                {% if form.non_field_errors %}
+                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    {% for error in form.non_field_errors %}
+                    <p class="text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <form method="POST">
                     {% csrf_token %}
 
@@ -38,8 +39,15 @@
                                     First Name
                                 </label>
                                 <input type="text" name="first_name" id="id_first_name"
-                                    class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
-                                    placeholder="Enter your first name" required>
+                                    class="w-full px-5 py-4 text-base rounded-lg border {% if form.first_name.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your first name" required value="{{ form.first_name.value|default:'' }}">
+                                {% if form.first_name.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.first_name.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
 
                             <!-- Last Name -->
@@ -48,8 +56,15 @@
                                     Last Name
                                 </label>
                                 <input type="text" name="last_name" id="id_last_name"
-                                    class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
-                                    placeholder="Enter your last name" required>
+                                    class="w-full px-5 py-4 text-base rounded-lg border {% if form.last_name.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your last name" required value="{{ form.last_name.value|default:'' }}">
+                                {% if form.last_name.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.last_name.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
 
                             <!-- Email -->
@@ -58,8 +73,15 @@
                                     Email Address
                                 </label>
                                 <input type="email" name="email" id="id_email"
-                                    class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
-                                    placeholder="Enter your email address" required>
+                                    class="w-full px-5 py-4 text-base rounded-lg border {% if form.email.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your email address" required value="{{ form.email.value|default:'' }}">
+                                {% if form.email.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.email.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -75,8 +97,15 @@
                                     Username
                                 </label>
                                 <input type="text" name="username" id="id_username"
-                                    class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
-                                    placeholder="Choose a username" required>
+                                    class="w-full px-5 py-4 text-base rounded-lg border {% if form.username.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                    placeholder="Choose a username" required value="{{ form.username.value|default:'' }}">
+                                {% if form.username.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.username.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
 
                             <!-- Password -->
@@ -85,8 +114,15 @@
                                     Password
                                 </label>
                                 <input type="password" name="password1" id="id_password1"
-                                    class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                    class="w-full px-5 py-4 text-base rounded-lg border {% if form.password1.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
                                     placeholder="Create a password" required>
+                                {% if form.password1.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.password1.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
 
                             <!-- Confirm Password -->
@@ -95,25 +131,19 @@
                                     Confirm Password
                                 </label>
                                 <input type="password" name="password2" id="id_password2"
-                                    class="w-full px-5 py-4 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
+                                    class="w-full px-5 py-4 text-base rounded-lg border {% if form.password2.errors %}border-red-500{% else %}border-gray-300{% endif %} focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200"
                                     placeholder="Confirm your password" required>
+                                {% if form.password2.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.password2.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
 
-                    <!-- Terms and conditions checkbox -->
-                    <div class="flex items-start mt-8 mb-6">
-                        <div class="flex items-center h-5">
-                            <input id="terms" name="terms" type="checkbox"
-                                class="h-4 w-4 text-blue-700 focus:ring-blue-600 border-gray-300 rounded" required>
-                        </div>
-                        <div class="ml-3 text-sm">
-                            <label for="terms" class="text-gray-700">I agree to the <a href="#"
-                                    class="text-blue-700 font-medium hover:text-blue-800">Terms of Service</a> and <a
-                                    href="#" class="text-blue-700 font-medium hover:text-blue-800">Privacy
-                                    Policy</a></label>
-                        </div>
-                    </div>
 
                     <!-- Submit button -->
                     <button type="submit"
