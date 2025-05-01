@@ -1,399 +1,823 @@
 {% extends "base.html" %}
 
-{% block title %} Upload Analysis Document {% endblock %}
+{% block title %}Upload Analysis Document{% endblock %}
 
 {% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Page Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Upload Analysis Document</h1>
+            <p class="mt-2 text-lg text-gray-600">Upload your assessment data for analysis and insights</p>
+        </div>
 
-<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-
-    <div class="bg-white shadow-lg rounded-lg p-6 max-w-md w-full">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 text-center">Upload Analysis Document</h2>
-
-        <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
-            {% csrf_token %}
-
-            <!-- Display Form Errors -->
-            {% if form.errors %}
-            <div class="p-3 mb-4 bg-red-100 text-red-700 border border-red-400 rounded">
-                <p class="font-semibold">Please fix the following errors:</p>
-                <ul class="list-disc list-inside">
-                    {% for field, errors in form.errors.items %}
-                    {% for error in errors %}
-                    <li>{{ error }}</li>
-                    {% endfor %}
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            <!-- Document Title -->
-            <div>
-                <label for="id_analysis_doc_title" class="block text-sm font-medium text-gray-700">Document
-                    Title</label>
-                <input type="text" name="analysis_doc_title" id="id_analysis_doc_title"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter document title" required>
-                {% if form.analysis_doc_title.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.analysis_doc_title.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Test Start Date -->
-            <div>
-                <label for="id_test_start_date" class="block text-sm font-medium text-gray-700">Test Start Date</label>
-                <input type="date" name="test_start_date" id="id_test_start_date"
-                    class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    required>
-                {% if form.test_start_date.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.test_start_date.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Subject Selection -->
-            <div>
-                <label for="id_subject" class="block text-sm font-medium text-gray-700">Subject</label>
-                <select name="subject" id="id_subject"
-                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
-                    {% for subject in form.fields.subject.queryset %}
-                    <option value="{{ subject.pk }}">{{ subject }}</option>
-                    {% endfor %}
-                </select>
-                {% if form.subject.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.subject.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Quarter Selection-->
-            <div>
-                <label for="id_quarter" class="block text-sm font-medium text-gray-700">Quarter</label>
-                <select name="quarter" id="id_quarter"
-                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
-                    {% for quarter in form.fields.quarter.queryset %}
-                    <option value="{{ quarter.pk }}">{{ quarter }}</option>
-                    {% endfor %}
-                </select>
-                {% if form.quarter.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.quarter.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Section Selection -->
-            <div>
-                <label for="id_section_id" class="block text-sm font-medium text-gray-700">Section</label>
-                <select name="section_id" id="id_section_id"
-                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
-                    {% for section in form.fields.section_id.queryset %}
-                    <option value="{{ section.pk }}">{{ section }}</option>
-                    {% endfor %}
-                </select>
-                {% if form.section_id.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.section_id.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- File Upload -->
-            <div>
-                <label for="id_analysis_doc" class="block text-sm font-medium text-gray-700">Upload File</label>
-                <input type="file" name="analysis_doc" id="id_analysis_doc"
-                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                    required>
-                {% if form.analysis_doc.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.analysis_doc.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-
-            <!-- Test Topics (Dynamic) -->
-            <div class="mb-6">
-                <label for="id_test_topics" class="block text-sm font-medium text-gray-700 mb-2">Test Topics</label>
-            
-                <!-- Hidden textarea that will be submitted with the form -->
-                <textarea name="test_topics" id="id_test_topics" rows="3" class="hidden"
-                    placeholder="Test1: Algebra, Test2: Geometry">{{ form.test_topics.value|default:'' }}</textarea>
-            
-                <!-- Dynamic topics container -->
-                <div class="bg-white rounded-lg border border-gray-300 p-4" id="topics-container">
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Add topics for each formative assessment:</p>
-            
-                        <!-- Topics list -->
-                        <div id="topics-list" class="space-y-3 mb-4">
-                            <!-- Dynamic topics will be added here -->
-                            {% if form.test_topics.value %}
-                            <!-- This will be populated by JavaScript on load -->
-                            {% else %}
-                            <!-- Default empty state with one topic field -->
-                            <div class="topic-item flex items-center space-x-3">
-                                <div class="w-24 flex">
-                                    <span
-                                        class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
-                                        FA
-                                    </span>
-                                    <input type="number" min="1" value="1"
-                                        class="topic-number block w-full rounded-none rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                        placeholder="1">
-                                </div>
-                                <div class="flex-grow">
-                                    <input type="text"
-                                        class="topic-content block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                        placeholder="Enter topic (e.g., Algebra)">
-                                </div>
-                                <button type="button"
-                                    class="remove-topic p-1.5 text-gray-400 hover:text-red-500 focus:outline-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                            {% endif %}
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <!-- Progress Steps -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
+                <div class="flex justify-between">
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-white rounded-full text-blue-700 font-bold">
+                            1
                         </div>
-            
-                        <!-- Add topic button -->
-                        <button type="button" id="add-topic-btn"
-                            class="inline-flex items-center px-3 py-1.5 border border-blue-700 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Another Topic
-                        </button>
+                        <span class="ml-2 text-white font-medium">Upload</span>
                     </div>
-            
-                    <!-- Preview of formatted output -->
-                    <div class="mt-4 pt-4 border-t border-gray-200">
-                        <div class="flex justify-between items-center mb-2">
-                            <h4 class="text-sm font-medium text-gray-700">Preview</h4>
-                            <button type="button" id="copy-preview-btn"
-                                class="text-xs text-blue-700 hover:text-blue-800 focus:outline-none">
-                                Copy to clipboard
-                            </button>
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-white bg-opacity-30 rounded-full text-white font-bold">
+                            2
                         </div>
-                        <div id="topics-preview" class="text-sm bg-gray-50 p-3 rounded border border-gray-200 text-gray-600">
-                            <!-- Preview will be shown here -->
-                            <span class="text-gray-400 italic">Topics will appear here as you add them</span>
+                        <span class="ml-2 text-white text-opacity-70 font-medium">Process</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-white bg-opacity-30 rounded-full text-white font-bold">
+                            3
+                        </div>
+                        <span class="ml-2 text-white text-opacity-70 font-medium">Complete</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Container -->
+            <div class="p-6 md:p-8">
+                <!-- Display Form Errors -->
+                {% if form.errors %}
+                <div class="p-4 mb-6 bg-red-50 border-l-4 border-red-500 rounded-md animate-fadeIn" role="alert" aria-live="assertive">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+                            <ul class="mt-1 text-sm text-red-700 list-disc list-inside">
+                                {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                                {% endfor %}
+                            </ul>
                         </div>
                     </div>
                 </div>
-            
-                <p class="text-gray-500 text-xs mt-2">
-                    Add topics for each formative assessment. These will help analyze student performance by topic area.
-                </p>
-            
-                {% if form.test_topics.errors %}
-                <p class="text-red-500 text-sm mt-1">{{ form.test_topics.errors.0 }}</p>
                 {% endif %}
-            </div>
-            
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const topicsList = document.getElementById('topics-list');
-                    const addTopicBtn = document.getElementById('add-topic-btn');
-                    const hiddenTextarea = document.getElementById('id_test_topics');
-                    const topicsPreview = document.getElementById('topics-preview');
-                    const copyPreviewBtn = document.getElementById('copy-preview-btn');
 
-                    // Initialize from existing value if present
-                    if (hiddenTextarea.value.trim()) {
-                        // Clear the default empty state
-                        topicsList.innerHTML = '';
+                <form id="upload-form" action="" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    {% csrf_token %}
 
-                        // Parse the existing value
-                        const topics = parseTopics(hiddenTextarea.value);
+                    <!-- File Upload Section -->
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="12" y1="18" x2="12" y2="12"></line>
+                                <line x1="9" y1="15" x2="15" y2="15"></line>
+                            </svg>
+                            File Upload
+                        </h2>
 
-                        // Create fields for each topic
-                        topics.forEach(topic => {
-                            addTopicField(topic.number, topic.content);
-                        });
-
-                        // Update the preview
-                        updatePreview();
-                    }
-
-                    // Add a new topic field
-                    addTopicBtn.addEventListener('click', function () {
-                        // Find the highest FA number currently in use
-                        let highestFA = 0;
-                        document.querySelectorAll('.topic-number').forEach(input => {
-                            const faNumber = parseInt(input.value);
-                            if (faNumber > highestFA) {
-                                highestFA = faNumber;
-                            }
-                        });
-
-                        // Add a new field with the next FA number
-                        addTopicField(highestFA + 1, '');
-                        updatePreview();
-                    });
-
-                    // Handle removing topics
-                    topicsList.addEventListener('click', function (e) {
-                        if (e.target.closest('.remove-topic')) {
-                            const topicItem = e.target.closest('.topic-item');
-                            topicItem.remove();
-                            updatePreview();
-
-                            // Ensure at least one topic field exists
-                            if (topicsList.children.length === 0) {
-                                addTopicField(1, '');
-                                updatePreview();
-                            }
-                        }
-                    });
-
-                    // Handle changes to topic fields
-                    topicsList.addEventListener('input', function (e) {
-                        if (e.target.classList.contains('topic-number') || e.target.classList.contains('topic-content')) {
-                            updatePreview();
-                        }
-                    });
-
-                    // Copy preview to clipboard
-                    copyPreviewBtn.addEventListener('click', function () {
-                        const textToCopy = topicsPreview.textContent.trim();
-                        navigator.clipboard.writeText(textToCopy).then(() => {
-                            // Show a temporary "Copied!" message
-                            const originalText = copyPreviewBtn.textContent;
-                            copyPreviewBtn.textContent = 'Copied!';
-                            setTimeout(() => {
-                                copyPreviewBtn.textContent = originalText;
-                            }, 2000);
-                        });
-                    });
-
-                    // Function to add a new topic field
-                    function addTopicField(number, content) {
-                        const topicItem = document.createElement('div');
-                        topicItem.className = 'topic-item flex items-center space-x-3';
-
-                        topicItem.innerHTML = `
-                            <div class="w-24 flex">
-                                <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
-                                    FA
-                                </span>
-                                <input type="number" min="1" class="topic-number block w-full rounded-none rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="1" value="${number}">
-                            </div>
-                            <div class="flex-grow">
-                                <input type="text" class="topic-content block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Enter topic (e.g., Algebra)" value="${content}">
-                            </div>
-                            <button type="button" class="remove-topic p-1.5 text-gray-400 hover:text-red-500 focus:outline-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <!-- Drag & Drop Zone -->
+                        <div id="drop-zone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors duration-200 mb-4">
+                            <input type="file" name="analysis_doc" id="id_analysis_doc" class="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer" accept=".csv" required>
+                            
+                            <div id="upload-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
                                 </svg>
-                            </button>
-                        `;
+                            </div>
+                            
+                            <div id="upload-text">
+                                <h3 class="text-lg font-medium text-gray-900">Drag & drop your file here</h3>
+                                <p class="mt-1 text-sm text-gray-500">or click to browse</p>
+                                <p class="mt-2 text-xs text-gray-500">Supported format: CSV</p>
+                                <p class="text-xs text-gray-500">Maximum file size: 10MB</p>
+                            </div>
+                            
+                            <!-- File Preview (Hidden initially) -->
+                            <div id="file-preview" class="hidden mt-4">
+                                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <h4 id="file-name" class="text-sm font-medium text-gray-900 truncate"></h4>
+                                        <p id="file-size" class="text-xs text-gray-500"></p>
+                                    </div>
+                                    <button type="button" id="remove-file" class="ml-4 flex-shrink-0 text-gray-400 hover:text-red-500 focus:outline-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Upload Progress (Hidden initially) -->
+                            <div id="upload-progress" class="hidden mt-4">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm font-medium text-blue-700" id="progress-text">Uploading... 0%</span>
+                                    <span class="text-sm font-medium text-blue-700" id="time-remaining">Calculating...</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-blue-600 h-2.5 rounded-full" id="progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Error Message (Hidden initially) -->
+                        <div id="upload-error" class="hidden p-4 mt-4 bg-red-50 border-l-4 border-red-500 rounded-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-red-800">Upload Error</h3>
+                                    <div class="mt-1 text-sm text-red-700" id="error-message"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Success Message (Hidden initially) -->
+                        <div id="upload-success" class="hidden p-4 mt-4 bg-green-50 border-l-4 border-green-500 rounded-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-green-800">File Ready</h3>
+                                    <div class="mt-1 text-sm text-green-700">Your file has been successfully uploaded and is ready for processing.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                        topicsList.appendChild(topicItem);
+                    <!-- Document Details Section -->
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                <polyline points="13 2 13 9 20 9"></polyline>
+                            </svg>
+                            Document Details
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Document Title -->
+                            <div class="col-span-2">
+                                <label for="id_analysis_doc_title" class="block text-sm font-medium text-gray-700 mb-1">Document Title</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                    </div>
+                                    <input type="text" name="analysis_doc_title" id="id_analysis_doc_title" 
+                                        class="block w-full pl-10 pr-3 py-3 border {% if form.analysis_doc_title.errors %}border-red-500 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition duration-150 ease-in-out"
+                                        placeholder="Enter document title" required>
+                                </div>
+                                {% if form.analysis_doc_title.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.analysis_doc_title.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Test Start Date -->
+                            <div>
+                                <label for="id_test_start_date" class="block text-sm font-medium text-gray-700 mb-1">Test Start Date</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                    </div>
+                                    <input type="date" name="test_start_date" id="id_test_start_date" 
+                                        class="block w-full pl-10 pr-3 py-3 border {% if form.test_start_date.errors %}border-red-500 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition duration-150 ease-in-out"
+                                        required>
+                                </div>
+                                {% if form.test_start_date.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.test_start_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Subject Selection -->
+                            <div>
+                                <label for="id_subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                        </svg>
+                                    </div>
+                                    <select name="subject" id="id_subject" 
+                                        class="block w-full pl-10 pr-10 py-3 border {% if form.subject.errors %}border-red-500 text-red-900 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm focus:outline-none focus:ring-2 transition duration-150 ease-in-out appearance-none"
+                                        required>
+                                        {% for subject in form.fields.subject.queryset %}
+                                        <option value="{{ subject.pk }}">{{ subject }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                                {% if form.subject.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.subject.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Quarter Selection -->
+                            <div>
+                                <label for="id_quarter" class="block text-sm font-medium text-gray-700 mb-1">Quarter</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                    </div>
+                                    <select name="quarter" id="id_quarter" 
+                                        class="block w-full pl-10 pr-10 py-3 border {% if form.quarter.errors %}border-red-500 text-red-900 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm focus:outline-none focus:ring-2 transition duration-150 ease-in-out appearance-none"
+                                        required>
+                                        {% for quarter in form.fields.quarter.queryset %}
+                                        <option value="{{ quarter.pk }}">{{ quarter }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                                {% if form.quarter.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.quarter.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Section Selection -->
+                            <div>
+                                <label for="id_section_id" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        </svg>
+                                    </div>
+                                    <select name="section_id" id="id_section_id" 
+                                        class="block w-full pl-10 pr-10 py-3 border {% if form.section_id.errors %}border-red-500 text-red-900 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm focus:outline-none focus:ring-2 transition duration-150 ease-in-out appearance-none"
+                                        required>
+                                        {% for section in form.fields.section_id.queryset %}
+                                        <option value="{{ section.pk }}">{{ section }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                                {% if form.section_id.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.section_id.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test Topics Section -->
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            Test Topics
+                        </h2>
+                        
+                        <!-- Hidden textarea that will be submitted with the form -->
+                        <textarea name="test_topics" id="id_test_topics" rows="3" class="hidden"
+                            placeholder="Test1: Algebra, Test2: Geometry">{{ form.test_topics.value|default:'' }}</textarea>
+                    
+                        <!-- Dynamic topics container -->
+                        <div class="bg-white rounded-lg border border-gray-300 p-4" id="topics-container">
+                            <div class="mb-4">
+                                <p class="text-sm text-gray-600 mb-2">Add topics for each formative assessment:</p>
+                    
+                                <!-- Topics list -->
+                                <div id="topics-list" class="space-y-3 mb-4">
+                                    <!-- Dynamic topics will be added here -->
+                                    {% if form.test_topics.value %}
+                                    <!-- This will be populated by JavaScript on load -->
+                                    {% else %}
+                                    <!-- Default empty state with one topic field -->
+                                    <div class="topic-item flex items-center space-x-3">
+                                        <div class="w-24 flex">
+                                            <span
+                                                class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
+                                                FA
+                                            </span>
+                                            <input type="number" min="1" value="1"
+                                                class="topic-number block w-full rounded-none rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                                placeholder="1">
+                                        </div>
+                                        <div class="flex-grow">
+                                            <input type="text"
+                                                class="topic-content block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                                placeholder="Enter topic (e.g., Algebra)">
+                                        </div>
+                                        <button type="button"
+                                            class="remove-topic p-1.5 text-gray-400 hover:text-red-500 focus:outline-none">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button  />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                    
+                                <!-- Add topic button -->
+                                <button type="button" id="add-topic-btn"
+                                    class="inline-flex items-center px-3 py-1.5 border border-blue-700 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Another Topic
+                                </button>
+                            </div>
+                    
+                            <!-- Preview of formatted output -->
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="text-sm font-medium text-gray-700">Preview</h4>
+                                    <button type="button" id="copy-preview-btn"
+                                        class="text-xs text-blue-700 hover:text-blue-800 focus:outline-none">
+                                        Copy to clipboard
+                                    </button>
+                                </div>
+                                <div id="topics-preview" class="text-sm bg-gray-50 p-3 rounded border border-gray-200 text-gray-600">
+                                    <!-- Preview will be shown here -->
+                                    <span class="text-gray-400 italic">Topics will appear here as you add them</span>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <p class="text-gray-500 text-xs mt-2">
+                            Add topics for each formative assessment. These will help analyze student performance by topic area.
+                        </p>
+                    
+                        {% if form.test_topics.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.test_topics.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end">
+                        <button type="submit" id="submit-button"
+                            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Upload Document
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // File upload handling
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('id_analysis_doc');
+        const uploadText = document.getElementById('upload-text');
+        const filePreview = document.getElementById('file-preview');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const removeFileBtn = document.getElementById('remove-file');
+        const uploadProgress = document.getElementById('upload-progress');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const timeRemaining = document.getElementById('time-remaining');
+        const uploadError = document.getElementById('upload-error');
+        const errorMessage = document.getElementById('error-message');
+        const uploadSuccess = document.getElementById('upload-success');
+        const uploadIcon = document.getElementById('upload-icon');
+        
+        // Max file size in bytes (10MB)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        
+        // Highlight drop zone on drag over
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // Handle file drop
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        // Handle file selection via input
+        fileInput.addEventListener('change', handleFileSelect, false);
+        
+        // Remove selected file
+        removeFileBtn.addEventListener('click', removeFile, false);
+        
+        function highlight(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('bg-blue-50', 'border-blue-300');
+        }
+        
+        function unhighlight(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('bg-blue-50', 'border-blue-300');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                handleFiles(files[0]);
+            }
+        }
+        
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            
+            if (files.length > 0) {
+                handleFiles(files[0]);
+            }
+        }
+        
+        function handleFiles(file) {
+            // Reset UI
+            resetFileUploadUI();
+            
+            // Check file type
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Invalid file type. Please upload a CSV file.');
+                return;
+            }
+            
+            // Check file size
+            if (file.size > MAX_FILE_SIZE) {
+                showError(`File size exceeds the maximum limit of 10MB. Your file is ${formatFileSize(file.size)}.`);
+                return;
+            }
+            
+            // Show file preview
+            showFilePreview(file);
+            
+            // Simulate upload progress (in a real app, this would be an actual file upload)
+            simulateUploadProgress();
+        }
+        
+        function showFilePreview(file) {
+            uploadText.classList.add('hidden');
+            filePreview.classList.remove('hidden');
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function simulateUploadProgress() {
+            // In a real application, this would be replaced with actual upload progress tracking
+            let progress = 0;
+            const startTime = new Date().getTime();
+            
+            uploadProgress.classList.remove('hidden');
+            
+            const interval = setInterval(() => {
+                progress += 5;
+                
+                if (progress <= 100) {
+                    progressBar.style.width = `${progress}%`;
+                    progressText.textContent = `Uploading... ${progress}%`;
+                    
+                    // Calculate estimated time remaining
+                    const currentTime = new Date().getTime();
+                    const elapsedTime = (currentTime - startTime) / 1000; // in seconds
+                    const totalTime = (elapsedTime / progress) * 100;
+                    const remainingTime = totalTime - elapsedTime;
+                    
+                    if (remainingTime > 0) {
+                        timeRemaining.textContent = `${Math.ceil(remainingTime)} seconds remaining`;
+                    } else {
+                        timeRemaining.textContent = 'Almost done...';
                     }
+                } else {
+                    clearInterval(interval);
+                    uploadProgress.classList.add('hidden');
+                    uploadSuccess.classList.remove('hidden');
+                    
+                    // Change the upload icon to a success icon
+                    uploadIcon.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    `;
+                    uploadIcon.classList.remove('bg-blue-100');
+                    uploadIcon.classList.add('bg-green-100');
+                }
+            }, 200);
+        }
+        
+        function showError(message) {
+            uploadError.classList.remove('hidden');
+            errorMessage.textContent = message;
+        }
+        
+        function removeFile() {
+            fileInput.value = '';
+            resetFileUploadUI();
+        }
+        
+        function resetFileUploadUI() {
+            uploadText.classList.remove('hidden');
+            filePreview.classList.add('hidden');
+            uploadProgress.classList.add('hidden');
+            uploadError.classList.add('hidden');
+            uploadSuccess.classList.add('hidden');
+            
+            // Reset upload icon
+            uploadIcon.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+            `;
+            uploadIcon.classList.add('bg-blue-100');
+            uploadIcon.classList.remove('bg-green-100');
+        }
+        
+        // Test Topics functionality
+        const topicsList = document.getElementById('topics-list');
+        const addTopicBtn = document.getElementById('add-topic-btn');
+        const hiddenTextarea = document.getElementById('id_test_topics');
+        const topicsPreview = document.getElementById('topics-preview');
+        const copyPreviewBtn = document.getElementById('copy-preview-btn');
 
-                    // Function to update the preview and hidden textarea
-                    function updatePreview() {
-                        const topics = [];
+        // Initialize from existing value if present
+        if (hiddenTextarea.value.trim()) {
+            // Clear the default empty state
+            topicsList.innerHTML = '';
 
-                        // Collect all topic items
-                        document.querySelectorAll('.topic-item').forEach(item => {
-                            const numberInput = item.querySelector('.topic-number');
-                            const contentInput = item.querySelector('.topic-content');
+            // Parse the existing value
+            const topics = parseTopics(hiddenTextarea.value);
 
-                            const number = numberInput.value.trim();
-                            const content = contentInput.value.trim();
+            // Create fields for each topic
+            topics.forEach(topic => {
+                addTopicField(topic.number, topic.content);
+            });
 
-                            if (number && content) {
-                                topics.push({
-                                    number: parseInt(number),
-                                    content: content
-                                });
-                            }
-                        });
+            // Update the preview
+            updatePreview();
+        }
 
-                        // Sort topics by FA number
-                        topics.sort((a, b) => a.number - b.number);
+        // Add a new topic field
+        addTopicBtn.addEventListener('click', function () {
+            // Find the highest FA number currently in use
+            let highestFA = 0;
+            document.querySelectorAll('.topic-number').forEach(input => {
+                const faNumber = parseInt(input.value);
+                if (faNumber > highestFA) {
+                    highestFA = faNumber;
+                }
+            });
 
-                        // Format for preview and textarea
-                        const formattedTopics = topics.map(topic => `FA${topic.number}: ${topic.content}`).join(', ');
+            // Add a new field with the next FA number
+            addTopicField(highestFA + 1, '');
+            updatePreview();
+        });
 
-                        // Update preview
-                        if (formattedTopics) {
-                            topicsPreview.textContent = formattedTopics;
-                        } else {
-                            topicsPreview.innerHTML = '<span class="text-gray-400 italic">Topics will appear here as you add them</span>';
-                        }
+        // Handle removing topics
+        topicsList.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-topic')) {
+                const topicItem = e.target.closest('.topic-item');
+                topicItem.remove();
+                updatePreview();
 
-                        // Update hidden textarea
-                        hiddenTextarea.value = formattedTopics;
-                    }
+                // Ensure at least one topic field exists
+                if (topicsList.children.length === 0) {
+                    addTopicField(1, '');
+                    updatePreview();
+                }
+            }
+        });
 
-                    // Function to parse existing topics from textarea
-                    function parseTopics(text) {
-                        const topics = [];
+        // Handle changes to topic fields
+        topicsList.addEventListener('input', function (e) {
+            if (e.target.classList.contains('topic-number') || e.target.classList.contains('topic-content')) {
+                updatePreview();
+            }
+        });
 
-                        // Handle comma-separated format
-                        if (text.includes(',')) {
-                            text.split(',').forEach(part => {
-                                const trimmed = part.trim();
-                                const match = trimmed.match(/^(FA|Test)(\d+):\s*(.+)$/);
+        // Copy preview to clipboard
+        copyPreviewBtn.addEventListener('click', function () {
+            const textToCopy = topicsPreview.textContent.trim();
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Show a temporary "Copied!" message
+                const originalText = copyPreviewBtn.textContent;
+                copyPreviewBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyPreviewBtn.textContent = originalText;
+                }, 2000);
+            });
+        });
 
-                                if (match) {
-                                    topics.push({
-                                        number: parseInt(match[2]),
-                                        content: match[3].trim()
-                                    });
-                                }
-                            });
-                        }
-                        // Handle line-by-line format
-                        else if (text.includes('\n')) {
-                            text.split('\n').forEach(line => {
-                                const trimmed = line.trim();
-                                if (trimmed) {
-                                    const match = trimmed.match(/^(FA|Test)(\d+):\s*(.+)$/);
+        // Function to add a new topic field
+        function addTopicField(number, content) {
+            const topicItem = document.createElement('div');
+            topicItem.className = 'topic-item flex items-center space-x-3';
 
-                                    if (match) {
-                                        topics.push({
-                                            number: parseInt(match[2]),
-                                            content: match[3].trim()
-                                        });
-                                    }
-                                }
-                            });
-                        }
+            topicItem.innerHTML = `
+                <div class="w-24 flex">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md">
+                        FA
+                    </span>
+                    <input type="number" min="1" class="topic-number block w-full rounded-none rounded-r-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="1" value="${number}">
+                </div>
+                <div class="flex-grow">
+                    <input type="text" class="topic-content block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Enter topic (e.g., Algebra)" value="${content}">
+                </div>
+                <button type="button" class="remove-topic p-1.5 text-gray-400 hover:text-red-500 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            `;
 
-                        // If no topics were found but there's text, try to parse it as a single topic
-                        if (topics.length === 0 && text.trim()) {
-                            const match = text.trim().match(/^(FA|Test)(\d+):\s*(.+)$/);
-                            if (match) {
-                                topics.push({
-                                    number: parseInt(match[2]),
-                                    content: match[3].trim()
-                                });
-                            }
-                        }
+            topicsList.appendChild(topicItem);
+        }
 
-                        // If still no topics were found, return an empty array
-                        return topics.length > 0 ? topics : [];
-                    }
+        // Function to update the preview and hidden textarea
+        function updatePreview() {
+            const topics = [];
 
-                    // Add form submit handler to ensure the textarea is updated
-                    const form = hiddenTextarea.closest('form');
-                    if (form) {
-                        form.addEventListener('submit', function () {
-                            updatePreview(); // Ensure the textarea is updated before submission
+            // Collect all topic items
+            document.querySelectorAll('.topic-item').forEach(item => {
+                const numberInput = item.querySelector('.topic-number');
+                const contentInput = item.querySelector('.topic-content');
+
+                const number = numberInput.value.trim();
+                const content = contentInput.value.trim();
+
+                if (number && content) {
+                    topics.push({
+                        number: parseInt(number),
+                        content: content
+                    });
+                }
+            });
+
+            // Sort topics by FA number
+            topics.sort((a, b) => a.number - b.number);
+
+            // Format for preview and textarea
+            const formattedTopics = topics.map(topic => `FA${topic.number}: ${topic.content}`).join(', ');
+
+            // Update preview
+            if (formattedTopics) {
+                topicsPreview.textContent = formattedTopics;
+            } else {
+                topicsPreview.innerHTML = '<span class="text-gray-400 italic">Topics will appear here as you add them</span>';
+            }
+
+            // Update hidden textarea
+            hiddenTextarea.value = formattedTopics;
+        }
+
+        // Function to parse existing topics from textarea
+        function parseTopics(text) {
+            const topics = [];
+
+            // Handle comma-separated format
+            if (text.includes(',')) {
+                text.split(',').forEach(part => {
+                    const trimmed = part.trim();
+                    const match = trimmed.match(/^(FA|Test)(\d+):\s*(.+)$/);
+
+                    if (match) {
+                        topics.push({
+                            number: parseInt(match[2]),
+                            content: match[3].trim()
                         });
                     }
                 });
-            </script>
+            }
+            // Handle line-by-line format
+            else if (text.includes('\n')) {
+                text.split('\n').forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed) {
+                        const match = trimmed.match(/^(FA|Test)(\d+):\s*(.+)$/);
 
-            <!-- Submit Button -->
-            <div>
-                <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition">
-                    Upload Document
-                </button>
-            </div>
-        </form>
-    </div>
+                        if (match) {
+                            topics.push({
+                                number: parseInt(match[2]),
+                                content: match[3].trim()
+                            });
+                        }
+                    }
+                });
+            }
+
+            // If no topics were found but there's text, try to parse it as a single topic
+            if (topics.length === 0 && text.trim()) {
+                const match = text.trim().match(/^(FA|Test)(\d+):\s*(.+)$/);
+                if (match) {
+                    topics.push({
+                        number: parseInt(match[2]),
+                        content: match[3].trim()
+                    });
+                }
+            }
+
+            // If still no topics were found, return an empty array
+            return topics.length > 0 ? topics : [];
+        }
+
+        // Add form submit handler to ensure the textarea is updated
+        const form = hiddenTextarea.closest('form');
+        if (form) {
+            form.addEventListener('submit', function () {
+                updatePreview(); // Ensure the textarea is updated before submission
+            });
+        }
+    });
+</script>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
     
-</div>
-
+    .animate-fadeIn {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    /* Focus styles for accessibility */
+    input:focus, button:focus, select:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+    }
+</style>
 {% endblock %}

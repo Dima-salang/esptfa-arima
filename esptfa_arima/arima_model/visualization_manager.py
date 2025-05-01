@@ -133,7 +133,7 @@ def generate_student_line_chart(student_data, analysis_document):
         sns.lineplot(x=student_data["test_number"].astype(int), y=student_data_score_percentage,
                      label="Actual Score", marker="o", color="blue", ax=ax)
     
-    ax.set_title(f"Actual vs Predicted Scores Over Time")
+    ax.set_title(f"Actual vs Predicted Scores Across Formative Assessments in Percentage")
     ax.set_xlabel("FA Number")
     ax.set_ylabel("Score")
     ax.legend()
@@ -562,7 +562,7 @@ class VisualizationManager:
             heatmap = generate_heatmap(
                 processed_data, 
                 "normalized_scores", 
-                title="Heatmap of Normalized Scores of Students per FA"
+                title="Heatmap of Normalized Scores of Students per FA in Percentage"
             )
             
             # Generate insights

@@ -78,6 +78,7 @@ class InsightGenerator:
             
             # Look for clear class trends across assessments
             test_means = pivot_data.mean()
+            logger.info(f"Test means: {test_means}")
             test_trend = test_means.pct_change().mean() * 100  # percentage change
             raw_heatmap_data_insights["test_means"] = test_means.tolist()
             raw_heatmap_data_insights["test_trend"] = test_trend
@@ -1130,9 +1131,9 @@ def get_gemini_insights(insights: Dict[str, Any]):
     "trends": [trends in the data (e.g., 'Average scores are declining across assessments.')"],
     "insights": ["Concise observations from the data (e.g., 'Most students performed better in Geometry than in Algebra.')"],
     "outliers": {
-        "high_performers": str,
-        "low_performers": str,
-        "inconsistent_performers": str,
+        "high_performers": ["List of student ids of high performers"],
+        "low_performers": ["List of student ids of low performers"],
+        "inconsistent_performers": ["List of student ids of inconsistent performers"],
     },
     "actionable": ["Immediate actions the teacher can take (e.g., 'Re-teach Algebra before the next assessment.')"],
     "recommendations": ["Longer-term advice (e.g., 'Monitor students with scores below 60 across 3 or more tests.')"]
