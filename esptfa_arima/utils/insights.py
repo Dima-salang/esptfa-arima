@@ -250,12 +250,13 @@ class InsightGenerator:
         return raw_heatmap_data_insights, insights
     
     @staticmethod
-    def get_distribution_insights(data: pd.Series, fa_number: Optional[int] = None, topic: Optional[str] = None) -> Dict[str, Any]:
+    def get_distribution_insights(data: pd.Series, max_score: float, fa_number: Optional[int] = None, topic: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate insights from score distribution (histogram/box plot/violin plot).
         
         Args:
             data: Series containing score data
+            max_score: Maximum score for the assessment
             fa_number: Optional formative assessment number for context
             topic: Optional topic covered in the assessment
             
@@ -283,9 +284,10 @@ class InsightGenerator:
             iqr = q3 - q1
             
             # Calculate pass rate (scores >= 70%)
-            estimated_max = max_val if max_val > 0 else 100
-            passing_threshold = 0.7 * estimated_max
-            pass_rate = (data >= passing_threshold).mean() * 100
+            passing_threshold = 0.75 * max_score
+
+            # get passing rate of students
+            pass_rate = len(data[data >= passing_threshold]) / len(data) * 100
             
             # Distribution shape in plain language
             skewness = ((mean - median) / std_dev) if std_dev > 0 else 0
@@ -498,36 +500,6 @@ class InsightGenerator:
                         recent_trend = "slightly declining in recent assessments"
                 
                 insights["progress"] = f"The student is {recent_trend}."
-            
-            # Make prediction language clearer
-            if predicted_score is not None:
-                last_score = scores.iloc[-1]
-                predicted_change = predicted_score - last_score
-                
-                if abs(predicted_change) < 0.05 * last_score:
-                    prediction_desc = "maintain about the same score"
-                elif predicted_change > 0:
-                    if predicted_change > 0.1 * last_score:
-                        prediction_desc = "improve significantly"
-                    else:
-                        prediction_desc = "improve slightly"
-                else:
-                    if abs(predicted_change) > 0.1 * last_score:
-                        prediction_desc = "decline significantly"
-                    else:
-                        prediction_desc = "decline slightly"
-                
-                insights["prediction_context"] = f"Based on past performance, the student is predicted to {prediction_desc} in the next assessment (predicted score: {predicted_score:.1f})."
-                
-                # Give specific advice based on prediction
-                if predicted_change < -0.05 * last_score:
-                    insights["actionable"].append(
-                        "✓ Provide additional support before the next assessment to prevent the predicted decline"
-                    )
-                elif predicted_change > 0.1 * last_score:
-                    insights["actionable"].append(
-                        "✓ Continue current approach as the student is projected to improve significantly"
-                    )
             
             # Add actionable insights based on overall pattern
             if trend_direction == "declining":

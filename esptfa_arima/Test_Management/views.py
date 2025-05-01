@@ -499,6 +499,7 @@ class IndividualFADetailView(LoginRequiredMixin, TeacherRequiredMixin, DetailVie
             distribution_insights = get_visualization_insights(
                 'distribution',
                 fa_data['score'],
+                max_score=fa_statistic.max_score,
                 fa_number=int(fa_statistic.formative_assessment_number),
                 topic=topic
             )
