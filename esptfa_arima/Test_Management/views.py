@@ -1,4 +1,4 @@
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.http.response import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -812,3 +812,49 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
             logger.error(f"Error accessing student data: {e}")
             messages.error(self.request, "Unable to access the requested student data.")
             return redirect("formative_assessment_dashboard")
+
+@login_required
+@teacher_required
+def delete_document(request, document_pk):
+    """Delete a document and all associated data."""
+    document = get_object_or_404(AnalysisDocument, analysis_document_id=document_pk)
+    
+    # Security check: only the owner can delete their document
+    if document.teacher_id.user_id != request.user:
+        messages.error(request, "You don't have permission to delete this document.")
+        return redirect("formative_assessment_dashboard")
+    
+    document_title = document.analysis_doc_title
+    
+    try:
+        # Delete the document - Django will cascade delete all related data
+        document.delete()
+        messages.success(request, f"Document '{document_title}' was successfully deleted.")
+    except Exception as e:
+        logger.error(f"Error deleting document: {e}")
+        messages.error(request, f"An error occurred while deleting the document: {str(e)}")
+    
+    return redirect("formative_assessment_dashboard")
+
+# For AJAX request to delete a document
+@login_required
+@teacher_required
+def delete_document_ajax(request, document_pk):
+    """Delete a document via AJAX request."""
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Only POST method is allowed."}, status=405)
+    
+    try:
+        document = get_object_or_404(AnalysisDocument, analysis_document_id=document_pk)
+        
+        # Security check: only the owner can delete their document
+        if document.teacher_id.user_id != request.user:
+            return JsonResponse({"status": "error", "message": "You don't have permission to delete this document."}, status=403)
+        
+        document_title = document.analysis_doc_title
+        document.delete()
+        
+        return JsonResponse({"status": "success", "message": f"Document '{document_title}' was successfully deleted."})
+    except Exception as e:
+        logger.error(f"Error deleting document via AJAX: {e}")
+        return JsonResponse({"status": "error", "message": f"An error occurred: {str(e)}"}, status=500)

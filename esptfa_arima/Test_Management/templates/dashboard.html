@@ -41,24 +41,25 @@
             <!-- Table Header -->
             <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
                 <div class="grid grid-cols-12 gap-4">
-                    <div class="col-span-6 md:col-span-5 font-medium text-gray-700">Document Title</div>
-                    <div class="col-span-4 md:col-span-3 font-medium text-gray-700">Date</div>
+                    <div class="col-span-5 md:col-span-4 font-medium text-gray-700">Document Title</div>
+                    <div class="col-span-3 md:col-span-3 font-medium text-gray-700">Date</div>
                     <div class="col-span-2 md:col-span-2 font-medium text-gray-700">Status</div>
+                    <div class="col-span-2 md:col-span-3 font-medium text-gray-700">Actions</div>
                 </div>
             </div>
 
             <!-- Table Body -->
            <div class="divide-y divide-gray-200">
                 {% for document in page_obj %}
-                <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div class="px-6 py-4 hover:bg-gray-50 transition-colors" id="doc-row-{{ document.pk }}">
                     <div class="grid grid-cols-12 gap-4 items-center">
-                        <div class="col-span-6 md:col-span-5">
+                        <div class="col-span-5 md:col-span-4">
                             <a href="{% url 'formative_assessment_detail' document.pk %}"
                                 class="text-blue-700 font-medium hover:text-blue-800 hover:underline">
                                 {{ document.analysis_doc_title }}
                             </a>
                         </div>
-                        <div class="col-span-4 md:col-span-3 text-gray-600">
+                        <div class="col-span-3 md:col-span-3 text-gray-600">
                             {{ document.test_start_date }}
                         </div>
                         <div id="doc-status-{{document.pk}}" class="col-span-2 md:col-span-2">
@@ -73,6 +74,25 @@
                                 Processing
                             </span>
                             {% endif %}
+                        </div>
+                        <div class="col-span-2 md:col-span-3 flex items-center space-x-2">
+                            <a href="{% url 'formative_assessment_detail' document.pk %}" 
+                               class="inline-flex items-center p-2 text-blue-600 hover:text-blue-800" 
+                               title="View details">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                            <button type="button" 
+                                   class="delete-document-btn inline-flex items-center p-2 text-red-600 hover:text-red-800" 
+                                   title="Delete document"
+                                   data-document-id="{{ document.pk }}"
+                                   data-document-title="{{ document.analysis_doc_title }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -138,6 +158,27 @@
             </a>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 transform transition-all">
+        <div class="text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Delete Document</h3>
+            <p class="text-gray-600 mb-6">Are you sure you want to delete <span id="delete-document-name" class="font-medium"></span>? This action cannot be undone.</p>
+        </div>
+        <div class="flex justify-center space-x-4">
+            <button id="cancel-delete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                Cancel
+            </button>
+            <button id="confirm-delete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                Delete
+            </button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -303,6 +344,122 @@
          // Display error using the dynamic message function if container exists
          displayDynamicMessage('Could not initialize real-time updates.', 'error');
     }
+
+    // Document deletion functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = document.getElementById('delete-modal');
+        const deleteDocumentName = document.getElementById('delete-document-name');
+        const cancelDeleteBtn = document.getElementById('cancel-delete');
+        const confirmDeleteBtn = document.getElementById('confirm-delete');
+        
+        let currentDocumentId = null;
+        
+        // Open delete modal when delete button is clicked
+        document.querySelectorAll('.delete-document-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const documentId = this.getAttribute('data-document-id');
+                const documentTitle = this.getAttribute('data-document-title');
+                
+                currentDocumentId = documentId;
+                deleteDocumentName.textContent = `"${documentTitle}"`;
+                deleteModal.classList.remove('hidden');
+            });
+        });
+        
+        // Close modal when Cancel is clicked
+        cancelDeleteBtn.addEventListener('click', function() {
+            deleteModal.classList.add('hidden');
+            currentDocumentId = null;
+        });
+        
+        // Handle document deletion when confirmed
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (!currentDocumentId) return;
+            
+            // Show loading state
+            confirmDeleteBtn.disabled = true;
+            confirmDeleteBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Deleting...
+            `;
+            
+            // Send AJAX request to delete the document
+            fetch(`/api/formative-assessments/${currentDocumentId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Remove the document row from the table
+                    const documentRow = document.getElementById(`doc-row-${currentDocumentId}`);
+                    if (documentRow) {
+                        window.location.reload();
+                    }
+                    
+                    // Display success message
+                    displayDynamicMessage(data.message, 'success');
+                    
+                    // If no documents left, reload the page to show the empty state
+                    const remainingRows = document.querySelectorAll('[id^="doc-row-"]');
+                    if (remainingRows.length === 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    // Display error message
+                    displayDynamicMessage(data.message || 'An error occurred while deleting the document.', 'error');
+                }
+                
+                // Close the modal
+                deleteModal.classList.add('hidden');
+                currentDocumentId = null;
+                
+                // Reset button state
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = 'Delete';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                displayDynamicMessage('An error occurred while deleting the document.', 'error');
+                
+                // Close the modal
+                deleteModal.classList.add('hidden');
+                currentDocumentId = null;
+                
+                // Reset button state
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = 'Delete';
+            });
+        });
+        
+        // Close modal if user clicks outside
+        deleteModal.addEventListener('click', function(event) {
+            if (event.target === deleteModal) {
+                deleteModal.classList.add('hidden');
+                currentDocumentId = null;
+            }
+        });
+        
+        // Helper function to get CSRF token
+        function getCsrfToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+    });
 </script>
 
 
