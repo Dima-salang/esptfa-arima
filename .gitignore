@@ -9,5 +9,6 @@ db.sqlite3
 */media
 */logs
 *settings.py
+*/password.txt
 
 */migrations/__pycache__/

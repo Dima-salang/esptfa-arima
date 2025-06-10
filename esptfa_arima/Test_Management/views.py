@@ -854,6 +854,7 @@ def delete_document_ajax(request, document_pk):
         document_title = document.analysis_doc_title
         document.delete()
         
+        messages.success(request, f"Document '{document_title}' was successfully deleted.")
         return JsonResponse({"status": "success", "message": f"Document '{document_title}' was successfully deleted."})
     except Exception as e:
         logger.error(f"Error deleting document via AJAX: {e}")

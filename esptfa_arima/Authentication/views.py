@@ -16,9 +16,10 @@ def register(request):
             user.is_active = False
             user.save()  # Save the new user
             messages.success(request, "Your account has been created successfully. Please wait for approval from the administrator.")
-            return redirect("home")  # Redirect to home or dashboard
+            return redirect("home")
+        else:
+             messages.error(request, "Invalid form submission, try checking all fields again.")
     else:
-        messages.error(request, "Invalid form submission, try checking all fields again.")
         form = UserRegisterForm()
 
     return render(request, "registration/register.html", {"form": form})
