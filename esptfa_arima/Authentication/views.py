@@ -4,13 +4,17 @@ from django.http import HttpResponse
 from django.contrib.auth import logout
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from Authentication.forms import UserRegisterForm
+from .forms import UserRegisterForm
 from django.contrib import messages
-from Authentication.serializers import UserSerializer
-from rest_framework.response import Response
+from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
 from rest_framework import status
-from Authentication.services import register_user
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.models import User
+from .models import Teacher, Student
+from .serializers import UserSerializer, TeacherSerializer, StudentSerializer
+from .services import register_user, login_user
 
 
 def register(request):
@@ -29,6 +33,32 @@ def register(request):
 
     return render(request, "registration/register.html", {"form": form})
 
+
+class LoginViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        
+        user = login_user(username, password)
+        
+        if user:
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                }
+            }, status=status.HTTP_200_OK)
+        
+        return Response({"error": "Invalid credentials or account not active."}, status=status.HTTP_401_UNAUTHORIZED)
 
 class RegisterViewSet(ModelViewSet):
     queryset = User.objects.all()
@@ -50,6 +80,7 @@ class RegisterViewSet(ModelViewSet):
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
 
 class TeacherViewSet(ModelViewSet):
+    
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
 

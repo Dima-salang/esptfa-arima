@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from Test_Management.models import *
-from Authentication.models import Teacher
+from .models import *
+from ..Authentication.models import Teacher
 from django.core.exceptions import ObjectDoesNotExist
 
 

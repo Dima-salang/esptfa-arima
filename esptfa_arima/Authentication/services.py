@@ -1,7 +1,13 @@
 from django.contrib.auth.models import User
-from Authentication.models import Teacher, Student
-from model_types import ACC_TYPE
+from .models import Teacher, Student
+from ..model_types import ACC_TYPE
 
+
+def login_user(username, password):
+    user = User.objects.filter(username=username).first()
+    if user is not None and user.check_password(password) and user.is_active:
+        return user
+    return None
 
 # registers a user and determines whether they are a teacher or not
 # uses lrn=None as a default value if the user is not a student
