@@ -1,8 +1,9 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from Authentication.models import Teacher, Student
-from Authentication.services import register_user, ACC_TYPE
+from Authentication.services import register_user
 from Test_Management.models import Section
+from model_types import ACC_TYPE
 
 class RegisterUserTestCase(TestCase):
     def setUp(self):

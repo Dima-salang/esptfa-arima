@@ -1,9 +1,22 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Authentication.models import Teacher
+import uuid
 # Create your models here.
 
 
+class TestDraft(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    test_draft_id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4)
+    test_content = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class IdempotencyKey(models.Model):
+    idempotency_key = models.UUIDField(unique=True, primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Subject(models.Model):
@@ -47,7 +60,7 @@ class AnalysisDocument(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     test_start_date = models.DateField(null=True)
     analysis_doc = models.FileField(upload_to='analysis_documents/')
-    teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher_id = models.ForeignKey('Authentication.Teacher', on_delete=models.CASCADE)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
     def __str__(self):
@@ -90,6 +103,7 @@ class PredictedScore(models.Model):
 class TestTopic(models.Model):
     topic_id = models.AutoField(unique=True, primary_key=True)
     topic_name = models.CharField(max_length=100)
+
 
     def __str__(self):
         return self.topic_name

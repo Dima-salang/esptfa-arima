@@ -22,6 +22,28 @@ from utils.mixins.mixins import TeacherRequiredMixin
 from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
+from rest_framework import viewsets, permissions
+from .serializers import AnalysisDocumentSerializer
+
+"""
+TODO:
+- modify upload analysis document since we will not be using csv anymore and just manual entry
+- modify the arima model to accept manual entry
+- 
+
+"""
+
+
+class AnalysisDocumentViewSet(viewsets.ModelViewSet):
+    queryset = AnalysisDocument.objects.all()
+    serializer_class = AnalysisDocumentSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def perform_create(self, serializer):
+        serializer.save(teacher=self.request.user)
 
 @login_required
 @teacher_required

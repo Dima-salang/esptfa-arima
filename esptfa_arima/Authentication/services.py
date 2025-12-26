@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from Authentication.models import Teacher, Student
-from types import ACC_TYPE
+from model_types import ACC_TYPE
 
 
 # registers a user and determines whether they are a teacher or not
