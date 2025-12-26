@@ -9,7 +9,8 @@ from django.contrib import messages
 from Authentication.serializers import UserSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-
+from rest_framework import status
+from Authentication.services import register_user
 
 
 def register(request):
@@ -36,7 +37,5 @@ class RegisterViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        user.is_active = False
-        user.save()
-        return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=201)
+        register_user(request.data["username"], request.data["password"], request.data["first_name"], request.data["last_name"], request.data["email"], request.data["acc_type"], request.data["lrn"])
+        return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
