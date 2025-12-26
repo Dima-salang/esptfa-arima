@@ -61,16 +61,15 @@ class AnalysisDocument(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     upload_date = models.DateTimeField(auto_now_add=True)
     test_start_date = models.DateField(null=True)
-    analysis_doc = models.FileField(upload_to='analysis_documents/')
+
+    # ignore the analysis_doc field for now since it is not used
+    analysis_doc = models.FileField(upload_to='analysis_documents/', null=True)
+
     teacher_id = models.ForeignKey('Authentication.Teacher', on_delete=models.CASCADE)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
     def __str__(self):
         return self.analysis_doc_title
-
-
-
-
 
 
 class FormativeAssessmentScore(models.Model):
