@@ -80,6 +80,7 @@ class PredictedScore(models.Model):
     formative_assessment_number = models.CharField(max_length=5)
     predicted_status = models.CharField(max_length=20, null=True)
     passing_threshold = models.FloatField()
+    max_score = models.FloatField(null=True)
 
 
     def __str__(self):
@@ -137,6 +138,16 @@ class AnalysisDocumentStatistic(models.Model):
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Statistics"
 
+class AnalysisDocumentInsights(models.Model):
+    analysis_document_insights_id = models.AutoField(
+        unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE)
+    insights = models.JSONField(null=True)
+    ai_insights = models.JSONField(null=True)
+
+    def __str__(self):
+        return f"{self.analysis_document.analysis_doc_title} Insights"
 
 class FormativeAssessmentStatistic(models.Model):
     formative_assessment_statistic_id = models.AutoField(
@@ -150,7 +161,7 @@ class FormativeAssessmentStatistic(models.Model):
     median = models.FloatField()
     minimum = models.FloatField()
     maximum = models.FloatField()
-    mode = models.FloatField()
+    mode = models.FloatField(null=True)
     passing_rate = models.FloatField()
     failing_rate = models.FloatField()
     passing_threshold = models.FloatField()
@@ -159,6 +170,7 @@ class FormativeAssessmentStatistic(models.Model):
     scatterplot = models.FileField(upload_to='scatterplots/', null=True)
     bar_chart = models.FileField(upload_to='bar_charts/', null=True)
     boxplot = models.FileField(upload_to='boxplots/', null=True)
+    student_comparison_chart = models.FileField(upload_to='student_comparison_charts/', null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
@@ -175,12 +187,12 @@ class StudentScoresStatistic(models.Model):
     median = models.FloatField()
     minimum = models.FloatField()
     maximum = models.FloatField()
-    mode = models.FloatField()
+    mode = models.FloatField(null=True)
     passing_rate = models.FloatField()
     failing_rate = models.FloatField()
     lineplot = models.FileField(upload_to='lineplots/', null=True)
     heatmap = models.FileField(upload_to='heatmaps/', null=True)
-
+    performance_comparison_chart = models.FileField(upload_to='performance_comparisons/', null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - {self.student.student_id} Statistics"
