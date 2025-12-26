@@ -25,7 +25,7 @@ import pandas as pd
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from .serializers import AnalysisDocumentSerializer, TestDraftSerializer
-from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, AnalysisDocumentInsights, TestDraft, IdempotencyKey
+from Test_Management.models import *
 from .services.analysis_doc_service import get_or_create_draft
 
 """
@@ -93,6 +93,40 @@ class IdempotencyKeyViewSet(viewsets.ModelViewSet):
 
     # define the permissions
     permission_classes = [permissions.IsAuthenticated]
+
+
+class TestTopicViewSet(viewsets.ModelViewSet):
+    queryset = TestTopic.objects.all()
+    serializer_class = TestTopicSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class SectionViewSet(viewsets.ModelViewSet):
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class QuarterViewSet(viewsets.ModelViewSet):
+    queryset = Quarter.objects.all()
+    serializer_class = QuarterSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
 
 @login_required
 @teacher_required

@@ -48,3 +48,18 @@ class RegisterViewSet(ModelViewSet):
             request.data["lrn"])
 
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
+
+class TeacherViewSet(ModelViewSet):
+    queryset = Teacher.objects.all()
+    serializer_class = TeacherSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class StudentViewSet(ModelViewSet):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
