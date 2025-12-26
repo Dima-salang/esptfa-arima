@@ -22,8 +22,11 @@ from utils.mixins.mixins import TeacherRequiredMixin
 from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
-from rest_framework import viewsets, permissions
-from .serializers import AnalysisDocumentSerializer
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from .serializers import AnalysisDocumentSerializer, TestDraftSerializer
+from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, AnalysisDocumentInsights, TestDraft, IdempotencyKey
+from .services.analysis_doc_service import get_or_create_draft
 
 """
 TODO:
@@ -43,7 +46,53 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
 
 
     def perform_create(self, serializer):
-        serializer.save(teacher=self.request.user)
+        # The serializer handles teacher lookup internally
+        serializer.save()
+
+
+
+class TestDraftViewSet(viewsets.ModelViewSet):
+    queryset = TestDraft.objects.all()
+    serializer_class = TestDraftSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+    # gets or creates the draft if it doesn't exist 
+    # if it does not exist, the idempotency key for it also created and is returned
+    def create(self, request, *args, **kwargs):
+        idempotency_key = request.headers.get('Idempotency-Key')
+        
+        if not idempotency_key:
+            return Response(
+                {"error": "Idempotency-Key header is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        draft = get_or_create_draft(idempotency_key, request.user)
+        if not draft:
+            return Response(
+                {"error": "Internal server error retrieving or creating draft"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+        # Update test_content if provided
+        test_content = request.data.get('test_content')
+        if test_content is not None:
+            draft.test_content = test_content
+            draft.status = request.data.get('status', draft.status)
+            draft.save()
+        
+        serializer = self.get_serializer(draft)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class IdempotencyKeyViewSet(viewsets.ModelViewSet):
+    queryset = IdempotencyKey.objects.all()
+    serializer_class = IdempotencyKeySerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
 
 @login_required
 @teacher_required

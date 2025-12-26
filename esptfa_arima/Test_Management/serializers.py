@@ -1,5 +1,19 @@
 from rest_framework import serializers
-from .models import *
+from Test_Management.models import *
+from Authentication.models import Teacher
+from django.core.exceptions import ObjectDoesNotExist
+
+
+class TestDraftSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TestDraft
+        fields = '__all__'
+
+
+class IdempotencyKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IdempotencyKey
+        fields = '__all__'
 
 
 class SubjectSerializer(serializers.ModelSerializer):

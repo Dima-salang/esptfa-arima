@@ -10,11 +10,13 @@ class TestDraft(models.Model):
     test_content = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=10, default='draft')
 
 
 class IdempotencyKey(models.Model):
     idempotency_key = models.UUIDField(unique=True, primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    returned_draft_key = models.UUIDField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
