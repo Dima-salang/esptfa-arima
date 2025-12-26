@@ -6,6 +6,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from Authentication.forms import UserRegisterForm
 from django.contrib import messages
+from Authentication.serializers import UserSerializer
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
+
 
 
 def register(request):
@@ -23,3 +27,16 @@ def register(request):
         form = UserRegisterForm()
 
     return render(request, "registration/register.html", {"form": form})
+
+
+class RegisterViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        user.is_active = False
+        user.save()
+        return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=201)
