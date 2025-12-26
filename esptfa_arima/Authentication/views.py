@@ -37,5 +37,14 @@ class RegisterViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        register_user(request.data["username"], request.data["password"], request.data["first_name"], request.data["last_name"], request.data["email"], request.data["acc_type"], request.data["lrn"])
+
+        # register the user
+        register_user(request.data["username"],
+            request.data["password"],
+            request.data["first_name"],
+            request.data["last_name"],
+            request.data["email"],
+            request.data["acc_type"],
+            request.data["lrn"])
+
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)

@@ -1,0 +1,93 @@
+from django.test import TestCase
+from django.contrib.auth.models import User
+from Authentication.models import Teacher, Student
+from Authentication.services import register_user, ACC_TYPE
+from Test_Management.models import Section
+
+class RegisterUserTestCase(TestCase):
+    def setUp(self):
+        # Create a section since Student model requires it
+        self.section = Section.objects.create(section_name="Test Section")
+
+    def test_register_teacher(self):
+        """Test registration of a teacher user."""
+        username = "teacher1"
+        password = "password123"
+        first_name = "Teacher"
+        last_name = "User"
+        email = "teacher@example.com"
+        
+        user = register_user(
+            username=username,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            acc_type=ACC_TYPE.teacher
+        )
+        
+        # Verify user creation
+        self.assertIsInstance(user, User)
+        self.assertEqual(user.username, username)
+        self.assertEqual(user.first_name, first_name)
+        self.assertEqual(user.last_name, last_name)
+        self.assertEqual(user.email, email)
+        self.assertFalse(user.is_active)
+        
+        # Verify Teacher entry creation
+        self.assertTrue(Teacher.objects.filter(user_id=user).exists())
+        self.assertFalse(Student.objects.filter(user_id=user).exists())
+
+    def test_register_student(self):
+        """Test registration of a student user."""
+        username = "student1"
+        password = "password123"
+        first_name = "Student"
+        last_name = "User"
+        email = "student@example.com"
+        lrn = "12345678901"
+        
+        user = register_user(
+            username=username,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            acc_type=ACC_TYPE.student,
+            lrn=lrn,
+            section=self.section
+        )
+        
+        # Verify user creation
+        self.assertIsInstance(user, User)
+        self.assertEqual(user.username, username)
+        self.assertFalse(user.is_active)
+        
+        # Verify Student entry creation
+        student = Student.objects.get(user_id=user)
+        self.assertEqual(student.lrn, lrn)
+        self.assertEqual(student.section, self.section)
+        self.assertFalse(Teacher.objects.filter(user_id=user).exists())
+
+    def test_register_user_duplicate_username(self):
+        """Test that registering a user with an existing username raises an error."""
+        username = "testuser"
+        register_user(
+            username=username,
+            password="password123",
+            first_name="First",
+            last_name="Last",
+            email="test1@example.com",
+            acc_type=ACC_TYPE.teacher
+        )
+        
+        from django.db import IntegrityError
+        with self.assertRaises(Exception): # User.objects.create_user handles duplicates by raising error or similar
+            register_user(
+                username=username,
+                password="password456",
+                first_name="Other",
+                last_name="User",
+                email="test2@example.com",
+                acc_type=ACC_TYPE.teacher
+            )
