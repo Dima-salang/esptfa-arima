@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Teacher Login{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 sm:p-6 md:p-8">
+    <div class="w-full max-w-5xl">
+        <!-- Login Card with enhanced design -->
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+            <!-- Left side / Top on mobile - with gradient and illustration -->
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-800 p-8 md:p-12 md:w-5/12 flex flex-col justify-between relative overflow-hidden">
+                <!-- Decorative circles -->
+                <div class="absolute top-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+                <div class="absolute bottom-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full translate-x-1/3 translate-y-1/3"></div>
+                
+                <div class="relative z-10">
+                    <div class="mb-8">
+                        <h1 class="text-white text-3xl md:text-4xl font-bold mb-3">Welcome Back</h1>
+                        <p class="text-blue-100 text-lg">Sign in to continue your teaching journey and access your classroom analytics.</p>
+                    </div>
+                    
+                    <!-- Feature highlights -->
+                    <div class="space-y-4 mt-8 hidden md:block">
+                        <div class="flex items-start">
+                            <div class="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                            </div>
+                            <p class="text-blue-100">Track student performance with detailed analytics</p>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <p class="text-blue-100">Generate comprehensive assessment reports</p>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-blue-100">Get AI-powered insights for better teaching</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- School logo or branding -->
+                <div class="mt-8 md:mt-0 relative z-10">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-white text-xl font-bold">SJLSHS Assessment Portal</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right side / Bottom on mobile - Form section -->
+            <div class="p-8 md:p-12 md:w-7/12">
+                <div class="max-w-md mx-auto">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Teacher Login</h2>
+                    <p class="text-gray-600 mb-8">Please sign in with your credentials</p>
+                    
+                    <!-- Alert for form errors -->
+                    {% if form.errors %}
+                    <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-md animate-fadeIn" role="alert" aria-live="assertive">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Login failed</h3>
+                                <div class="mt-1 text-sm text-red-700">
+                                    {% if form.non_field_errors %}
+                                        {% for error in form.non_field_errors %}
+                                            <p>{{ error }}</p>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p>Please check your username and password and try again.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" class="space-y-6" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Username field with enhanced styling and accessibility -->
+                        <div>
+                            <label for="id_username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                                <input id="id_username" type="text" name="username" 
+                                    class="block w-full pl-10 pr-3 py-3 border {% if form.username.errors %}border-red-500 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition duration-150 ease-in-out"
+                                    placeholder="Enter your username" 
+                                    value="{{ form.username.value|default:'' }}"
+                                    aria-describedby="{% if form.username.errors %}username-error{% endif %}"
+                                    autocomplete="username"
+                                    required>
+                            </div>
+                            {% if form.username.errors %}
+                            <p class="mt-2 text-sm text-red-600" id="username-error">
+                                {% for error in form.username.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Password field with enhanced styling and accessibility -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="id_password" class="block text-sm font-medium text-gray-700">Password</label>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </div>
+                                <input id="id_password" type="password" name="password" 
+                                    class="block w-full pl-10 pr-3 py-3 border {% if form.password.errors %}border-red-500 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500{% else %}border-gray-300 focus:ring-blue-500 focus:border-blue-500{% endif %} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition duration-150 ease-in-out"
+                                    placeholder="Enter your password"
+                                    aria-describedby="{% if form.password.errors %}password-error{% endif %}"
+                                    autocomplete="current-password"
+                                    required>
+                            </div>
+                            {% if form.password.errors %}
+                            <p class="mt-2 text-sm text-red-600" id="password-error">
+                                {% for error in form.password.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        
+                        <!-- Submit button with loading state -->
+                        <div>
+                            <button type="submit" 
+                                class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out transform hover:-translate-y-0.5 active:translate-y-0"
+                                onclick="this.classList.add('animate-pulse'); this.querySelector('.normal-state').classList.add('hidden'); this.querySelector('.loading-state').classList.remove('hidden');">
+                                <span class="normal-state">Sign in</span>
+                                <span class="loading-state hidden">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Signing in...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Sign up option -->
+                    <div class="mt-8 text-center">
+                        <p class="text-sm text-gray-600">
+                            Don't have an account yet?
+                            <a href="{% url 'register' %}" class="font-medium text-blue-600 hover:text-blue-500 transition duration-150 ease-in-out">
+                                Create an account
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-8 text-center">
+            <p class="text-sm text-gray-600">
+                © 2025 SJLSHS. All rights reserved.
+            </p>
+            <div class="mt-2 flex justify-center space-x-6">
+                <a href="#" class="text-gray-500 hover:text-gray-900 transition duration-150 ease-in-out">
+                    <span class="sr-only">Privacy Policy</span>
+                    <span class="text-xs">Privacy Policy</span>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-gray-900 transition duration-150 ease-in-out">
+                    <span class="sr-only">Terms of Service</span>
+                    <span class="text-xs">Terms of Service</span>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-gray-900 transition duration-150 ease-in-out">
+                    <span class="sr-only">Help Center</span>
+                    <span class="text-xs">Help Center</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fadeIn {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    /* Focus styles for accessibility */
+    input:focus, button:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}
