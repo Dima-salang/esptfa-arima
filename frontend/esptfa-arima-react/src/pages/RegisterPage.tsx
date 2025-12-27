@@ -78,7 +78,7 @@ export default function RegisterPage() {
             acc_type: Yup.string().required("Required"),
             lrn: Yup.string().when("acc_type", {
                 is: "STUDENT",
-                then: (schema) => schema.required("LRN is required for students").length(12, "LRN must be 12 digits"),
+                then: (schema) => schema.required("LRN is required for students").length(11, "LRN must be 11 digits"),
                 otherwise: (schema) => schema.notRequired(),
             }),
             section: Yup.string().when("acc_type", {
@@ -108,7 +108,41 @@ export default function RegisterPage() {
                 });
             } catch (err: any) {
                 console.error("Registration failed", err);
-                setError(err.response?.data?.message || "Registration failed. Please check your details.");
+                const data = err.response?.data;
+
+                if (data) {
+                    // Handle DRF validation error objects
+                    if (typeof data === "object" && !Array.isArray(data)) {
+                        if (data.detail) {
+                            setError(data.detail);
+                        } else if (data.message) {
+                            setError(data.message);
+                        } else {
+                            // Extract first error from field errors
+                            const fieldErrors = Object.entries(data).map(([field, msgs]) => {
+                                const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace("_", " ");
+                                const errorMsg = Array.isArray(msgs) ? msgs[0] : msgs;
+                                return `${fieldName}: ${errorMsg}`;
+                            });
+                            setError(fieldErrors.join(" | "));
+
+                            // Also optionally set formik field errors
+                            const errors: any = {};
+                            Object.entries(data).forEach(([key, value]) => {
+                                if (Array.isArray(value)) {
+                                    errors[key] = value[0];
+                                } else {
+                                    errors[key] = value;
+                                }
+                            });
+                            formik.setErrors(errors);
+                        }
+                    } else {
+                        setError("Registration failed. Please check your details.");
+                    }
+                } else {
+                    setError("Network error or server is unreachable. Please try again.");
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -215,10 +249,10 @@ export default function RegisterPage() {
                             {formik.values.acc_type === "STUDENT" && (
                                 <>
                                     <div className="space-y-2">
-                                        <Label htmlFor="lrn">LRN (12 digits)</Label>
+                                        <Label htmlFor="lrn">LRN (11 digits)</Label>
                                         <Input
                                             id="lrn"
-                                            placeholder="123456789012"
+                                            placeholder="12345678901"
                                             {...formik.getFieldProps("lrn")}
                                             className={formik.touched.lrn && formik.errors.lrn ? "border-red-500" : ""}
                                         />

@@ -4,18 +4,6 @@ from Authentication.models import Teacher
 from django.core.exceptions import ObjectDoesNotExist
 
 
-class TestDraftSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TestDraft
-        fields = '__all__'
-
-
-class IdempotencyKeySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = IdempotencyKey
-        fields = '__all__'
-
-
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
@@ -34,6 +22,22 @@ class SectionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class TestDraftSerializer(serializers.ModelSerializer):
+    subject = SubjectSerializer(read_only=True)
+    quarter = QuarterSerializer(read_only=True)
+    section_id = SectionSerializer(read_only=True)
+
+    class Meta:
+        model = TestDraft
+        fields = '__all__'
+
+
+class IdempotencyKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IdempotencyKey
+        fields = '__all__'
+
+
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
@@ -41,6 +45,9 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class AnalysisDocumentSerializer(serializers.ModelSerializer):
+    quarter = QuarterSerializer(read_only=True)
+    subject = SubjectSerializer(read_only=True)
+    section_id = SectionSerializer(read_only=True)
 
     class Meta:
         model = AnalysisDocument
@@ -108,4 +115,3 @@ class StudentScoresStatisticSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentScoresStatistic
         fields = '__all__'
-

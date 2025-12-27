@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from .models import Teacher, Student
 from model_types import ACC_TYPE
 from django.contrib.auth import authenticate
+from Test_Management.models import Section
 
 def login_user(username, password):
     user = authenticate(username=username, password=password)
@@ -29,5 +30,6 @@ def register_user(username, password, first_name, last_name, email, acc_type, lr
     if acc_type == ACC_TYPE.TEACHER:
         Teacher.objects.create(user_id=user)
     elif acc_type == ACC_TYPE.STUDENT:
+        section = Section.objects.get(section_id=section)
         Student.objects.create(user_id=user, lrn=lrn, section=section)
     return user

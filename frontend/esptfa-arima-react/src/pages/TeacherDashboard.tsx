@@ -264,7 +264,11 @@ export default function TeacherDashboard() {
                                 </div>
                             ) : (
                                 drafts.slice(0, 4).map((draft) => (
-                                    <div key={draft.test_draft_id} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all duration-200 border border-transparent hover:border-slate-100">
+                                    <Link
+                                        key={draft.test_draft_id}
+                                        to={`/dashboard/editor/${draft.test_draft_id}`}
+                                        className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all duration-200 border border-transparent hover:border-slate-100"
+                                    >
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 bg-white ring-1 ring-slate-200 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:scale-110">
                                                 <ClipboardList className="h-6 w-6 text-indigo-500" />
@@ -274,10 +278,10 @@ export default function TeacherDashboard() {
                                                 <p className="text-xs text-slate-500 font-medium">Updated {new Date(draft.updated_at).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                        <Button size="icon" variant="ghost" className="rounded-full bg-slate-50 group-hover:bg-white hover:shadow-sm">
+                                        <div className="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-white flex items-center justify-center transition-all hover:shadow-sm">
                                             <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-600" />
-                                        </Button>
-                                    </div>
+                                        </div>
+                                    </Link>
                                 ))
                             )}
                             <Button variant="outline" className="w-full h-11 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all mt-4">
