@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Section, Student, AnalysisDocument, FormativeAssessmentScore, PredictedScore,Subject, Quarter, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic, AnalysisDocumentStatistic
+from .models import *
 
 admin.site.register(Section)
 admin.site.register(Student)
@@ -15,3 +15,5 @@ admin.site.register(Subject)
 admin.site.register(Quarter)
 admin.site.register(TestTopicMapping)
 admin.site.register(TestTopic)
+admin.site.register(TestDraft)
+admin.site.register(IdempotencyKey)
