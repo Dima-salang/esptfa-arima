@@ -43,6 +43,25 @@ def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
 
 
 
+# ANALYSIS DOCUMENT
+def create_analysis_document(draft: TestDraft):
+    try:
+        # Create the analysis document
+        document = AnalysisDocument.objects.create(
+            analysis_doc_title=draft.title,
+            quarter=draft.quarter,
+            subject=draft.subject,
+            teacher_id=draft.user_teacher,
+            section_id=draft.section_id,
+            status=False,
+        )
+        
+        # Process test topics
+        process_test_topics(document, draft.test_content)
+        
+        return document
+    except Exception as e:
+        return None
 
 
 

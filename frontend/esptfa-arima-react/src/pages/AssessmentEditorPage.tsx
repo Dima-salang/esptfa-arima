@@ -298,7 +298,7 @@ export default function AssessmentEditorPage() {
 
     if (isLoading) {
         return (
-            <DashboardLayout>
+            <DashboardLayout defaultCollapsed={true}>
                 <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                     <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
                     <p className="text-slate-500 font-medium animate-pulse">Loading assessment draft...</p>
@@ -309,7 +309,7 @@ export default function AssessmentEditorPage() {
 
     if (error || !draft) {
         return (
-            <DashboardLayout>
+            <DashboardLayout defaultCollapsed={true}>
                 <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
                     <div className="p-4 bg-red-100 text-red-600 rounded-full">
                         <AlertCircle className="h-10 w-10" />
@@ -339,7 +339,7 @@ export default function AssessmentEditorPage() {
         : "Quarter";
 
     return (
-        <DashboardLayout>
+        <DashboardLayout defaultCollapsed={true}>
             <div className="space-y-8 animate-in fade-in duration-500 pb-32">
                 {/* Editor Header */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 px-4">
@@ -410,18 +410,18 @@ export default function AssessmentEditorPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <div className="flex items-center gap-4 group">
+                                <div className="flex items-center gap-4">
                                     <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
                                         <Settings2 className="h-8 w-8 text-indigo-600" />
                                         {draft.title}
                                     </h1>
                                     <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 rounded-full bg-slate-100 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-xl border-slate-200 text-slate-500 font-bold hover:bg-white hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
                                         onClick={() => setIsEditingHeader(true)}
                                     >
-                                        <Edit3 className="h-4 w-4" />
+                                        <Edit3 className="mr-2 h-4 w-4" /> Edit Details
                                     </Button>
                                 </div>
                                 <div className="flex flex-wrap gap-3">

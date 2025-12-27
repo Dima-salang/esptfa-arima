@@ -33,7 +33,7 @@ from rest_framework import filters
 
 """
 TODO:
-- modify upload analysis document since we will not be using csv anymore and just manual entry
+- modify upload analysis document since we will not be using csv anymore and just manual entry - DONE
 - modify the arima model to accept manual entry
 - 
 """
