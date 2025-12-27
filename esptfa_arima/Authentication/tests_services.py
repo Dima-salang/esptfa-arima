@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from Authentication.models import Teacher, Student
-from Authentication.services import register_user
+from Authentication.services import register_user, login_user
 from Test_Management.models import Section
 from model_types import ACC_TYPE
 
@@ -70,6 +70,27 @@ class RegisterUserTestCase(TestCase):
         self.assertEqual(student.section, self.section)
         self.assertFalse(Teacher.objects.filter(user_id=user).exists())
 
+    def test_register_student_lrn_greater_than_11(self):
+        """Test that registering a student with an LRN greater than 11 characters raises an error."""
+        username = "student1"
+        password = "password123"
+        first_name = "Student"
+        last_name = "User"
+        email = "student@example.com"
+        lrn = "123456789012"
+        
+        with self.assertRaises(Exception):
+            register_user(
+                username=username,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                acc_type=ACC_TYPE.STUDENT,
+                lrn=lrn,
+                section=self.section
+            )
+
     def test_register_user_duplicate_username(self):
         """Test that registering a user with an existing username raises an error."""
         username = "testuser"
@@ -92,3 +113,21 @@ class RegisterUserTestCase(TestCase):
                 email="test2@example.com",
                 acc_type=ACC_TYPE.TEACHER
             )
+
+
+class LoginUserTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="testuser", password="password123")
+
+    def test_login_user(self):
+        # try with correct username and password
+        self.assertTrue(login_user("testuser", "password123"))
+        # try with correct username and wrong password
+        self.assertFalse(login_user("testuser", "password456"))
+
+    def test_login_user_inactive(self):
+        # try with inactive user
+        self.user.is_active = False
+        self.user.save()
+        self.assertFalse(login_user("testuser", "password123"))
