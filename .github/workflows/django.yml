@@ -27,8 +27,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run Tests
+      working-directory: ./esptfa_arima
+      env:
+        DJANGO_SECRET_KEY: "ci-test-key-not-for-production"
+        PYTHONPATH: .
       run: |
-        ls -la
-        cd esptfa_arima
-        ls -la
         python manage.py test
