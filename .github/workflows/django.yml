@@ -28,4 +28,7 @@ jobs:
         pip install -r requirements.txt
     - name: Run Tests
       run: |
+        ls -la
+        cd esptfa_arima
+        ls -la
         python manage.py test
