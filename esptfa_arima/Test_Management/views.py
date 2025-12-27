@@ -48,13 +48,13 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
 
 
     # define the filters
-    filterset_fields = ['subject', 'quarter', 'section', 'status']
-    search_fields = ['teacher__user__first_name', 
-                    'teacher__user__last_name', 
-                    'subject__name', 
-                    'quarter__name', 
-                    'section__name',
-                    'analysis_document_title']
+    filterset_fields = ['subject', 'quarter', 'section_id', 'status']
+    search_fields = ['teacher_id__user__first_name', 
+                    'teacher_id__user__last_name', 
+                    'subject__subject_name', 
+                    'quarter__quarter_name', 
+                    'section_id__section_name',
+                    'analysis_doc_title']
 
     ordering_fields = ['upload_date', 'status']
 
@@ -95,18 +95,41 @@ class TestDraftViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        draft = get_or_create_draft(idempotency_key, request.user)
+        # Resolve IDs to model instances
+        try:
+            subject_id = request.data.get('subject')
+            quarter_id = request.data.get('quarter')
+            section_id = request.data.get('section_id')
+            
+            subject = Subject.objects.get(pk=subject_id) if subject_id else None
+            quarter = Quarter.objects.get(pk=quarter_id) if quarter_id else None
+            section = Section.objects.get(pk=section_id) if section_id else None
+        except ObjectDoesNotExist as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        draft = get_or_create_draft(
+            idempotency_key, 
+            request.user,
+            title=request.data.get('title'),
+            quarter=quarter,
+            subject=subject,
+            section_id=section,
+            test_content=request.data.get('test_content', {}),
+            status=request.data.get('status', 'draft')
+        )
+
         if not draft:
             return Response(
                 {"error": "Internal server error retrieving or creating draft"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
             
-        # Update test_content if provided
+        # Update test_content if provided (for subsequent calls with same key)
         test_content = request.data.get('test_content')
         if test_content is not None:
             draft.test_content = test_content
             draft.status = request.data.get('status', draft.status)
+            draft.title = request.data.get('title', draft.title)
             draft.save()
         
         serializer = self.get_serializer(draft)

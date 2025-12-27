@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
     getAnalysisDocuments,
@@ -53,8 +54,10 @@ export default function TeacherDashboard() {
             try {
                 const docsData = await getAnalysisDocuments();
                 const draftsData = await getTestDrafts();
-                setDocuments(docsData);
-                setDrafts(draftsData);
+
+                // Handle paginated responses (extracting the results array)
+                setDocuments(Array.isArray(docsData) ? docsData : docsData.results || []);
+                setDrafts(Array.isArray(draftsData) ? draftsData : draftsData.results || []);
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
             } finally {
@@ -68,7 +71,7 @@ export default function TeacherDashboard() {
     const stats = [
         {
             title: "Total Analysis",
-            value: documents.length.toString(),
+            value: documents.length,
             description: "Uploaded documents",
             icon: FileText,
             color: "text-blue-600",
@@ -77,7 +80,7 @@ export default function TeacherDashboard() {
         },
         {
             title: "Active Drafts",
-            value: drafts.length.toString(),
+            value: drafts.length,
             description: "Currently in progress",
             icon: ClipboardList,
             color: "text-amber-600",
@@ -133,9 +136,11 @@ export default function TeacherDashboard() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 rounded-xl h-11 px-6">
-                            <Plus className="mr-2 h-4 w-4" /> New Assessment
-                        </Button>
+                        <Link to="/dashboard/create-analysis">
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 rounded-xl h-11 px-6">
+                                <Plus className="mr-2 h-4 w-4" /> New Assessment
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
