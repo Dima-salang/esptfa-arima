@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from .models import Teacher, Student
-from ..model_types import ACC_TYPE
+from model_types import ACC_TYPE
 
 
 def login_user(username, password):

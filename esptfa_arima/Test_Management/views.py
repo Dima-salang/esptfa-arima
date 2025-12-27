@@ -1,5 +1,4 @@
 from django.http import HttpRequest, JsonResponse
-from django.http.response import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.forms import forms
@@ -24,8 +23,10 @@ logger = logging.getLogger("arima_model")
 import pandas as pd
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from .serializers import AnalysisDocumentSerializer, TestDraftSerializer
-from Test_Management.models import *
+from .serializers import *
+from .models import *
+from .services.analysis_doc_service import process_default_topics
+from .services.analysis_doc_service import process_test_topics
 from .services.analysis_doc_service import get_or_create_draft
 
 """
@@ -158,7 +159,7 @@ def upload_analysis_document(request):
 
                 try:
                     # try and process the document
-                    process_analysis_document.delay(document.analysis_document_id, request.user.pk)
+                    process_analysis_document(document.analysis_document_id)
 
                 except Exception as e:
                     messages.error(
