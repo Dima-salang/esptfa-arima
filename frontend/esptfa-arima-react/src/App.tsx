@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import CreateAnalysisPage from "./pages/CreateAnalysisPage";
+import AssessmentEditorPlaceholder from "./pages/AssessmentEditorPlaceholder";
 import "./App.css";
 
 // Basic Private Route wrapper
@@ -17,12 +19,28 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected Dashboard - Placeholder */}
+        {/* Protected Dashboard */}
         <Route
           path="/dashboard"
           element={
             <PrivateRoute>
               <TeacherDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/create-analysis"
+          element={
+            <PrivateRoute>
+              <CreateAnalysisPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/editor/:draftId"
+          element={
+            <PrivateRoute>
+              <AssessmentEditorPlaceholder />
             </PrivateRoute>
           }
         />

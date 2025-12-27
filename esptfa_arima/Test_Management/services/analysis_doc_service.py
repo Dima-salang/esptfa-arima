@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 
 # DRAFT
-def get_or_create_draft(idempotency_key: str, user: User):
+def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
     try:
         # Check if this idempotency key has been used by this user before
         ik = IdempotencyKey.objects.filter(idempotency_key=idempotency_key, user=user).first()
@@ -14,8 +14,23 @@ def get_or_create_draft(idempotency_key: str, user: User):
             return TestDraft.objects.filter(test_draft_id=ik.returned_draft_key).first()
 
         # Create a new draft if not exists
-        # Initializing with empty dict for test_content if not provided
-        draft = TestDraft.objects.create(user=user, test_content={})
+        # Extract fields from kwargs
+        title = kwargs.get('title', 'Untitled Test')
+        quarter = kwargs.get('quarter')
+        subject = kwargs.get('subject')
+        section_id = kwargs.get('section_id')
+        test_content = kwargs.get('test_content', {})
+        status = kwargs.get('status', 'draft')
+
+        draft = TestDraft.objects.create(
+            user_teacher=user,
+            title=title,
+            quarter=quarter,
+            subject=subject,
+            section_id=section_id,
+            test_content=test_content,
+            status=status
+        )
         
         # Record the idempotency key and link it to the draft
         IdempotencyKey.objects.create(
@@ -25,7 +40,8 @@ def get_or_create_draft(idempotency_key: str, user: User):
         )
 
         return draft
-    except Exception:
+    except Exception as e:
+        print(f"Error creating draft: {e}")
         return None
 
 

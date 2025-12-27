@@ -16,11 +16,9 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-        console.log(config);
         return config;
     },
     (error) => {
-        console.log(error);
         return Promise.reject(error);
     }
 );
@@ -37,7 +35,7 @@ api.interceptors.response.use(
 
             try {
                 const refreshToken = localStorage.getItem("refresh");
-                
+
                 // Attempt to get a new access token
                 const response = await axios.post(`${API_URL}/token/refresh/`, {
                     refresh: refreshToken,
@@ -56,7 +54,7 @@ api.interceptors.response.use(
                 // If refresh fails, the refresh token is likely expired too
                 localStorage.removeItem("access");
                 localStorage.removeItem("refresh");
-                window.location.href = "/login"; 
+                window.location.href = "/login";
                 throw refreshError;
             }
         }
