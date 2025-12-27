@@ -41,7 +41,7 @@ export default function LoginPage() {
                 // Or whatever the user sets up. For now, I'll hit /auth/login/ 
                 // as per the earlier look at urls.py, but update for JWT.
 
-                const response = await api.post("/auth/login/", {
+                const response = await api.post("/login/", {
                     username: values.username,
                     password: values.password,
                 });

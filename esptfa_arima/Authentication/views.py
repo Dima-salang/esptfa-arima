@@ -34,31 +34,37 @@ def register(request):
     return render(request, "registration/register.html", {"form": form})
 
 
-class LoginViewSet(ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
 
-    def create(self, request, *args, **kwargs):
+class LoginViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny] # Ensure anyone can try to login
+
+    def create(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
         
-        user = login_user(username, password)
+        # Use Django's built-in authenticate
+        user = authenticate(username=username, password=password)
         
-        if user:
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                }
-            }, status=status.HTTP_200_OK)
+        if user is not None:
+            if user.is_active:
+                refresh = RefreshToken.for_user(user)
+                # Use your existing serializer for the user data
+                from .serializers import UserSerializer 
+                user_data = UserSerializer(user).data
+                
+                return Response({
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "user": user_data
+                }, status=status.HTTP_200_OK)
+            return Response({"detail": "Account disabled"}, status=status.HTTP_403_FORBIDDEN)
         
-        return Response({"error": "Invalid credentials or account not active."}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class RegisterViewSet(ModelViewSet):
     queryset = User.objects.all()
@@ -69,13 +75,16 @@ class RegisterViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         # register the user
-        register_user(request.data["username"],
-            request.data["password"],
-            request.data["first_name"],
-            request.data["last_name"],
-            request.data["email"],
-            request.data["acc_type"],
-            request.data["lrn"])
+        register_user(
+            serializer.validated_data.get("username"),
+            serializer.validated_data.get("password"),
+            serializer.validated_data.get("first_name"),
+            serializer.validated_data.get("last_name"),
+            serializer.validated_data.get("email"),
+            serializer.validated_data.get("acc_type"),
+            serializer.validated_data.get("lrn"),
+            serializer.validated_data.get("section")
+        )
 
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
 

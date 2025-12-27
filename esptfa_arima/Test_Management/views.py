@@ -28,19 +28,39 @@ from .models import *
 from .services.analysis_doc_service import process_default_topics
 from .services.analysis_doc_service import process_test_topics
 from .services.analysis_doc_service import get_or_create_draft
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 """
 TODO:
 - modify upload analysis document since we will not be using csv anymore and just manual entry
 - modify the arima model to accept manual entry
 - 
-
 """
 
 
 class AnalysisDocumentViewSet(viewsets.ModelViewSet):
     queryset = AnalysisDocument.objects.all()
     serializer_class = AnalysisDocumentSerializer
+
+    # define filtering
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+
+
+    # define the filters
+    filterset_fields = ['subject', 'quarter', 'section', 'status']
+    search_fields = ['teacher__user__first_name', 
+                    'teacher__user__last_name', 
+                    'subject__name', 
+                    'quarter__name', 
+                    'section__name',
+                    'analysis_document_title']
+
+    ordering_fields = ['upload_date', 'status']
+
+
+
+    
 
     # define the permissions
     permission_classes = [permissions.IsAuthenticated]
@@ -58,6 +78,11 @@ class TestDraftViewSet(viewsets.ModelViewSet):
 
     # define the permissions
     permission_classes = [permissions.IsAuthenticated]
+
+    # filtering
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+
+    # define the filters
 
     # gets or creates the draft if it doesn't exist 
     # if it does not exist, the idempotency key for it also created and is returned
@@ -116,9 +141,8 @@ class SubjectViewSet(viewsets.ModelViewSet):
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
+    permission_classes = [permissions.AllowAny]
 
-    # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
 
 
 class QuarterViewSet(viewsets.ModelViewSet):

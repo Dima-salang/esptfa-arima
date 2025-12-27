@@ -1,11 +1,11 @@
 from django.contrib.auth.models import User
 from .models import Teacher, Student
 from model_types import ACC_TYPE
-
+from django.contrib.auth import authenticate
 
 def login_user(username, password):
-    user = User.objects.filter(username=username).first()
-    if user is not None and user.check_password(password) and user.is_active:
+    user = authenticate(username=username, password=password)
+    if user is not None and user.is_active:
         return user
     return None
 
@@ -19,6 +19,13 @@ def register_user(username, password, first_name, last_name, email, acc_type, lr
     user.save()
 
     # create teacher or student that is linked to the user account
+    if isinstance(acc_type, str):
+        try:
+            acc_type = ACC_TYPE[acc_type.upper()]
+        except KeyError:
+            # Fallback for old lowercase values if necessary, or just raise error
+            acc_type = ACC_TYPE(acc_type.lower()) 
+
     if acc_type == ACC_TYPE.TEACHER:
         Teacher.objects.create(user_id=user)
     elif acc_type == ACC_TYPE.STUDENT:

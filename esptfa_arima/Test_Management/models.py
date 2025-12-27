@@ -4,13 +4,6 @@ import uuid
 # Create your models here.
 
 
-class TestDraft(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    test_draft_id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4)
-    test_content = models.JSONField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=10, default='draft')
 
 
 class IdempotencyKey(models.Model):
@@ -53,6 +46,18 @@ class Student(models.Model):
         return f"{self.first_name} {self.last_name}({self.student_id})"
 
 
+# draft version of the analysis document
+class TestDraft(models.Model):
+    user_teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    test_draft_id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4)
+    title = models.CharField(max_length=100)
+    quarter = models.ForeignKey(Quarter, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    test_content = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, default='draft')
 
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)

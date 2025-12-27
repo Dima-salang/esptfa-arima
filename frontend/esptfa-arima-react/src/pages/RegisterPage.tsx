@@ -24,8 +24,8 @@ import api from "@/lib/api";
 import { AlertCircle, Loader2, UserPlus } from "lucide-react";
 
 interface Section {
-    id: number;
-    name: string;
+    section_id: number;
+    section_name: string;
 }
 
 export default function RegisterPage() {
@@ -38,7 +38,15 @@ export default function RegisterPage() {
         const fetchSections = async () => {
             try {
                 const response = await api.get("/section/");
-                setSections(response.data);
+                // Handle both paginated and non-paginated responses
+                if (response.data && Array.isArray(response.data)) {
+                    setSections(response.data);
+                } else if (response.data && Array.isArray(response.data.results)) {
+                    setSections(response.data.results);
+                } else {
+                    console.error("Unexpected section data format:", response.data);
+                    setSections([]);
+                }
             } catch (err) {
                 console.error("Failed to fetch sections", err);
             }
@@ -228,8 +236,8 @@ export default function RegisterPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {sections.map((s) => (
-                                                    <SelectItem key={s.id} value={s.id.toString()}>
-                                                        {s.name}
+                                                    <SelectItem key={s.section_id} value={s.section_id.toString()}>
+                                                        {s.section_name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

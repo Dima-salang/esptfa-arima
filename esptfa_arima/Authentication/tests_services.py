@@ -24,7 +24,7 @@ class RegisterUserTestCase(TestCase):
             first_name=first_name,
             last_name=last_name,
             email=email,
-            acc_type=ACC_TYPE.teacher
+            acc_type=ACC_TYPE.TEACHER
         )
         
         # Verify user creation
@@ -54,7 +54,7 @@ class RegisterUserTestCase(TestCase):
             first_name=first_name,
             last_name=last_name,
             email=email,
-            acc_type=ACC_TYPE.student,
+            acc_type=ACC_TYPE.STUDENT,
             lrn=lrn,
             section=self.section
         )
@@ -79,7 +79,7 @@ class RegisterUserTestCase(TestCase):
             first_name="First",
             last_name="Last",
             email="test1@example.com",
-            acc_type=ACC_TYPE.teacher
+            acc_type=ACC_TYPE.TEACHER
         )
         
         from django.db import IntegrityError
@@ -90,5 +90,5 @@ class RegisterUserTestCase(TestCase):
                 first_name="Other",
                 last_name="User",
                 email="test2@example.com",
-                acc_type=ACC_TYPE.teacher
+                acc_type=ACC_TYPE.TEACHER
             )
