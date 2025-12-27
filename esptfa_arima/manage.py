@@ -8,6 +8,7 @@ load_dotenv()
 
 def main():
     """Run administrative tasks."""
+    # NOTE: use settings_ci for github actions and the actual settings.py for production
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'esptfaARIMA.settings_ci')
     try:
         from django.core.management import execute_from_command_line

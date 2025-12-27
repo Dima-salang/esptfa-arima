@@ -109,7 +109,7 @@ class PredictedScore(models.Model):
 class TestTopic(models.Model):
     topic_id = models.AutoField(unique=True, primary_key=True)
     topic_name = models.CharField(max_length=100)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
 
 
     def __str__(self):

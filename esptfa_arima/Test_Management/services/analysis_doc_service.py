@@ -1,8 +1,6 @@
 from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, TestTopic
 from django.contrib.auth.models import User
 
-
-
 # DRAFT
 def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
     try:
@@ -41,7 +39,6 @@ def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
 
         return draft
     except Exception as e:
-        print(f"Error creating draft: {e}")
         return None
 
 
