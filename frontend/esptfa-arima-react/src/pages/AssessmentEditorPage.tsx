@@ -32,7 +32,8 @@ import {
     type Student,
     type Subject,
     type Quarter,
-    type Section
+    type Section,
+    type Topic
 } from "@/lib/api-teacher";
 import {
     Save,
@@ -54,15 +55,13 @@ import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 
 
-interface Topic {
-    id: string;
-    name: string;
-    maxScore: number;
-}
-
 interface ScoreData {
     [studentLrn: string]: {
-        [topicId: string]: number;
+        [topicId: string]: {
+            score: number;
+            student_id: string;
+            max_score: number;
+        };
     };
 }
 
@@ -165,9 +164,17 @@ export default function AssessmentEditorPage() {
         if (!draftId) return;
         setIsSaving(true);
         try {
+            const studentsMetadata = students.map(s => ({
+                student_id: s.lrn,
+                first_name: s.user_id?.first_name || "",
+                last_name: s.user_id?.last_name || "",
+                section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
+            }));
+
             await updateTestDraft(draftId, {
                 test_content: {
                     topics: currentTopics,
+                    students: studentsMetadata,
                     scores: currentScores
                 }
             });
@@ -192,7 +199,11 @@ export default function AssessmentEditorPage() {
                 ...prev,
                 [lrn]: {
                     ...prev[lrn],
-                    [topicId]: numValue
+                    [topicId]: {
+                        score: numValue,
+                        student_id: lrn,
+                        max_score: topic?.maxScore || 0
+                    }
                 }
             };
 
@@ -280,10 +291,18 @@ export default function AssessmentEditorPage() {
         if (!draftId) return;
         setIsFinalizing(true);
         try {
+            const studentsMetadata = students.map(s => ({
+                student_id: s.lrn,
+                first_name: s.user_id?.first_name || "",
+                last_name: s.user_id?.last_name || "",
+                section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
+            }));
+
             await updateTestDraft(draftId, {
                 status: "finalized",
                 test_content: {
                     topics,
+                    students: studentsMetadata,
                     scores
                 }
             });
@@ -542,7 +561,8 @@ export default function AssessmentEditorPage() {
                                                 </div>
                                             </TableCell>
                                             {topics.map(topic => {
-                                                const score = scores[student.lrn]?.[topic.id] ?? 0;
+                                                const scoreEntry = scores[student.lrn]?.[topic.id];
+                                                const score = typeof scoreEntry === 'object' ? scoreEntry.score : (scoreEntry || 0);
                                                 const percentage = (score / topic.maxScore) * 100;
 
                                                 // Premium Dynamic Styling
@@ -566,7 +586,7 @@ export default function AssessmentEditorPage() {
                                                                 type="number"
                                                                 min={0}
                                                                 max={topic.maxScore}
-                                                                value={score === 0 && !scores[student.lrn]?.[topic.id] ? "" : score}
+                                                                value={score === 0 && scores[student.lrn]?.[topic.id] === undefined ? "" : score}
                                                                 onChange={(e) => handleScoreChange(student.lrn, topic.id, e.target.value)}
                                                                 className={cn(
                                                                     "w-24 h-9 text-center font-black text-sm rounded-xl border-none ring-1 ring-slate-200/50 focus:ring-2 focus:ring-indigo-500 bg-white/80 shadow-sm transition-all",

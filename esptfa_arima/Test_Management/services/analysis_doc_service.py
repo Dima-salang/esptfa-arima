@@ -60,7 +60,7 @@ def create_analysis_document(draft: TestDraft):
         process_test_topics(document, draft.test_content)
         
         return document
-    except Exception as e:
+    except Exception:
         return None
 
 

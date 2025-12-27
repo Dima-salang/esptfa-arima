@@ -47,7 +47,8 @@ export interface TestDraft {
     subject: number | Subject;
     test_content: {
         topics?: Topic[];
-        scores?: Record<string, Record<string, number>>;
+        students?: any[];
+        scores?: Record<string, Record<string, any>>;
     };
     created_at: string;
     updated_at: string;
@@ -55,7 +56,7 @@ export interface TestDraft {
     section_id: number | Section;
 }
 
-interface Topic {
+export interface Topic {
     id: string;
     name: string;
     maxScore: number;
