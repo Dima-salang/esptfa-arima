@@ -1,9 +1,17 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Authentication.models import Teacher
+import uuid
 # Create your models here.
 
 
+
+
+class IdempotencyKey(models.Model):
+    idempotency_key = models.UUIDField(unique=True, primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    returned_draft_key = models.UUIDField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Subject(models.Model):
@@ -38,6 +46,18 @@ class Student(models.Model):
         return f"{self.first_name} {self.last_name}({self.student_id})"
 
 
+# draft version of the analysis document
+class TestDraft(models.Model):
+    user_teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    test_draft_id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4)
+    title = models.CharField(max_length=100)
+    quarter = models.ForeignKey(Quarter, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    test_content = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, default='draft')
 
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
@@ -46,16 +66,15 @@ class AnalysisDocument(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     upload_date = models.DateTimeField(auto_now_add=True)
     test_start_date = models.DateField(null=True)
-    analysis_doc = models.FileField(upload_to='analysis_documents/')
-    teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+
+    # ignore the analysis_doc field for now since it is not used
+    analysis_doc = models.FileField(upload_to='analysis_documents/', null=True)
+
+    teacher_id = models.ForeignKey('Authentication.Teacher', on_delete=models.CASCADE)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
     def __str__(self):
         return self.analysis_doc_title
-
-
-
-
 
 
 class FormativeAssessmentScore(models.Model):
@@ -90,6 +109,8 @@ class PredictedScore(models.Model):
 class TestTopic(models.Model):
     topic_id = models.AutoField(unique=True, primary_key=True)
     topic_name = models.CharField(max_length=100)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+
 
     def __str__(self):
         return self.topic_name

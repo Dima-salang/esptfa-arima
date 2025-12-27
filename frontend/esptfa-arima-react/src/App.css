@@ -1,0 +1,4 @@
+/* Clear default Vite styles that constrain width */
+#root {
+  width: 100%;
+}

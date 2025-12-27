@@ -24,7 +24,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('Test_Management.urls')),
     path('auth/', include('Authentication.urls')),
-    path('events/', include(django_eventstream.urls))
+    path('events/', include(django_eventstream.urls)),
+
+    # rest-based
+    path('api/', include("Authentication.urls")),
+    path('api/', include("Test_Management.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 
 class Teacher(models.Model):
-    teacher_id = models.CharField(unique=True, primary_key=True, max_length=20)
+    id = models.AutoField(primary_key=True)
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -14,7 +14,7 @@ class Teacher(models.Model):
 class Student(models.Model):
     lrn = models.CharField(unique=True, primary_key=True, max_length=11)
     user_id = models.OneToOneField(User, on_delete=models.CASCADE)
-    section = models.ForeignKey(Section, on_delete=models.CASCADE)
+    section = models.ForeignKey('Test_Management.Section', on_delete=models.CASCADE)
     
     def __str__(self):
         return self.user_id.get_full_name() or self.user_id.username

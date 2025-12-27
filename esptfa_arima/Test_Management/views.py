@@ -1,5 +1,4 @@
 from django.http import HttpRequest, JsonResponse
-from django.http.response import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.forms import forms
@@ -22,6 +21,137 @@ from utils.mixins.mixins import TeacherRequiredMixin
 from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from .serializers import *
+from .models import *
+from .services.analysis_doc_service import process_default_topics
+from .services.analysis_doc_service import process_test_topics
+from .services.analysis_doc_service import get_or_create_draft
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
+"""
+TODO:
+- modify upload analysis document since we will not be using csv anymore and just manual entry
+- modify the arima model to accept manual entry
+- 
+"""
+
+
+class AnalysisDocumentViewSet(viewsets.ModelViewSet):
+    queryset = AnalysisDocument.objects.all()
+    serializer_class = AnalysisDocumentSerializer
+
+    # define filtering
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+
+
+    # define the filters
+    filterset_fields = ['subject', 'quarter', 'section', 'status']
+    search_fields = ['teacher__user__first_name', 
+                    'teacher__user__last_name', 
+                    'subject__name', 
+                    'quarter__name', 
+                    'section__name',
+                    'analysis_document_title']
+
+    ordering_fields = ['upload_date', 'status']
+
+
+
+    
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def perform_create(self, serializer):
+        # The serializer handles teacher lookup internally
+        serializer.save()
+
+
+
+class TestDraftViewSet(viewsets.ModelViewSet):
+    queryset = TestDraft.objects.all()
+    serializer_class = TestDraftSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+    # filtering
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+
+    # define the filters
+
+    # gets or creates the draft if it doesn't exist 
+    # if it does not exist, the idempotency key for it also created and is returned
+    def create(self, request, *args, **kwargs):
+        idempotency_key = request.headers.get('Idempotency-Key')
+        
+        if not idempotency_key:
+            return Response(
+                {"error": "Idempotency-Key header is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        draft = get_or_create_draft(idempotency_key, request.user)
+        if not draft:
+            return Response(
+                {"error": "Internal server error retrieving or creating draft"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+        # Update test_content if provided
+        test_content = request.data.get('test_content')
+        if test_content is not None:
+            draft.test_content = test_content
+            draft.status = request.data.get('status', draft.status)
+            draft.save()
+        
+        serializer = self.get_serializer(draft)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class IdempotencyKeyViewSet(viewsets.ModelViewSet):
+    queryset = IdempotencyKey.objects.all()
+    serializer_class = IdempotencyKeySerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class TestTopicViewSet(viewsets.ModelViewSet):
+    queryset = TestTopic.objects.all()
+    serializer_class = TestTopicSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class SectionViewSet(viewsets.ModelViewSet):
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+
+class QuarterViewSet(viewsets.ModelViewSet):
+    queryset = Quarter.objects.all()
+    serializer_class = QuarterSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
 
 @login_required
 @teacher_required
@@ -53,7 +183,7 @@ def upload_analysis_document(request):
 
                 try:
                     # try and process the document
-                    process_analysis_document.delay(document.analysis_document_id, request.user.pk)
+                    process_analysis_document(document.analysis_document_id)
 
                 except Exception as e:
                     messages.error(
@@ -75,49 +205,8 @@ def upload_analysis_document(request):
     return render(request, "upload_document.html", {"form": form})
 
 
-def process_test_topics(document, topics_str):
-    """Process the user-provided topic strings and create mappings. Returns the topic entries"""
-    # Split by commas or new lines
-    topic_entries = [entry.strip() for entry in topics_str.replace(
-        '\n', ',').split(',') if entry.strip()]
-
-    for entry in topic_entries:
-        if ':' in entry:
-            test_num, topic_name = entry.split(':', 1)
-            test_num = test_num.strip()
-            topic_name = topic_name.strip()
-
-            # Skip if either part is empty
-            if not test_num or not topic_name:
-                continue
-
-            # Remove "Test" prefix if present
-            if test_num.lower().startswith('fa'):
-                test_num = test_num[2:].strip()
-
-            # Get or create the topic (handles duplicates)
-            topic = TestTopic.get_or_create_topic(topic_name)
-
-            # Create the mapping
-            TestTopicMapping.objects.update_or_create(
-                analysis_document=document,
-                test_number=test_num,
-                defaults={'topic': topic}
-            )
 
 
-def process_default_topics(document, test_columns):
-    """Create default topics based on column names."""
-    for col in test_columns:
-        if col.lower().startswith('fa'):
-            test_num = col[2:].strip()  # Extract the number from "TestX"
-            topic = TestTopic.get_or_create_topic(f"Topic for Test {test_num}")
-
-            TestTopicMapping.objects.create(
-                analysis_document=document,
-                test_number=test_num,
-                topic=topic
-            )
 
 
 def home(request):

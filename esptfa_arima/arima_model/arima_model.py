@@ -26,7 +26,6 @@ def preprocess_data(analysis_document):
 
     test_data.columns = test_data.columns.str.lower()
     num_of_students = test_data["student_id"].nunique()
-    logger.info(f"Number of students: {num_of_students}")
 
     # convert student_id into str col
     test_data["student_id"] = test_data["student_id"].astype(str)
@@ -141,9 +140,6 @@ def train_model(processed_data, analysis_document):
     first_fa_number = processed_data["test_number"].iloc[0]
 
     for student_id, student_data in processed_data.groupby("student_id"):
-        logger.info(f"Processing Student {student_id}...")
-        logger.info(f"Student Data: {student_data}")
-
         student = Student.objects.filter(student_id=student_id).first()
         if not student:
             student = Student.objects.create(
@@ -219,9 +215,6 @@ def train_model(processed_data, analysis_document):
 
 def arima_driver(analysis_document):
     """ Driver function for the ARIMA model prediction. Starts the process of predicting scores for students."""
-    logger.info("Starting new analysis...")
-    logger.info(
-        f"Processing Analysis Document... {analysis_document.analysis_document_id} - {analysis_document.analysis_doc_title}")
     try:
         processed_data = preprocess_data(analysis_document)
 

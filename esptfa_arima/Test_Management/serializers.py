@@ -1,5 +1,20 @@
 from rest_framework import serializers
 from .models import *
+from Authentication.models import Teacher
+from django.core.exceptions import ObjectDoesNotExist
+
+
+class TestDraftSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TestDraft
+        fields = '__all__'
+
+
+class IdempotencyKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IdempotencyKey
+        fields = '__all__'
+
 
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,15 +41,31 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class AnalysisDocumentSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = AnalysisDocument
         fields = '__all__'
+
+    def create(self, validated_data):
+        # validate whether the user is a teacher
+        try:
+            teacher = Teacher.objects.get(user_id=self.context['request'].user)
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError("You are not assigned as a teacher.")
+        
+        # create the analysis document
+        analysis_document = AnalysisDocument.objects.create(**validated_data)
+        analysis_document.teacher_id = teacher
+        analysis_document.save()
+        
+        return analysis_document
 
 
 class FormativeAssessmentScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormativeAssessmentScore
         fields = '__all__'
+    
 
 
 class PredictedScoreSerializer(serializers.ModelSerializer):
