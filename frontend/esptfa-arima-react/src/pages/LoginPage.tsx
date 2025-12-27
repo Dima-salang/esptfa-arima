@@ -48,9 +48,9 @@ export default function LoginPage() {
 
                 const token = response.data.access || response.data.token;
                 if (token) {
-                    localStorage.setItem("token", token);
+                    localStorage.setItem("access", token);
                     if (response.data.refresh) {
-                        localStorage.setItem("refreshToken", response.data.refresh);
+                        localStorage.setItem("refresh", response.data.refresh);
                     }
                     navigate("/dashboard");
                 } else {

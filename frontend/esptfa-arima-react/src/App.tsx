@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import TeacherDashboard from "./pages/TeacherDashboard";
 import "./App.css";
 
 // Basic Private Route wrapper
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("access");
   return token ? <>{children}</> : <Navigate to="/login" />;
 };
 
@@ -21,9 +22,7 @@ function App() {
           path="/dashboard"
           element={
             <PrivateRoute>
-              <div className="flex items-center justify-center min-h-screen">
-                <h1 className="text-3xl font-bold">Dashboard Placeholder</h1>
-              </div>
+              <TeacherDashboard />
             </PrivateRoute>
           }
         />
