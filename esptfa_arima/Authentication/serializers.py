@@ -24,5 +24,11 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = '__all__'
 
+    def validate(self, attrs):
+        # validate the lrn to be only 11 chars long
+        if attrs['lrn'] is not None and len(attrs['lrn']) != 11:
+            raise serializers.ValidationError("LRN must be 11 characters long.")
+        return attrs
+
 
 

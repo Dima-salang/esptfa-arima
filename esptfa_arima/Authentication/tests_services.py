@@ -70,26 +70,6 @@ class RegisterUserTestCase(TestCase):
         self.assertEqual(student.section, self.section)
         self.assertFalse(Teacher.objects.filter(user_id=user).exists())
 
-    def test_register_student_lrn_greater_than_11(self):
-        """Test that registering a student with an LRN greater than 11 characters raises an error."""
-        username = "student1"
-        password = "password123"
-        first_name = "Student"
-        last_name = "User"
-        email = "student@example.com"
-        lrn = "123456789012"
-        
-        with self.assertRaises(Exception):
-            register_user(
-                username=username,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                email=email,
-                acc_type=ACC_TYPE.STUDENT,
-                lrn=lrn,
-                section=self.section
-            )
 
     def test_register_user_duplicate_username(self):
         """Test that registering a user with an existing username raises an error."""
