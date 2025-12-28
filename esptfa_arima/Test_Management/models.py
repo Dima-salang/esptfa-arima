@@ -96,7 +96,7 @@ class TestTopicMapping(models.Model):
     topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.analysis_document.analysis_doc_title} - Test {self.test_number}: {self.topic}"
+        return f"{self.analysis_document.analysis_doc_title} - Test {self.topic.test_number}: {self.topic}"
 
 
 class FormativeAssessmentScore(models.Model):
@@ -105,7 +105,7 @@ class FormativeAssessmentScore(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
-    formative_assessment_number = models.CharField(max_length=5)
+    test_number = models.CharField(max_length=5)
     topic_mapping = models.ForeignKey(TestTopicMapping, on_delete=models.SET_NULL, null=True, blank=True)
     passing_threshold = models.FloatField(null=True, blank=True)
 
@@ -119,7 +119,7 @@ class PredictedScore(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
-    formative_assessment_number = models.CharField(max_length=5)
+    test_number = models.CharField(max_length=5)
     predicted_status = models.CharField(max_length=20, null=True, blank=True)
     passing_threshold = models.FloatField()
     max_score = models.FloatField(null=True)

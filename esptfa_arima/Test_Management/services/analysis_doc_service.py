@@ -2,7 +2,7 @@ from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, 
 from django.contrib.auth.models import User
 from Authentication.models import Student
 import logging
-from typing import List
+from typing import List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -100,12 +100,30 @@ def create_analysis_document(draft: TestDraft):
 """Creates the formative assessment scores and commits them to the db"""
 def process_formative_assessment_scores(document, scores, test_topic_mappings):
     try:
-        pass
+        students = get_students_by_section(document.section.section_id)
+        scores_arr = []
+        for score in scores:
+            scores_arr.append(FormativeAssessmentScore(
+                analysis_document=document,
+                student_id=students.get(score['student_id']),
+                test_number=score['test_number'],
+                topic=score['topic'],
+                score=score['score'],
+            ))
+        FormativeAssessmentScore.objects.bulk_create(scores_arr)
     except Exception as e:
         logger.error(f"Error processing formative assessment scores: {e}")
         return None
 
 
+
+def get_students_by_section(section_id: int) -> Dict[str, Student]:
+    try:
+        students = Student.objects.filter(section_id=section_id)
+        return {student.student_id: student for student in students}
+    except Exception as e:
+        logger.error(f"Error getting students by section: {e}")
+        return None
 
 
 
@@ -118,14 +136,16 @@ def create_topic_mappings(document, topics: List[dict]):
     """Process the user-provided topic strings and create mappings. Returns the topic entries"""
     try:
         test_topics = create_topics(document, topics)
+        if test_topics is None:
+            return None
+            
         test_mappings = []
         for topic in test_topics:
             test_mappings.append(TestTopicMapping(
                 analysis_document=document,
                 topic=topic,
             ))
-        TestTopicMapping.objects.bulk_create(test_mappings)
-        return test_mappings
+        return TestTopicMapping.objects.bulk_create(test_mappings)
     except Exception as e:
         logger.error(f"Error processing test topic mappings: {e}")
         return None
@@ -141,9 +161,8 @@ def create_topics(document, topics: List[dict]):
                 max_score=topic['max_score'],
                 test_number=topic['test_number'],
             ))
-        # save them to db
-        TestTopic.objects.bulk_create(test_topics)
-        return test_topics
+        # save them to db and return the created objects with IDs
+        return TestTopic.objects.bulk_create(test_topics)
     except Exception as e:
         logger.error(f"Error processing test mappings: {e}")
         return None
