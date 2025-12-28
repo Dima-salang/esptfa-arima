@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from Test_Management.models import TestDraft, IdempotencyKey, Subject, Quarter, Section, AnalysisDocument, TestTopic, TestTopicMapping
 from Authentication.models import Teacher
-from Test_Management.services.analysis_doc_service import get_or_create_draft, process_test_topics, process_default_topics
+from Test_Management.services.analysis_doc_service import get_or_create_draft
 import uuid
 
 class AnalysisDocServiceTest(TestCase):

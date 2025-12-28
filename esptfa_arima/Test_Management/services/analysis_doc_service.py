@@ -2,6 +2,7 @@ from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, 
 from django.contrib.auth.models import User
 from Authentication.models import Student
 import logging
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
 
         return draft
     except Exception as e:
+        logger.error(f"Error creating draft: {e}")
         return None
 
 
@@ -64,9 +66,18 @@ def create_analysis_document(draft: TestDraft):
             section=draft.section_id,
             status=False,
         )
+
+        # get the specific objs from the json from the test_content
+        topics = draft.test_content['topics']
+        scores = draft.test_content['scores']
+
         
-        # Process test topics
-        process_test_topics(document, draft.test_content)
+        
+        # Process test topics and get the mappings
+        test_topic_mappings = create_topic_mappings(document, topics)
+
+        # Process formative assessment scores
+        process_formative_assessment_scores(document, scores, test_topic_mappings)
         
         return document
     except Teacher.DoesNotExist:
@@ -84,40 +95,60 @@ def create_analysis_document(draft: TestDraft):
 
 
 
+# FORMATIVE ASSESSMENT SCORES
+
+"""Creates the formative assessment scores and commits them to the db"""
+def process_formative_assessment_scores(document, scores, test_topic_mappings):
+    try:
+        pass
+    except Exception as e:
+        logger.error(f"Error processing formative assessment scores: {e}")
+        return None
+
+
+
+
+
 
 
 
 
 # TEST TOPICS
-def process_test_topics(document, topics_str):
+def create_topic_mappings(document, topics: List[dict]):
     """Process the user-provided topic strings and create mappings. Returns the topic entries"""
-    # Split by commas or new lines
-    topic_entries = [entry.strip() for entry in topics_str.replace(
-        '\n', ',').split(',') if entry.strip()]
-
-    for entry in topic_entries:
-        if ':' in entry:
-            test_num, topic_name = entry.split(':', 1)
-            test_num = test_num.strip()
-            topic_name = topic_name.strip()
-
-            # Skip if either part is empty
-            if not test_num or not topic_name:
-                continue
-
-            # Remove "Test" prefix if present
-            if test_num.lower().startswith('fa'):
-                test_num = test_num[2:].strip()
-
-            # Get or create the topic (handles duplicates)
-            topic = TestTopic.get_or_create_topic(topic_name)
-
-            # Create the mapping
-            TestTopicMapping.objects.update_or_create(
+    try:
+        test_topics = create_topics(document, topics)
+        test_mappings = []
+        for topic in test_topics:
+            test_mappings.append(TestTopicMapping(
                 analysis_document=document,
-                test_number=test_num,
-                defaults={'topic': topic}
-            )
+                topic=topic,
+            ))
+        TestTopicMapping.objects.bulk_create(test_mappings)
+        return test_mappings
+    except Exception as e:
+        logger.error(f"Error processing test topic mappings: {e}")
+        return None
+
+
+def create_topics(document, topics: List[dict]):
+    try:
+        test_topics = []
+        for topic in topics:
+            test_topics.append(TestTopic(
+                topic_name=topic['name'],
+                subject=document.subject,
+                max_score=topic['max_score'],
+                test_number=topic['test_number'],
+            ))
+        # save them to db
+        TestTopic.objects.bulk_create(test_topics)
+        return test_topics
+    except Exception as e:
+        logger.error(f"Error processing test mappings: {e}")
+        return None
+
+
 
 
 

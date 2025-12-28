@@ -134,7 +134,7 @@ export default function AssessmentEditorPage() {
                 // Initialize topics and scores from test_content
                 const content = draftData.test_content || {};
                 const initialTopics = content.topics || [
-                    { id: crypto.randomUUID(), name: "General Topic", maxScore: 50 }
+                    { id: crypto.randomUUID(), name: "General Topic", max_score: 50 }
                 ];
                 const initialScores = content.scores || {};
 
@@ -180,9 +180,14 @@ export default function AssessmentEditorPage() {
                 section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
             }));
 
+            const topicsWithSequence = currentTopics.map((t, index) => ({
+                ...t,
+                test_number: index + 1
+            }));
+
             await updateTestDraft(draftId, {
                 test_content: {
-                    topics: currentTopics,
+                    topics: topicsWithSequence,
                     students: studentsMetadata,
                     scores: currentScores
                 }
@@ -201,7 +206,7 @@ export default function AssessmentEditorPage() {
         if (Number.isNaN(numValue)) return;
 
         const topic = topics.find(t => t.id === topicId);
-        if (topic && numValue > topic.maxScore) return; // Basic validation
+        if (topic && numValue > topic.max_score) return; // Basic validation
 
         setScores(prev => {
             const next = {
@@ -211,7 +216,7 @@ export default function AssessmentEditorPage() {
                     [topicId]: {
                         score: numValue,
                         student_id: lrn,
-                        max_score: topic?.maxScore || 0
+                        max_score: topic?.max_score || 0
                     }
                 }
             };
@@ -231,7 +236,8 @@ export default function AssessmentEditorPage() {
         const newTopic: Topic = {
             id: crypto.randomUUID(),
             name: `Topic ${topics.length + 1}`,
-            maxScore: 50
+            max_score: 50,
+            test_number: topics.length + 1
         };
         const nextTopics = [...topics, newTopic];
         setTopics(nextTopics);
@@ -265,7 +271,7 @@ export default function AssessmentEditorPage() {
     };
 
     const updateTopicMaxScore = (id: string, maxScore: number) => {
-        const nextTopics = topics.map(t => t.id === id ? { ...t, maxScore } : t);
+        const nextTopics = topics.map(t => t.id === id ? { ...t, max_score: maxScore } : t);
         setTopics(nextTopics);
         saveDraft(nextTopics, scores);
     };
@@ -277,9 +283,9 @@ export default function AssessmentEditorPage() {
         try {
             const updatedDraft = await updateTestDraft(draftId, {
                 title: headerFields.title,
-                subject: parseInt(headerFields.subject),
-                quarter: parseInt(headerFields.quarter),
-                section_id: parseInt(headerFields.section_id)
+                subject: Number.parseInt(headerFields.subject),
+                quarter: Number.parseInt(headerFields.quarter),
+                section_id: Number.parseInt(headerFields.section_id)
             });
             setDraft(updatedDraft);
             setIsEditingHeader(false);
@@ -307,10 +313,15 @@ export default function AssessmentEditorPage() {
                 section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
             }));
 
+            const topicsWithSequence = topics.map((t, index) => ({
+                ...t,
+                test_number: index + 1
+            }));
+
             await updateTestDraft(draftId, {
                 status: "finalized",
                 test_content: {
-                    topics,
+                    topics: topicsWithSequence,
                     students: studentsMetadata,
                     scores
                 }
@@ -530,7 +541,7 @@ export default function AssessmentEditorPage() {
                                                             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Max Pts:</span>
                                                             <Input
                                                                 type="number"
-                                                                value={topic.maxScore}
+                                                                value={topic.max_score}
                                                                 onChange={(e) => updateTopicMaxScore(topic.id, Number.parseInt(e.target.value) || 0)}
                                                                 className="h-5 w-12 text-[10px] font-black text-indigo-600 border-transparent bg-transparent hover:bg-white hover:border-slate-200 focus:bg-white focus:border-indigo-500 transition-all p-0 text-right"
                                                             />
@@ -572,7 +583,7 @@ export default function AssessmentEditorPage() {
                                             {topics.map(topic => {
                                                 const scoreEntry = scores[student.lrn]?.[topic.id];
                                                 const score = typeof scoreEntry === 'object' ? scoreEntry.score : (scoreEntry || 0);
-                                                const percentage = topic.maxScore > 0 ? (score / topic.maxScore) * 100 : 0;
+                                                const percentage = topic.max_score > 0 ? (score / topic.max_score) * 100 : 0;
 
                                                 // Premium Dynamic Styling
                                                 let bgClass = "bg-white";
@@ -594,7 +605,7 @@ export default function AssessmentEditorPage() {
                                                             <Input
                                                                 type="number"
                                                                 min={0}
-                                                                max={topic.maxScore}
+                                                                max={topic.max_score}
                                                                 value={score === 0 && scores[student.lrn]?.[topic.id] === undefined ? "" : score}
                                                                 onChange={(e) => handleScoreChange(student.lrn, topic.id, e.target.value)}
                                                                 className={cn(
