@@ -16,7 +16,7 @@ from .visualization_manager import (
 
 logger = logging.getLogger("arima_model")
 
-def compute_document_statistics(processed_data, analysis_document, passing_threshold=75):
+def compute_document_statistics(processed_data, analysis_document):
     # get the necessary statistics for the analysis document
     # e.g., mean, median, standard deviation
 
@@ -51,7 +51,7 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
 
     # save statistics
 
-    analysis_document_statistic, created = AnalysisDocumentStatistic.objects.update_or_create(
+    analysis_document_statistic, _ = AnalysisDocumentStatistic.objects.update_or_create(
         analysis_document=analysis_document,
         defaults={
             "mean": mean,
@@ -66,14 +66,14 @@ def compute_document_statistics(processed_data, analysis_document, passing_thres
     )
 
     # Generate visualizations and insights
-    visualizations_with_insights = get_document_visualizations_with_insights(
+    get_document_visualizations_with_insights(
         processed_data, analysis_document_statistic
     )
 
     return analysis_document_statistic
 
 
-def compute_test_statistics(processed_data, analysis_document, passing_threshold=75):
+def compute_test_statistics(processed_data, analysis_document):
     logger.info(
         f"Processing test statistics... for analysis document {analysis_document.pk}...")
     # group by test number
@@ -105,7 +105,7 @@ def compute_test_statistics(processed_data, analysis_document, passing_threshold
         
         # commit to db
         with transaction.atomic():
-            fa_statistic, created = FormativeAssessmentStatistic.objects.update_or_create(
+            _, _ = FormativeAssessmentStatistic.objects.update_or_create(
                 analysis_document=analysis_document,
                 formative_assessment_number=fa_number,
                 fa_topic=fa_topic,
@@ -132,7 +132,7 @@ def compute_student_statistics(processed_data, analysis_document):
 
     for student_id, student_data in processed_data.groupby("student_id"):
         # get student instance
-        student = Student.objects.get(student_id=student_id)
+        student = Student.objects.get(lrn=student_id)
         scores = student_data["score"]
         normalized_scores = student_data["normalized_scores"]
         normalized_passing_threshold = student_data["normalized_passing_threshold"]
@@ -155,7 +155,7 @@ def compute_student_statistics(processed_data, analysis_document):
 
         # commit to db
         with transaction.atomic():
-            student_statistic, created = StudentScoresStatistic.objects.update_or_create(
+            _, _ = StudentScoresStatistic.objects.update_or_create(
                 analysis_document=analysis_document,
                 student=student,
                 defaults={

@@ -6,6 +6,7 @@ from sklearn.metrics import mean_absolute_error
 from django.db import transaction
 from django.db.models import Avg
 from Test_Management.models import Student, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, FormativeAssessmentStatistic, StudentScoresStatistic, TestTopicMapping
+from typing import List
 import logging
 import traceback
 import re
@@ -13,6 +14,8 @@ from scipy.stats import mode
 from .arima_statistics import compute_document_statistics, compute_test_statistics, compute_student_statistics
 
 
+MASTERY_THRESHOLD = 0.90
+PASSING_THRESHOLD = 0.75
 
 logger = logging.getLogger("arima_model")
 
@@ -22,69 +25,161 @@ window_size = 5  # Number of past scores to use for LSTM predictions
 
 
 def preprocess_data(analysis_document):
-    test_data = pd.read_csv(analysis_document.analysis_doc.path)
-
-    test_data.columns = test_data.columns.str.lower()
-    num_of_students = test_data["student_id"].nunique()
-
-    # convert student_id into str col
-    test_data["student_id"] = test_data["student_id"].astype(str)
-
-    # Identify columns with test scores (e.g., "fa1:30", "fa2:20")
-    test_columns = [col for col in test_data.columns if col.startswith("fa")]
-
-    # Extract test numbers and max scores from column names
-    test_info = []
-    for col in test_columns:
-        match = re.match(r"fa(\d+):(\d+)", col)
-        if match:
-            test_number, max_score = match.groups()
-            test_info.append((col, int(test_number), int(max_score)))
-
-    # Define test dates (assuming weekly tests)
-    num_tests = test_data.shape[1] - 4  # Exclude student_id, name, section
-    test_dates = pd.date_range(
-        start=analysis_document.test_start_date, periods=num_tests, freq="7D")
-
-    # Reshape from wide to long format
-    test_data_long = test_data.melt(id_vars=["student_id", "first_name", "last_name", "section"],
-                                    var_name="test",
-                                    value_vars=[col for col,
-                                                _, _ in test_info],
-                                    value_name="score")
-                                
-
-    # Extract test number & assign correct dates
-    # Extract test number and assign corresponding max score
-    # Convert test number using the pre-extracted data from test_info
-    test_data_long["test_number"] = test_data_long["test"].map(
-        {col: test_number for col, test_number, _ in test_info}
+    """
+    Preprocesses formative assessment scores from the database into a DataFrame suitable for ARIMA modeling.
+    """
+    # get the formative assessment scores from the db
+    fa_scores = FormativeAssessmentScore.objects.filter(
+        analysis_document=analysis_document
+    ).select_related(
+        "student_id__user_id",
+        "student_id__section",
+        "topic_mapping__topic"
     )
-    test_data_long["max_score"] = test_data_long["test"].apply(
-        lambda x: next(max_score for col, _,
-                       max_score in test_info if col == x)
-    )
-    test_data_long["date"] = test_data_long["test_number"].apply(
-        lambda x: test_dates[x - 1])
 
-    # Drop old test column
-    test_data_long.drop(columns=["test"], inplace=True)
+    if not fa_scores.exists():
+        logger.warning(f"No formative assessment scores found for analysis document {analysis_document.pk}")
+        return pd.DataFrame()
+
+    data = []
+    for score in fa_scores:
+        student = score.student_id
+        topic = score.topic_mapping.topic if score.topic_mapping else None
+        
+        data.append({
+            "student_id": student.lrn,
+            "first_name": student.user_id.first_name,
+            "last_name": student.user_id.last_name,
+            "section": student.section.section_name if student.section else "N/A",
+            "test_number": int(score.test_number),
+            "score": score.score,
+            "max_score": topic.max_score if topic and topic.max_score else 100.0,
+            "date": score.date,
+        })
+    
+    df = pd.DataFrame(data)
 
     # Handling missing values
-    test_data_long["score"].fillna(
-        test_data_long["score"].mean())
+    df["score"] = df["score"].ffill().bfill().fillna(0) # Forward/backward fill or 0
 
     # normalize test scores
-    test_data_long["normalized_scores"] = test_data_long["score"] / \
-        test_data_long["max_score"]
+    df["normalized_scores"] = df["score"] / df["max_score"]
     
     # normalize passing threshold
-    test_data_long["normalized_passing_threshold"] = test_data_long["max_score"] * 0.75 / test_data_long["max_score"]
+    df["normalized_passing_threshold"] = 0.75
 
     # make test number into int
-    test_data_long["test_number"] = test_data_long["test_number"].astype(int)
+    df["test_number"] = df["test_number"].astype(int)
 
-    return test_data_long
+    # Sort by student and date for ARIMA processing
+    df = df.sort_values(["student_id", "date"])
+
+
+    # iterate over each student and transform into long format
+    features_list = []
+    for student_id, student_data in df.groupby("student_id"):
+        scores = student_data["normalized_scores"]
+        
+        # calculate the weighted mean of the scores
+        features_list.append({
+            "student_id": student_id,
+            "weighted_mean_score": weighted_mean_score(scores),
+            "std_score": score_std(scores),
+            "last_score": last_score(scores),
+            "trend_slope": trend_slope(scores),
+            "first_last_delta": first_last_delta(scores),
+            "recent_trend_slope": recent_trend_slope(scores),
+            "coefficient_of_variation": coefficient_of_variation(scores),
+            "mastery_consistency": mastery_consistency(scores),
+            "recent_decay": recent_decay(scores),
+            "downside_risk": downside_risk(scores),
+            "num_assessments": num_assessments(scores),
+        })
+        
+    feature_df = pd.DataFrame(features_list)
+    print(feature_df.to_string())
+
+
+    return df
+
+def mean_score(scores):
+    scores = np.asarray(scores)
+    return float(np.mean(scores))
+
+def weighted_mean_score(scores: List[float], lam: float = 0.9) -> float:
+    """
+    lam: decay factor (0 < lam < 1)
+    Higher lam = slower decay
+    """
+    scores = np.asarray(scores)
+    T = len(scores)
+    weights = np.array([lam ** (T - t - 1) for t in range(T)])
+    return float(np.sum(weights * scores) / np.sum(weights))
+
+
+def last_score(scores):
+    scores = np.asarray(scores)
+    return float(scores[-1])
+
+
+def trend_slope(scores: List[float]) -> float:
+    scores = np.asarray(scores)
+    T = len(scores)
+
+    if T < 2:
+        return 0.0
+
+    t = np.arange(1, T + 1)
+    t_mean = t.mean()
+    y_mean = scores.mean()
+
+    numerator = np.sum((t - t_mean) * (scores - y_mean))
+    denominator = np.sum((t - t_mean) ** 2)
+
+    return float(numerator / denominator)
+
+
+def first_last_delta(scores: List[float]) -> float:
+    scores = np.asarray(scores)
+    return float(scores[-1] - scores[0])
+
+def recent_trend_slope(scores: List[float], k: int = 5) -> float:
+    if len(scores) < k:
+        return trend_slope(scores)
+    return trend_slope(scores[-k:])
+
+
+def score_std(scores: List[float]) -> float:
+    scores = np.asarray(scores)
+    return float(scores.std())
+
+def coefficient_of_variation(scores: List[float], eps: float = 1e-8) -> float:
+    scores = np.asarray(scores)
+    mean = scores.mean()
+    std = scores.std()
+    return float(std / (mean + eps))
+
+def num_assessments(scores: List[float]) -> int:
+    return len(scores)
+
+
+def mastery_consistency(scores, threshold=MASTERY_THRESHOLD):
+    scores = np.asarray(scores)
+    return float(np.mean(scores >= threshold))
+
+def recent_decay(scores, k=3):
+    if len(scores) < k:
+        return 0.0
+    overall_mean = scores.mean()
+    recent_mean = scores.iloc[-k:].mean()
+    return recent_mean - overall_mean
+
+
+def downside_risk(scores, threshold=PASSING_THRESHOLD):
+    scores = np.asarray(scores)
+    if len(scores) == 0:
+        return 0.0
+    return (scores < threshold).mean()
 
 
 def make_stationary(student_data):
@@ -140,14 +235,11 @@ def train_model(processed_data, analysis_document):
     first_fa_number = processed_data["test_number"].iloc[0]
 
     for student_id, student_data in processed_data.groupby("student_id"):
-        student = Student.objects.filter(student_id=student_id).first()
+        # student_id here is the student's LRN from the DataFrame
+        student = Student.objects.filter(lrn=student_id).first()
         if not student:
-            student = Student.objects.create(
-                student_id=student_id,
-                first_name=student_data["first_name"].iloc[0],
-                last_name=student_data["last_name"].iloc[0],
-                section=student_data["section"].iloc[0]
-            )
+            logger.error(f"Student with LRN {student_id} not found.")
+            continue
 
         differenced_student_data = make_stationary(student_data.copy())
 

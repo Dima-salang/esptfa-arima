@@ -68,7 +68,7 @@ export default function CreateAnalysisPage() {
     });
 
     const [topics, setTopics] = useState<Topic[]>([
-        { id: crypto.randomUUID(), name: "", maxScore: 10 }
+        { id: crypto.randomUUID(), name: "", max_score: 10 }
     ]);
 
     const [students, setStudents] = useState<Student[]>([]);
@@ -111,7 +111,7 @@ export default function CreateAnalysisPage() {
 
     // Handlers
     const handleAddTopic = () => {
-        setTopics([...topics, { id: crypto.randomUUID(), name: "", maxScore: 10 }]);
+        setTopics([...topics, { id: crypto.randomUUID(), name: "", max_score: 10 }]);
     };
 
     const handleRemoveTopic = (id: string) => {
@@ -171,7 +171,7 @@ export default function CreateAnalysisPage() {
                     initialScores[student.lrn][topic.id] = {
                         score: 0,
                         student_id: student.lrn,
-                        max_score: topic.maxScore
+                        max_score: topic.max_score
                     };
                 });
             });
@@ -376,8 +376,8 @@ export default function CreateAnalysisPage() {
                                                 <Input
                                                     type="number"
                                                     min={1}
-                                                    value={topic.maxScore}
-                                                    onChange={(e) => updateTopic(topic.id, "maxScore", parseInt(e.target.value))}
+                                                    value={topic.max_score}
+                                                    onChange={(e) => updateTopic(topic.id, "max_score", parseInt(e.target.value))}
                                                     className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-200"
                                                 />
                                             </div>
