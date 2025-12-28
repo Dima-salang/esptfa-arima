@@ -3,7 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import CreateAnalysisPage from "./pages/CreateAnalysisPage";
-import AssessmentEditorPlaceholder from "./pages/AssessmentEditorPlaceholder";
+import AssessmentEditorPage from "./pages/AssessmentEditorPage";
 import "./App.css";
 
 // Basic Private Route wrapper
@@ -40,7 +40,7 @@ function App() {
           path="/dashboard/editor/:draftId"
           element={
             <PrivateRoute>
-              <AssessmentEditorPlaceholder />
+              <AssessmentEditorPage />
             </PrivateRoute>
           }
         />

@@ -17,8 +17,8 @@ class AnalysisDocServiceTest(TestCase):
             analysis_doc_title="Main Document",
             quarter=self.quarter,
             subject=self.subject,
-            teacher_id=self.teacher,
-            section_id=self.section
+            teacher=self.user,
+            section=self.section
         )
         
     def test_get_or_create_draft_creates_new(self):

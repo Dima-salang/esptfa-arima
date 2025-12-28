@@ -25,10 +25,14 @@ import {
     getQuarters,
     getSections,
     createTestDraft,
+    updateTestDraft,
+    getStudents,
     type Subject,
     type Quarter,
     type Section,
-    type TestDraft
+    type TestDraft,
+    type Student,
+    type Topic,
 } from "@/lib/api-teacher";
 import {
     FileText,
@@ -42,11 +46,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Topic {
-    id: string;
-    name: string;
-    maxScore: number;
-}
 
 export default function CreateAnalysisPage() {
     const navigate = useNavigate();
@@ -72,6 +71,7 @@ export default function CreateAnalysisPage() {
         { id: crypto.randomUUID(), name: "", maxScore: 10 }
     ]);
 
+    const [students, setStudents] = useState<Student[]>([]);
     const [createdDraft, setCreatedDraft] = useState<TestDraft | null>(null);
 
     // Initial Data Fetch
@@ -94,6 +94,21 @@ export default function CreateAnalysisPage() {
         fetchMetadata();
     }, []);
 
+    // Fetch students when section changes
+    useEffect(() => {
+        const fetchStudentsData = async () => {
+            if (details.section) {
+                try {
+                    const data = await getStudents(details.section);
+                    setStudents(Array.isArray(data) ? data : data.results || []);
+                } catch (error) {
+                    console.error("Failed to fetch students", error);
+                }
+            }
+        };
+        fetchStudentsData();
+    }, [details.section]);
+
     // Handlers
     const handleAddTopic = () => {
         setTopics([...topics, { id: crypto.randomUUID(), name: "", maxScore: 10 }]);
@@ -114,11 +129,11 @@ export default function CreateAnalysisPage() {
 
         setIsLoading(true);
         try {
-            const draftData = {
+            const draftData: Partial<TestDraft> = {
                 title: details.title,
-                subject: details.subject,
-                quarter: details.quarter,
-                section_id: details.section,
+                subject: Number(details.subject),
+                quarter: Number(details.quarter),
+                section_id: Number(details.section),
                 test_content: { topics: [] }, // Initial empty topics
                 status: "draft"
             };
@@ -138,18 +153,43 @@ export default function CreateAnalysisPage() {
 
         setIsLoading(true);
         try {
-            const draftData = {
-                ...details,
-                subject: details.subject,
-                quarter: details.quarter,
-                section_id: details.section,
+            const filteredTopics = topics.filter(t => t.name.trim() !== "");
+
+            // Prepare student list for the JSON - ensures backend has student info
+            const studentsMetadata = students.map(s => ({
+                student_id: s.lrn,
+                first_name: s.user_id?.first_name || "",
+                last_name: s.user_id?.last_name || "",
+                section: sections.find(sec => sec.section_id.toString() === details.section)?.section_name || ""
+            }));
+
+            // Initialize scores structure for each student and topic
+            const initialScores: Record<string, Record<string, any>> = {};
+            students.forEach(student => {
+                initialScores[student.lrn] = {};
+                filteredTopics.forEach(topic => {
+                    initialScores[student.lrn][topic.id] = {
+                        score: 0,
+                        student_id: student.lrn,
+                        max_score: topic.maxScore
+                    };
+                });
+            });
+
+            const draftData: Partial<TestDraft> = {
+                title: details.title,
+                subject: Number(details.subject),
+                quarter: Number(details.quarter),
+                section_id: Number(details.section),
                 test_content: {
-                    topics: topics.filter(t => t.name.trim() !== "")
+                    topics: filteredTopics,
+                    students: studentsMetadata,
+                    scores: initialScores
                 },
                 status: "draft"
             };
 
-            await createTestDraft(draftData, idempotencyKey);
+            await updateTestDraft(createdDraft.test_draft_id, draftData);
             // Redirect to editor placeholder
             navigate(`/dashboard/editor/${createdDraft.test_draft_id}`);
         } catch (error) {

@@ -17,12 +17,14 @@ class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
         fields = '__all__'
+        depth = 1
 
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = '__all__'
+        depth = 1
 
     def validate(self, attrs):
         # validate the lrn to be only 11 chars long

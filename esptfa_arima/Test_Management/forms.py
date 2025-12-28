@@ -14,7 +14,7 @@ class AnalysisDocumentForm(forms.ModelForm):
     class Meta:
         model = AnalysisDocument
         fields = ['analysis_doc_title',
-                  'analysis_doc', 'test_start_date', 'section_id', 'quarter', 'subject', 'test_topics']
+                  'analysis_doc', 'test_start_date', 'section', 'quarter', 'subject', 'test_topics']
         
     def clean(self):
         cleaned_data = super().clean()

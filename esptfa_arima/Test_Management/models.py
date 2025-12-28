@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from Authentication.models import Student
 import uuid
 # Create your models here.
 
@@ -35,16 +36,6 @@ class Section(models.Model):
     def __str__(self):
         return self.section_name
 
-class Student(models.Model):
-    student_id = models.CharField(unique=True, primary_key=True, max_length=20)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    section = models.CharField(max_length=100, null=True)
-
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}({self.student_id})"
-
 
 # draft version of the analysis document
 class TestDraft(models.Model):
@@ -70,41 +61,11 @@ class AnalysisDocument(models.Model):
     # ignore the analysis_doc field for now since it is not used
     analysis_doc = models.FileField(upload_to='analysis_documents/', null=True)
 
-    teacher_id = models.ForeignKey('Authentication.Teacher', on_delete=models.CASCADE)
-    section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    section = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
     def __str__(self):
         return self.analysis_doc_title
-
-
-class FormativeAssessmentScore(models.Model):
-    formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
-    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
-    score = models.FloatField()
-    date = models.DateField(auto_now_add=True)
-    formative_assessment_number = models.CharField(max_length=5)
-    passing_threshold = models.FloatField()
-
-    def __str__(self):
-        return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
-
-
-class PredictedScore(models.Model):
-    predicted_score_id = models.AutoField(unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
-    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
-    score = models.FloatField()
-    date = models.DateField(auto_now_add=True)
-    formative_assessment_number = models.CharField(max_length=5)
-    predicted_status = models.CharField(max_length=20, null=True)
-    passing_threshold = models.FloatField()
-    max_score = models.FloatField(null=True)
-
-
-    def __str__(self):
-        return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
-
 
 class TestTopic(models.Model):
     topic_id = models.AutoField(unique=True, primary_key=True)
@@ -132,6 +93,7 @@ class TestTopicMapping(models.Model):
         AnalysisDocument, on_delete=models.CASCADE, related_name='test_topics')
     test_number = models.CharField(max_length=5)
     topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE)
+    max_score = models.FloatField(null=True, blank=True)
 
     class Meta:
         # Ensure each test number has only one topic per document
@@ -139,6 +101,38 @@ class TestTopicMapping(models.Model):
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - Test {self.test_number}: {self.topic}"
+
+
+class FormativeAssessmentScore(models.Model):
+    formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
+    score = models.FloatField()
+    date = models.DateField(auto_now_add=True)
+    formative_assessment_number = models.CharField(max_length=5)
+    topic_mapping = models.ForeignKey(TestTopicMapping, on_delete=models.SET_NULL, null=True, blank=True)
+    passing_threshold = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
+
+
+class PredictedScore(models.Model):
+    predicted_score_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
+    score = models.FloatField()
+    date = models.DateField(auto_now_add=True)
+    formative_assessment_number = models.CharField(max_length=5)
+    predicted_status = models.CharField(max_length=20, null=True, blank=True)
+    passing_threshold = models.FloatField()
+    max_score = models.FloatField(null=True)
+
+
+    def __str__(self):
+        return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
+
+
 
 
 class AnalysisDocumentStatistic(models.Model):

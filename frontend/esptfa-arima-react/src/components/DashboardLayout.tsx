@@ -55,8 +55,14 @@ const SidebarItem = ({ icon: Icon, label, href, active }: SidebarItemProps) => (
     </Link>
 );
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+export default function DashboardLayout({
+    children,
+    defaultCollapsed = false
+}: {
+    children: React.ReactNode,
+    defaultCollapsed?: boolean
+}) {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(!defaultCollapsed);
     const location = useLocation();
 
     const menuItems = [
@@ -156,6 +162,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Header */}
                 <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 dark:bg-slate-900/80 dark:border-slate-800">
                     <div className="flex items-center gap-4 flex-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex rounded-xl"
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        >
+                            <Menu className="h-5 w-5" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"

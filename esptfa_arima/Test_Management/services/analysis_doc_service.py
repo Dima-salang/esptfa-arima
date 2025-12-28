@@ -1,5 +1,9 @@
-from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, TestTopic
+from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, TestTopic, AnalysisDocument
 from django.contrib.auth.models import User
+from Authentication.models import Student
+import logging
+
+logger = logging.getLogger(__name__)
 
 # DRAFT
 def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
@@ -43,6 +47,34 @@ def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
 
 
 
+# ANALYSIS DOCUMENT
+def create_analysis_document(draft: TestDraft):
+    try:
+        # determine if there is an associated teacher with the user
+        teacher = Teacher.objects.filter(user_id=draft.user_teacher).first()
+        if not teacher:
+            raise ValueError("User is not a teacher")
+
+        # Create the analysis document
+        document = AnalysisDocument.objects.create(
+            analysis_doc_title=draft.title,
+            quarter=draft.quarter,
+            subject=draft.subject,
+            teacher=draft.user_teacher,
+            section=draft.section_id,
+            status=False,
+        )
+        
+        # Process test topics
+        process_test_topics(document, draft.test_content)
+        
+        return document
+    except Teacher.DoesNotExist:
+        logger.error("User is not a teacher")
+        return None
+    except Exception as e:
+        logger.error(f"Error creating analysis document: {e}")
+        return None
 
 
 
