@@ -216,7 +216,8 @@ export default function AssessmentEditorPage() {
                     [topicId]: {
                         score: numValue,
                         student_id: lrn,
-                        max_score: topic?.max_score || 0
+                        max_score: topic?.max_score || 0,
+                        test_number: topic?.test_number || 0
                     }
                 }
             };
