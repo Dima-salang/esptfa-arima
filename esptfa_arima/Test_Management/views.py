@@ -48,12 +48,12 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
 
 
     # define the filters
-    filterset_fields = ['subject', 'quarter', 'section_id', 'status']
+    filterset_fields = ['subject', 'quarter', 'section', 'status']
     search_fields = ['teacher_id__user__first_name', 
                     'teacher_id__user__last_name', 
                     'subject__subject_name', 
                     'quarter__quarter_name', 
-                    'section_id__section_name',
+                    'section__section_name',
                     'analysis_doc_title']
 
     ordering_fields = ['upload_date', 'status']
