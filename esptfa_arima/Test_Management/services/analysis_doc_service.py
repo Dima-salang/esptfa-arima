@@ -74,10 +74,10 @@ def create_analysis_document(draft: TestDraft):
         
         
         # Process test topics and get the mappings
-        test_topics = create_test_topics(document, topics)
+        test_topic_mappings = create_topic_mappings(document, topics)
 
         # Process formative assessment scores
-        process_formative_assessment_scores(document, scores, test_topics)
+        process_formative_assessment_scores(document, scores, test_topic_mappings)
         
         return document
     except Teacher.DoesNotExist:
@@ -123,8 +123,6 @@ def create_topic_mappings(document, topics: List[dict]):
             test_mappings.append(TestTopicMapping(
                 analysis_document=document,
                 topic=topic,
-                test_number=topic['test_number'],
-                max_score=topic['max_score'],
             ))
         TestTopicMapping.objects.bulk_create(test_mappings)
         return test_mappings
@@ -140,6 +138,8 @@ def create_topics(document, topics: List[dict]):
             test_topics.append(TestTopic(
                 topic_name=topic['name'],
                 subject=document.subject,
+                max_score=topic['max_score'],
+                test_number=topic['test_number'],
             ))
         # save them to db
         TestTopic.objects.bulk_create(test_topics)
