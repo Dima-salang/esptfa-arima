@@ -134,7 +134,7 @@ export default function AssessmentEditorPage() {
                 // Initialize topics and scores from test_content
                 const content = draftData.test_content || {};
                 const initialTopics = content.topics || [
-                    { id: crypto.randomUUID(), name: "General Topic", maxScore: 50 }
+                    { id: crypto.randomUUID(), name: "General Topic", max_score: 50 }
                 ];
                 const initialScores = content.scores || {};
 
@@ -265,7 +265,7 @@ export default function AssessmentEditorPage() {
     };
 
     const updateTopicMaxScore = (id: string, maxScore: number) => {
-        const nextTopics = topics.map(t => t.id === id ? { ...t, maxScore } : t);
+        const nextTopics = topics.map(t => t.id === id ? { ...t, max_score: maxScore } : t);
         setTopics(nextTopics);
         saveDraft(nextTopics, scores);
     };

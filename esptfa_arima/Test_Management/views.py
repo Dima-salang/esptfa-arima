@@ -25,9 +25,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from .serializers import *
 from .models import *
-from .services.analysis_doc_service import process_default_topics
-from .services.analysis_doc_service import process_test_topics
-from .services.analysis_doc_service import get_or_create_draft
+from .services.analysis_doc_service import create_analysis_document, create_topic_mappings, create_topics, get_or_create_draft
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 

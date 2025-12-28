@@ -124,12 +124,12 @@ def create_topic_mappings(document, topics: List[dict]):
                 analysis_document=document,
                 topic=topic,
                 test_number=topic['test_number'],
-                max_score=topic['max_score']
+                max_score=topic['max_score'],
             ))
         TestTopicMapping.objects.bulk_create(test_mappings)
         return test_mappings
     except Exception as e:
-        logger.error(f"Error processing test topics: {e}")
+        logger.error(f"Error processing test topic mappings: {e}")
         return None
 
 
