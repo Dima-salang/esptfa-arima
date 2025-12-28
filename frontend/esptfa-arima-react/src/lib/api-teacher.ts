@@ -59,7 +59,7 @@ export interface TestDraft {
 export interface Topic {
     id: string;
     name: string;
-    maxScore: number;
+    max_score: number;
 }
 
 export const getAnalysisDocuments = async () => {
