@@ -563,7 +563,7 @@ export default function AssessmentEditorPage() {
                                             {topics.map(topic => {
                                                 const scoreEntry = scores[student.lrn]?.[topic.id];
                                                 const score = typeof scoreEntry === 'object' ? scoreEntry.score : (scoreEntry || 0);
-                                                const percentage = (score / topic.maxScore) * 100;
+                                                const percentage = topic.maxScore > 0 ? (score / topic.maxScore) * 100 : 0;
 
                                                 // Premium Dynamic Styling
                                                 let bgClass = "bg-white";
