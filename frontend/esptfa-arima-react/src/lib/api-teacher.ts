@@ -60,6 +60,7 @@ export interface Topic {
     id: string;
     name: string;
     max_score: number;
+    test_number?: number;
 }
 
 export const getAnalysisDocuments = async () => {

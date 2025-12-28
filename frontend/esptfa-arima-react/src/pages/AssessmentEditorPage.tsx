@@ -180,9 +180,14 @@ export default function AssessmentEditorPage() {
                 section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
             }));
 
+            const topicsWithSequence = currentTopics.map((t, index) => ({
+                ...t,
+                test_number: index + 1
+            }));
+
             await updateTestDraft(draftId, {
                 test_content: {
-                    topics: currentTopics,
+                    topics: topicsWithSequence,
                     students: studentsMetadata,
                     scores: currentScores
                 }
@@ -231,7 +236,8 @@ export default function AssessmentEditorPage() {
         const newTopic: Topic = {
             id: crypto.randomUUID(),
             name: `Topic ${topics.length + 1}`,
-            max_score: 50
+            max_score: 50,
+            test_number: topics.length + 1
         };
         const nextTopics = [...topics, newTopic];
         setTopics(nextTopics);
@@ -307,10 +313,15 @@ export default function AssessmentEditorPage() {
                 section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
             }));
 
+            const topicsWithSequence = topics.map((t, index) => ({
+                ...t,
+                test_number: index + 1
+            }));
+
             await updateTestDraft(draftId, {
                 status: "finalized",
                 test_content: {
-                    topics,
+                    topics: topicsWithSequence,
                     students: studentsMetadata,
                     scores
                 }
