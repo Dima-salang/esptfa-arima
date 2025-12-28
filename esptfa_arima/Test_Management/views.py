@@ -63,11 +63,34 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
     # define the permissions
     permission_classes = [permissions.IsAuthenticated]
 
-
-    def perform_create(self, serializer):
-        # The serializer handles teacher lookup internally
-        serializer.save()
-
+    # define the create method
+    def create(self, request, *args, **kwargs):
+        try:
+            # Get draft_id from request
+            draft_id = request.data.get('test_draft_id')
+            if not draft_id:
+                return Response({"error": "test_draft_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Fetch the draft object
+            draft = TestDraft.objects.get(pk=draft_id)
+            
+            # call the create_analysis_document function
+            document = create_analysis_document(draft)
+            
+            # Start ARIMA process
+            from .services.analysis_doc_service import start_arima_model
+            start_arima_model(document)
+            
+            return Response({
+                "message": "Analysis document created successfully",
+                "analysis_document_id": document.analysis_document_id
+            }, status=status.HTTP_201_CREATED)
+            
+        except TestDraft.DoesNotExist:
+            return Response({"error": "Draft not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error creating analysis document: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class TestDraftViewSet(viewsets.ModelViewSet):

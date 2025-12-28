@@ -24,6 +24,7 @@ import {
 import {
     getTestDraft,
     updateTestDraft,
+    createAnalysisDocument,
     getStudents,
     getSubjects,
     getQuarters,
@@ -327,6 +328,10 @@ export default function AssessmentEditorPage() {
                     scores
                 }
             });
+
+            // Create Analysis Document from Draft
+            await createAnalysisDocument(draftId);
+
             navigate("/dashboard");
         } catch (err) {
             console.error("Failed to finalize", err);

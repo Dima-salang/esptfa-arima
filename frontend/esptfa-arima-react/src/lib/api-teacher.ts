@@ -112,6 +112,11 @@ export const updateTestDraft = async (id: string, data: Partial<TestDraft>) => {
     return response.data;
 };
 
+export const createAnalysisDocument = async (testDraftId: string) => {
+    const response = await api.post("/analysis-document/", { test_draft_id: testDraftId });
+    return response.data;
+};
+
 export const getStudents = async (sectionId?: string) => {
     const params = sectionId ? { section: sectionId } : {};
     const response = await api.get("/student/", { params });
