@@ -70,8 +70,8 @@ class AnalysisDocument(models.Model):
     # ignore the analysis_doc field for now since it is not used
     analysis_doc = models.FileField(upload_to='analysis_documents/', null=True)
 
-    teacher_id = models.ForeignKey('Authentication.Teacher', on_delete=models.CASCADE)
-    section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    section = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
     def __str__(self):
         return self.analysis_doc_title
