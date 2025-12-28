@@ -101,6 +101,15 @@ export default function AssessmentEditorPage() {
     // Refs for debouncing
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // cleanup
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, []);
+
     // Initial Load
     useEffect(() => {
         const loadData = async () => {
