@@ -56,7 +56,7 @@ class RegisterUserTestCase(TestCase):
             email=email,
             acc_type=ACC_TYPE.STUDENT,
             lrn=lrn,
-            section=self.section
+            section=self.section.section_id
         )
         
         # Verify user creation
