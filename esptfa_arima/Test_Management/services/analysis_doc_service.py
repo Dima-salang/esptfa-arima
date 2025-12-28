@@ -1,6 +1,6 @@
-from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, TestTopic, AnalysisDocument
+from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, TestTopic, AnalysisDocument, FormativeAssessmentScore
 from django.contrib.auth.models import User
-from Authentication.models import Student
+from Authentication.models import Student, Teacher
 import logging
 from typing import List, Dict
 
@@ -45,7 +45,7 @@ def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
         return draft
     except Exception as e:
         logger.error(f"Error creating draft: {e}")
-        return None
+        raise
 
 
 
@@ -82,10 +82,10 @@ def create_analysis_document(draft: TestDraft):
         return document
     except Teacher.DoesNotExist:
         logger.error("User is not a teacher")
-        return None
+        raise ValueError("User is not a teacher")
     except Exception as e:
         logger.error(f"Error creating analysis document: {e}")
-        return None
+        raise
 
 
 
@@ -99,35 +99,64 @@ def create_analysis_document(draft: TestDraft):
 
 """Creates the formative assessment scores and commits them to the db"""
 def process_formative_assessment_scores(document, scores, test_topic_mappings):
+    PASSING_PERCENTAGE = 0.75
     try:
+        # Create a lookup for mappings by test_number for efficiency
+        mapping_lookup = {str(m.topic.test_number): m for m in test_topic_mappings}
+        
         students = get_students_by_section(document.section.section_id)
         scores_arr = []
-        for score in scores:
-            scores_arr.append(FormativeAssessmentScore(
-                analysis_document=document,
-                student_id=students.get(score['student_id']),
-                test_number=score['test_number'],
-                topic=score['topic'],
-                score=score['score'],
-            ))
-        FormativeAssessmentScore.objects.bulk_create(scores_arr)
+
+        # Iterate through the nested dictionary: scores[student_lrn][topic_id]
+        for lrn, student_topics in scores.items():
+            student = students.get(lrn)
+            if not student:
+                logger.error(f"Student with LRN {lrn} not found in section.")
+                raise Student.DoesNotExist(f"Student with LRN {lrn} not found in section.")
+
+            for topic_id, score_data in student_topics.items():
+                test_num = str(score_data.get('test_number'))
+
+                # get the topic mapping
+                topic_mapping = mapping_lookup.get(test_num)
+
+                # get the score
+                score = score_data.get('score', 0)
+                max_score = score_data.get('max_score', 0)
+
+                # calculate passing threshold
+                passing_threshold = max_score * PASSING_PERCENTAGE if max_score > 0 else 0
+                
+                scores_arr.append(FormativeAssessmentScore(
+                    analysis_document=document,
+                    student_id=student,
+                    test_number=test_num,
+                    score=score,
+                    topic_mapping=topic_mapping,
+                    passing_threshold=passing_threshold
+                ))
+
+        if scores_arr:
+            FormativeAssessmentScore.objects.bulk_create(scores_arr)
+            
+    except Student.DoesNotExist as e:
+        logger.error(f"Error processing formative assessment scores: {e}")
+        raise
     except Exception as e:
         logger.error(f"Error processing formative assessment scores: {e}")
-        return None
+        raise
 
 
 
+
+# UTILS
 def get_students_by_section(section_id: int) -> Dict[str, Student]:
     try:
         students = Student.objects.filter(section_id=section_id)
-        return {student.student_id: student for student in students}
+        return {student.lrn: student for student in students}
     except Exception as e:
         logger.error(f"Error getting students by section: {e}")
-        return None
-
-
-
-
+        raise
 
 
 
@@ -137,7 +166,7 @@ def create_topic_mappings(document, topics: List[dict]):
     try:
         test_topics = create_topics(document, topics)
         if test_topics is None:
-            return None
+            raise ValueError("Failed to create topics")
             
         test_mappings = []
         for topic in test_topics:
@@ -148,7 +177,7 @@ def create_topic_mappings(document, topics: List[dict]):
         return TestTopicMapping.objects.bulk_create(test_mappings)
     except Exception as e:
         logger.error(f"Error processing test topic mappings: {e}")
-        return None
+        raise
 
 
 def create_topics(document, topics: List[dict]):
@@ -165,9 +194,7 @@ def create_topics(document, topics: List[dict]):
         return TestTopic.objects.bulk_create(test_topics)
     except Exception as e:
         logger.error(f"Error processing test mappings: {e}")
-        return None
-
-
+        raise
 
 
 

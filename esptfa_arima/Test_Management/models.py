@@ -110,7 +110,7 @@ class FormativeAssessmentScore(models.Model):
     passing_threshold = models.FloatField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
+        return f"{self.student_id} - {self.test_number}: {self.score}"
 
 
 class PredictedScore(models.Model):
@@ -126,7 +126,7 @@ class PredictedScore(models.Model):
 
 
     def __str__(self):
-        return f"{self.student_id} - {self.formative_assessment_number}: {self.score}"
+        return f"{self.student_id} - {self.test_number}: {self.score}"
 
 
 
