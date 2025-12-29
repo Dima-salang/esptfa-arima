@@ -25,15 +25,11 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from .serializers import *
 from .models import *
-from .services.analysis_doc_service import create_analysis_document, create_topic_mappings, create_topics, get_or_create_draft
+from .services.analysis_doc_service import create_analysis_document, create_topic_mappings, create_topics, get_or_create_draft, start_arima_model
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
 """
-TODO:
-- modify upload analysis document since we will not be using csv anymore and just manual entry - DONE
-- modify the arima model to accept manual entry
-- 
 """
 
 
@@ -78,7 +74,6 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             document = create_analysis_document(draft)
             
             # Start ARIMA process
-            from .services.analysis_doc_service import start_arima_model
             start_arima_model(document)
             
             return Response({

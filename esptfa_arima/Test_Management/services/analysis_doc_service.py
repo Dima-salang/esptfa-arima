@@ -2,6 +2,7 @@ from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, 
 from django.contrib.auth.models import User
 from Authentication.models import Student, Teacher
 from arima_model.tasks import process_analysis_document
+from arima_model.arima_model import arima_driver
 import logging
 from typing import List, Dict
 
@@ -98,8 +99,7 @@ def create_analysis_document(draft: TestDraft):
 # STARTING ARIMA MODEL
 def start_arima_model(document):
     try:
-        # pass for now since we need to modify arima_model
-        pass
+        arima_driver(document)
         # process_analysis_document(document.analysis_document_id)
     except Exception as e:
         logger.error(f"Error starting ARIMA model: {e}")
