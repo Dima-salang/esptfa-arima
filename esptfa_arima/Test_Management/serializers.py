@@ -47,25 +47,11 @@ class StudentSerializer(serializers.ModelSerializer):
 class AnalysisDocumentSerializer(serializers.ModelSerializer):
     quarter = QuarterSerializer(read_only=True)
     subject = SubjectSerializer(read_only=True)
-    section_id = SectionSerializer(read_only=True)
+    section_id = SectionSerializer(source='section', read_only=True)
 
     class Meta:
         model = AnalysisDocument
         fields = '__all__'
-
-    def create(self, validated_data):
-        # validate whether the user is a teacher
-        try:
-            teacher = Teacher.objects.get(user_id=self.context['request'].user)
-        except ObjectDoesNotExist:
-            raise serializers.ValidationError("You are not assigned as a teacher.")
-        
-        # create the analysis document
-        analysis_document = AnalysisDocument.objects.create(**validated_data)
-        analysis_document.teacher_id = teacher
-        analysis_document.save()
-        
-        return analysis_document
 
 
 class FormativeAssessmentScoreSerializer(serializers.ModelSerializer):

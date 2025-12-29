@@ -50,6 +50,9 @@ class TestDraft(models.Model):
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.CharField(max_length=10, default='draft')
 
+    def __str__(self):
+        return f"{self.title} - {self.test_draft_id}"
+
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
     analysis_doc_title = models.CharField(max_length=100)
@@ -57,6 +60,9 @@ class AnalysisDocument(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     upload_date = models.DateTimeField(auto_now_add=True)
     test_start_date = models.DateField(null=True)
+
+    # max score of the post_test
+    post_test_max_score = models.FloatField(null=True)
 
     # ignore the analysis_doc field for now since it is not used
     analysis_doc = models.FileField(upload_to='analysis_documents/', null=True)

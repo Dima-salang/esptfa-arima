@@ -1,10 +1,14 @@
 from Test_Management.models import TestDraft, IdempotencyKey, TestTopicMapping, TestTopic, AnalysisDocument, FormativeAssessmentScore
 from django.contrib.auth.models import User
 from Authentication.models import Student, Teacher
+from arima_model.tasks import process_analysis_document
+from arima_model.arima_model import arima_driver
 import logging
 from typing import List, Dict
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_POST_TEST_MAX_SCORE = 60.0
 
 # DRAFT
 def get_or_create_draft(idempotency_key: str, user: User, **kwargs):
@@ -65,6 +69,7 @@ def create_analysis_document(draft: TestDraft):
             teacher=draft.user_teacher,
             section=draft.section_id,
             status=False,
+            post_test_max_score=draft.test_content.get('post_test_max_score', DEFAULT_POST_TEST_MAX_SCORE)
         )
 
         # get the specific objs from the json from the test_content
@@ -91,6 +96,15 @@ def create_analysis_document(draft: TestDraft):
 
 
 
+# STARTING ARIMA MODEL
+def start_arima_model(document):
+    try:
+        arima_driver(document)
+        # process_analysis_document(document.analysis_document_id)
+    except Exception as e:
+        logger.error(f"Error starting ARIMA model: {e}")
+        raise
+        
 
 
 
@@ -195,18 +209,3 @@ def create_topics(document, topics: List[dict]):
     except Exception as e:
         logger.error(f"Error processing test mappings: {e}")
         raise
-
-
-
-def process_default_topics(document, test_columns):
-    """Create default topics based on column names."""
-    for col in test_columns:
-        if col.lower().startswith('fa'):
-            test_num = col[2:].strip()  # Extract the number from "TestX"
-            topic = TestTopic.get_or_create_topic(f"Topic for Test {test_num}")
-
-            TestTopicMapping.objects.create(
-                analysis_document=document,
-                test_number=test_num,
-                topic=topic
-            )

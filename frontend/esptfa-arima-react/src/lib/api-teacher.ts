@@ -49,6 +49,7 @@ export interface TestDraft {
         topics?: Topic[];
         students?: any[];
         scores?: Record<string, Record<string, any>>;
+        post_test_max_score?: number;
     };
     created_at: string;
     updated_at: string;
@@ -109,6 +110,11 @@ export const getTestDraft = async (id: string) => {
 
 export const updateTestDraft = async (id: string, data: Partial<TestDraft>) => {
     const response = await api.patch(`/test-draft/${id}/`, data);
+    return response.data;
+};
+
+export const createAnalysisDocument = async (testDraftId: string) => {
+    const response = await api.post("/analysis-document/", { test_draft_id: testDraftId });
     return response.data;
 };
 
