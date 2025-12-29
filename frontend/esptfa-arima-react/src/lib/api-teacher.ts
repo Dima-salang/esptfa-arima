@@ -49,6 +49,7 @@ export interface TestDraft {
         topics?: Topic[];
         students?: any[];
         scores?: Record<string, Record<string, any>>;
+        post_test_max_score?: number;
     };
     created_at: string;
     updated_at: string;

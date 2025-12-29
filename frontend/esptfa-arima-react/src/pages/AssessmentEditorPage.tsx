@@ -22,6 +22,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import {
     getTestDraft,
     updateTestDraft,
     createAnalysisDocument,
@@ -75,11 +83,13 @@ export default function AssessmentEditorPage() {
     const [students, setStudents] = useState<Student[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
     const [scores, setScores] = useState<ScoreData>({});
+    const [postTestMaxScore, setPostTestMaxScore] = useState<number>(60);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
 
     // Header Editing State
     const [isEditingHeader, setIsEditingHeader] = useState(false);
@@ -141,6 +151,7 @@ export default function AssessmentEditorPage() {
 
                 setTopics(initialTopics);
                 setScores(initialScores);
+                setPostTestMaxScore(content.post_test_max_score || 50);
 
                 // Load students for the current section
                 const studentList = await getStudents(sId);
@@ -170,7 +181,7 @@ export default function AssessmentEditorPage() {
     }, [draftId]);
 
     // Save Logic
-    const saveDraft = useCallback(async (currentTopics: Topic[], currentScores: ScoreData) => {
+    const saveDraft = useCallback(async (currentTopics: Topic[], currentScores: ScoreData, currentMaxScore: number) => {
         if (!draftId) return;
         setIsSaving(true);
         try {
@@ -190,7 +201,8 @@ export default function AssessmentEditorPage() {
                 test_content: {
                     topics: topicsWithSequence,
                     students: studentsMetadata,
-                    scores: currentScores
+                    scores: currentScores,
+                    post_test_max_score: currentMaxScore
                 }
             });
             setLastSaved(new Date());
@@ -199,7 +211,7 @@ export default function AssessmentEditorPage() {
         } finally {
             setIsSaving(false);
         }
-    }, [draftId]);
+    }, [draftId, students, draft?.section_id]);
 
     // Handle score change
     const handleScoreChange = (lrn: string, topicId: string, value: string) => {
@@ -226,7 +238,7 @@ export default function AssessmentEditorPage() {
             // Debounce save
             if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
             saveTimeoutRef.current = setTimeout(() => {
-                saveDraft(topics, next);
+                saveDraft(topics, next, postTestMaxScore);
             }, 2000);
 
             return next;
@@ -243,7 +255,7 @@ export default function AssessmentEditorPage() {
         };
         const nextTopics = [...topics, newTopic];
         setTopics(nextTopics);
-        saveDraft(nextTopics, scores);
+        saveDraft(nextTopics, scores, postTestMaxScore);
     };
 
     const removeTopic = (id: string) => {
@@ -259,7 +271,7 @@ export default function AssessmentEditorPage() {
             nextScores[lrn] = studentScores;
         });
         setScores(nextScores);
-        saveDraft(nextTopics, nextScores);
+        saveDraft(nextTopics, nextScores, postTestMaxScore);
     };
 
     const updateTopicName = (id: string, name: string) => {
@@ -268,14 +280,24 @@ export default function AssessmentEditorPage() {
 
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(() => {
-            saveDraft(nextTopics, scores);
+            saveDraft(nextTopics, scores, postTestMaxScore);
         }, 2000);
     };
 
     const updateTopicMaxScore = (id: string, maxScore: number) => {
         const nextTopics = topics.map(t => t.id === id ? { ...t, max_score: maxScore } : t);
         setTopics(nextTopics);
-        saveDraft(nextTopics, scores);
+        saveDraft(nextTopics, scores, postTestMaxScore);
+    };
+
+    const handlePostTestMaxScoreChange = (val: string) => {
+        const num = Number.parseInt(val) || 0;
+        setPostTestMaxScore(num);
+
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(() => {
+            saveDraft(topics, scores, num);
+        }, 1000);
     };
 
     // Header Actions
@@ -304,7 +326,11 @@ export default function AssessmentEditorPage() {
         }
     };
 
-    const handleFinalize = async () => {
+    const handleFinalize = () => {
+        setIsFinalizeDialogOpen(true);
+    };
+
+    const confirmFinalize = async () => {
         if (!draftId) return;
         setIsFinalizing(true);
         try {
@@ -325,13 +351,15 @@ export default function AssessmentEditorPage() {
                 test_content: {
                     topics: topicsWithSequence,
                     students: studentsMetadata,
-                    scores
+                    scores,
+                    post_test_max_score: postTestMaxScore
                 }
             });
 
             // Create Analysis Document from Draft
             await createAnalysisDocument(draftId);
 
+            setIsFinalizeDialogOpen(false);
             navigate("/dashboard");
         } catch (err) {
             console.error("Failed to finalize", err);
@@ -443,6 +471,16 @@ export default function AssessmentEditorPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Post-Test Max Pts</Label>
+                                        <Input
+                                            type="number"
+                                            value={postTestMaxScore}
+                                            onChange={(e) => handlePostTestMaxScoreChange(e.target.value)}
+                                            className="h-11 rounded-xl font-bold border-slate-200 focus:ring-indigo-500"
+                                            placeholder="Max Score"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 justify-end pt-2">
                                     <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsEditingHeader(false)}>
@@ -479,6 +517,9 @@ export default function AssessmentEditorPage() {
                                     <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-emerald-50 text-emerald-700 text-[11px] font-black tracking-wider uppercase border border-emerald-100 shadow-sm">
                                         <Trophy className="h-4 w-4" /> {quarterName}
                                     </span>
+                                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-indigo-600 text-white text-[11px] font-black tracking-wider uppercase border border-indigo-500 shadow-sm">
+                                        <Check className="h-4 w-4" /> Post-Test Max: {postTestMaxScore}
+                                    </span>
                                 </div>
                             </div>
                         )}
@@ -498,7 +539,7 @@ export default function AssessmentEditorPage() {
                             )}
                         </div>
                         <Button
-                            onClick={() => saveDraft(topics, scores)}
+                            onClick={() => saveDraft(topics, scores, postTestMaxScore)}
                             disabled={isSaving}
                             className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 rounded-2xl px-6 h-12 font-bold shadow-sm transition-all active:scale-95"
                         >
@@ -689,6 +730,68 @@ export default function AssessmentEditorPage() {
                         </div>
                     </Card>
                 </div>
+
+                {/* Finalize Confirmation Dialog */}
+                <Dialog open={isFinalizeDialogOpen} onOpenChange={setIsFinalizeDialogOpen}>
+                    <DialogContent className="sm:max-w-md rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+                        <DialogHeader className="p-8 pb-0">
+                            <div className="p-3 bg-indigo-50 w-fit rounded-2xl mb-4">
+                                <Trophy className="h-8 w-8 text-indigo-600" />
+                            </div>
+                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Finalize Assessment</DialogTitle>
+                            <DialogDescription className="text-slate-500 font-medium pt-2">
+                                Please confirm the Post-Test maximum score before submitting. This will lock the record and generate the analysis document.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="p-8 space-y-6">
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Post-Test Max Score (Points)</Label>
+                                <div className="relative group">
+                                    <Input
+                                        type="number"
+                                        value={postTestMaxScore}
+                                        onChange={(e) => handlePostTestMaxScoreChange(e.target.value)}
+                                        className="h-14 rounded-2xl text-xl font-black border-slate-200 focus:ring-4 focus:ring-indigo-500/10 transition-all pl-12"
+                                        placeholder="Enter total points"
+                                    />
+                                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Analysis Components</span>
+                                    <span className="text-lg font-bold text-slate-900">{topics.length} Selected Topics</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Student Count</span>
+                                    <span className="text-lg font-bold text-slate-900">{students.length} Records</span>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter className="p-8 pt-0 flex gap-3 sm:justify-end">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsFinalizeDialogOpen(false)}
+                                className="rounded-2xl font-bold h-12 px-6"
+                                disabled={isFinalizing}
+                            >
+                                Not yet
+                            </Button>
+                            <Button
+                                onClick={confirmFinalize}
+                                disabled={isFinalizing || postTestMaxScore <= 0}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black px-8 h-12 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all text-sm uppercase tracking-widest"
+                            >
+                                {isFinalizing ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    "Confirm & Finalize"
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </DashboardLayout>
     );

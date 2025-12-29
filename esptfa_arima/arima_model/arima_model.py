@@ -83,7 +83,6 @@ def preprocess_data(analysis_document):
         
         # calculate the weighted mean of the scores
         features_list.append({
-            "student_id": student_id,
             "weighted_mean_score": weighted_mean_score(scores),
             "std_score": score_std(scores),
             "last_score": last_score(scores),
@@ -94,7 +93,6 @@ def preprocess_data(analysis_document):
             "mastery_consistency": mastery_consistency(scores),
             "recent_decay": recent_decay(scores),
             "downside_risk": downside_risk(scores),
-            "num_assessments": num_assessments(scores),
         })
         
     feature_df = pd.DataFrame(features_list)
@@ -217,7 +215,56 @@ def make_predictions(student_data, features_df, analysis_document):
     # add the predictions to the student data
     student_data["predictions"] = predictions
 
+    # make the max score the same shape as the predictions
+    # used for reversing the operation and getting the human-readable post test score
+    student_data["post_test_max_score"] = analysis_document.post_test_max_score * np.ones(len(predictions))
+
+    # assign the predicted status
+    # used for guidance in intervention
+    student_data = assign_predicted_status(student_data)
+
     return student_data
+
+
+
+def assign_predicted_status(student_data):
+    """
+        Assign the predicted status to the student data
+    """
+    for _, row in student_data.iterrows():
+        if (row["predictions"] * row["post_test_max_score"]) >= row["post_test_max_score"] * row["normalized_passing_threshold"]:
+            row["predicted_status"] = "Pass"
+        else:
+            row["predicted_status"] = "Fail"
+    
+    return student_data 
+
+
+def save_predictions(student_data, analysis_document):
+    """
+        Save the predictions to db with PredictedScore
+    """
+
+    # get the students
+    students = Student.objects.filter(id__in=student_data["student_id"].unique())
+
+    # pred scores to save arr
+    pred_scores = []
+
+    # save the predictions to db
+    for _, row in student_data.iterrows():
+        pred_scores.append(PredictedScore(
+            student_id=students.get(id=row["student_id"]),
+            score=row["predictions"],
+            max_score=row["post_test_max_score"],
+            passing_threshold=row["normalized_passing_threshold"],
+            predicted_status=row["predicted_status"],
+            analysis_document=analysis_document,
+            test_number=row["test_number"],
+        ))
+
+    
+    PredictedScore.objects.bulk_create(pred_scores)
 
     
 
