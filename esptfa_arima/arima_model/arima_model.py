@@ -11,6 +11,7 @@ from typing import List
 import logging
 import traceback
 import re
+import os
 from scipy.stats import mode
 from .arima_statistics import compute_document_statistics, compute_test_statistics, compute_student_statistics
 
@@ -40,7 +41,7 @@ def preprocess_data(analysis_document):
 
     if not fa_scores.exists():
         logger.warning(f"No formative assessment scores found for analysis document {analysis_document.pk}")
-        return pd.DataFrame()
+        raise FormativeAssessmentScore.DoesNotExist
 
     data = []
     for score in fa_scores:
@@ -98,8 +99,7 @@ def preprocess_data(analysis_document):
     feature_df = pd.DataFrame(features_list)
     print(feature_df.to_string())
 
-
-    return df
+    return df, feature_df
 
 def mean_score(scores):
     scores = np.asarray(scores)
@@ -231,11 +231,9 @@ def assign_predicted_status(student_data):
     """
         Assign the predicted status to the student data
     """
-    for _, row in student_data.iterrows():
-        if (row["predictions"] * row["post_test_max_score"]) >= row["post_test_max_score"] * row["normalized_passing_threshold"]:
-            row["predicted_status"] = "Pass"
-        else:
-            row["predicted_status"] = "Fail"
+    # Vectorized assignment is more efficient and avoids iterrows copy issues
+    mask = (student_data["predictions"] * student_data["post_test_max_score"]) >= (student_data["post_test_max_score"] * student_data["normalized_passing_threshold"])
+    student_data["predicted_status"] = np.where(mask, "Pass", "Fail")
     
     return student_data 
 
@@ -245,16 +243,23 @@ def save_predictions(student_data, analysis_document):
         Save the predictions to db with PredictedScore
     """
 
-    # get the students
-    students = Student.objects.filter(id__in=student_data["student_id"].unique())
+    # get the students by LRN (primary key)
+    unique_lrns = student_data["student_id"].unique()
+    students_query = Student.objects.filter(lrn__in=unique_lrns)
+    student_map = {s.lrn: s for s in students_query}
 
     # pred scores to save arr
     pred_scores = []
 
     # save the predictions to db
     for _, row in student_data.iterrows():
+        student = student_map.get(row["student_id"])
+        if not student:
+            logger.error(f"Student {row['student_id']} not found in database.")
+            continue
+
         pred_scores.append(PredictedScore(
-            student_id=students.get(id=row["student_id"]),
+            student_id=student,
             score=row["predictions"],
             max_score=row["post_test_max_score"],
             passing_threshold=row["normalized_passing_threshold"],
@@ -388,19 +393,24 @@ def save_predictions(student_data, analysis_document):
 def arima_driver(analysis_document):
     """ Driver function for the ARIMA model prediction. Starts the process of predicting scores for students."""
     try:
-        processed_data = preprocess_data(analysis_document)
+        processed_data, features_df = preprocess_data(analysis_document)
+        processed_data_with_predictions = make_predictions(processed_data, features_df, analysis_document)
+        save_predictions(processed_data_with_predictions, analysis_document)
 
-        train_model(processed_data, analysis_document)
-        compute_document_statistics(processed_data, analysis_document)
-        compute_test_statistics(processed_data, analysis_document)
-        compute_student_statistics(processed_data, analysis_document)
+        # compute_document_statistics(processed_data, analysis_document)
+        # compute_test_statistics(processed_data, analysis_document)
+        # compute_student_statistics(processed_data, analysis_document)
 
         # Update the status of the analysis document to True (processed)
         document_status = True
         return document_status
+    
+    except FormativeAssessmentScore.DoesNotExist:
+        logger.error(
+            f"No formative assessment scores found for analysis document {analysis_document.analysis_document_id}")
+        raise
     except Exception as e:
         logger.error(
             f"Error processing analysis document {analysis_document.analysis_document_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        document_status = False
-        return document_status
+        raise
