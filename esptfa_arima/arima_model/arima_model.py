@@ -1,6 +1,7 @@
 from itertools import product
 import pandas as pd
 import numpy as np
+import pickle
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error
 from django.db import transaction
@@ -190,117 +191,149 @@ def make_stationary(student_data):
     return student_data
 
 
-def grid_search_arima(train_series):
-    p_values = range(0, 2)
-    d_values = [1]  # Differencing is manually applied, so d=1
-    q_values = range(0, 2)
 
-    best_aic = float("inf")
-    best_order = None
-    best_model = None
+def make_predictions(student_data, features_df, analysis_document):
+    """
+    Make predictions for all students using the features_df and analysis_document
 
-    for p, d, q in product(p_values, d_values, q_values):
-        try:
-            model = ARIMA(train_series, order=(p, d, q), freq="7D")
-            fitted_model = model.fit()
-            if fitted_model.aic < best_aic:
-                best_aic = fitted_model.aic
-                best_order = (p, d, q)
-                best_model = fitted_model
-        except:
-            continue
+    Returns the student data with the predictions added col added
+    """
 
-    return best_order, best_model
+    # drop the student_id from the features_df since it is just an identifier
+    features_df = features_df.drop("student_id", axis=1)
 
+    # transform into numpy array
+    features_df = features_df.to_numpy()
 
+    # get the model by pickling
+    model_path = os.path.join(os.path.dirname(__file__), "models", "esptfa_xgboost.pkl")
+    if not os.path.exists(model_path):
+        raise FileNotFoundError("Model not found at path: {}".format(model_path))
+    model = pickle.load(open(model_path, "rb"))
 
+    # make the predictions
+    predictions = model.predict(features_df)
 
-def arima_prediction(arima_model, student_scores, last_normalized_score, last_max_score):
-    """ Generates an ARIMA prediction for a given student's time series. """
+    # add the predictions to the student data
+    student_data["predictions"] = predictions
 
-    arima_pred = arima_model.forecast(steps=1)[0]
+    return student_data
 
-    # reverse differencing
-    predicted_normalized_score = arima_pred + last_normalized_score
-
-    # reverse normalization
-    predicted_score = predicted_normalized_score * last_max_score
-
-    return predicted_score
+    
 
 
-def train_model(processed_data, analysis_document):
-    """ Trains ARIMA for each student and applies the hybrid approach. """
 
-    first_fa_number = processed_data["test_number"].iloc[0]
+# def grid_search_arima(train_series):
+#     p_values = range(0, 2)
+#     d_values = [1]  # Differencing is manually applied, so d=1
+#     q_values = range(0, 2)
 
-    for student_id, student_data in processed_data.groupby("student_id"):
-        # student_id here is the student's LRN from the DataFrame
-        student = Student.objects.filter(lrn=student_id).first()
-        if not student:
-            logger.error(f"Student with LRN {student_id} not found.")
-            continue
+#     best_aic = float("inf")
+#     best_order = None
+#     best_model = None
 
-        differenced_student_data = make_stationary(student_data.copy())
+#     for p, d, q in product(p_values, d_values, q_values):
+#         try:
+#             model = ARIMA(train_series, order=(p, d, q), freq="7D")
+#             fitted_model = model.fit()
+#             if fitted_model.aic < best_aic:
+#                 best_aic = fitted_model.aic
+#                 best_order = (p, d, q)
+#                 best_model = fitted_model
+#         except:
+#             continue
 
-        train = differenced_student_data.copy()
-
-
-        train.set_index("date", inplace=True)
-
-        best_order, best_model = grid_search_arima(
-            train["normalized_score_diff"])
-
-        if best_order:
-            last_max_score = train["max_score"].iloc[-1]
-            # Base ARIMA Prediction
-            arima_predictions = [arima_prediction(
-                best_model, train["normalized_score_diff"], train["normalized_scores"].iloc[-1], last_max_score)]
+#     return best_order, best_model
 
 
-            # calculate the nearest prediction from the last test score
-            mae_arima = mean_absolute_error([train["score"].iloc[-1]], arima_predictions)
-
-            # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
-            best_prediction = arima_predictions
-
-            with transaction.atomic():
-                for i, (date, actual_score, max_score) in enumerate(zip(student_data["date"], student_data["score"], student_data["max_score"])):
-                    passing_threshold = 0.75 * max_score
-                    FormativeAssessmentScore.objects.update_or_create(
-                        analysis_document=analysis_document,
-                        student_id=student,
-                        formative_assessment_number=str(first_fa_number + i),
-                        date=date,
-                        score=actual_score,
-                        passing_threshold=passing_threshold
-                    )
-
-                last_fa_number = differenced_student_data["test_number"].iloc[-1]
-                future_dates = pd.date_range(
-                    start=train.index[-1] + pd.Timedelta(days=7), periods=len(arima_predictions), freq="7D")
 
 
-                for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
+# def arima_prediction(arima_model, student_scores, last_normalized_score, last_max_score):
+#     """ Generates an ARIMA prediction for a given student's time series. """
+
+#     arima_pred = arima_model.forecast(steps=1)[0]
+
+#     # reverse differencing
+#     predicted_normalized_score = arima_pred + last_normalized_score
+
+#     # reverse normalization
+#     predicted_score = predicted_normalized_score * last_max_score
+
+#     return predicted_score
+
+
+# def train_model(processed_data, analysis_document):
+#     """ Trains ARIMA for each student and applies the hybrid approach. """
+
+#     first_fa_number = processed_data["test_number"].iloc[0]
+
+#     for student_id, student_data in processed_data.groupby("student_id"):
+#         # student_id here is the student's LRN from the DataFrame
+#         student = Student.objects.filter(lrn=student_id).first()
+#         if not student:
+#             logger.error(f"Student with LRN {student_id} not found.")
+#             continue
+
+#         differenced_student_data = make_stationary(student_data.copy())
+
+#         train = differenced_student_data.copy()
+
+
+#         train.set_index("date", inplace=True)
+
+#         best_order, best_model = grid_search_arima(
+#             train["normalized_score_diff"])
+
+#         if best_order:
+#             last_max_score = train["max_score"].iloc[-1]
+#             # Base ARIMA Prediction
+#             arima_predictions = [arima_prediction(
+#                 best_model, train["normalized_score_diff"], train["normalized_scores"].iloc[-1], last_max_score)]
+
+
+#             # calculate the nearest prediction from the last test score
+#             mae_arima = mean_absolute_error([train["score"].iloc[-1]], arima_predictions)
+
+#             # determine whether the mae_arima is better than mae_hybrid and then use that as the predicted score
+#             best_prediction = arima_predictions
+
+#             with transaction.atomic():
+#                 for i, (date, actual_score, max_score) in enumerate(zip(student_data["date"], student_data["score"], student_data["max_score"])):
+#                     passing_threshold = 0.75 * max_score
+#                     FormativeAssessmentScore.objects.update_or_create(
+#                         analysis_document=analysis_document,
+#                         student_id=student,
+#                         formative_assessment_number=str(first_fa_number + i),
+#                         date=date,
+#                         score=actual_score,
+#                         passing_threshold=passing_threshold
+#                     )
+
+#                 last_fa_number = differenced_student_data["test_number"].iloc[-1]
+#                 future_dates = pd.date_range(
+#                     start=train.index[-1] + pd.Timedelta(days=7), periods=len(arima_predictions), freq="7D")
+
+
+#                 for i, (date, predicted_score) in enumerate(zip(future_dates, best_prediction)):
                     
-                    # calculate for the predicted score status
-                    passing_threshold = 0.75 * last_max_score
-                    if predicted_score >= passing_threshold:
-                        predicted_status = "pass"
-                    else:
-                        predicted_status = "fail"
+#                     # calculate for the predicted score status
+#                     passing_threshold = 0.75 * last_max_score
+#                     if predicted_score >= passing_threshold:
+#                         predicted_status = "pass"
+#                     else:
+#                         predicted_status = "fail"
 
-                    PredictedScore.objects.update_or_create(
-                        analysis_document=analysis_document,
-                        student_id=student,
-                        formative_assessment_number=str(
-                            last_fa_number + i + 1),
-                        date=date,
-                        score=predicted_score,
-                        predicted_status=predicted_status,
-                        passing_threshold=passing_threshold,
-                        max_score=last_max_score
-                    )
+#                     PredictedScore.objects.update_or_create(
+#                         analysis_document=analysis_document,
+#                         student_id=student,
+#                         formative_assessment_number=str(
+#                             last_fa_number + i + 1),
+#                         date=date,
+#                         score=predicted_score,
+#                         predicted_status=predicted_status,
+#                         passing_threshold=passing_threshold,
+#                         max_score=last_max_score
+#                     )
 
 # function for computing necessary statistics
 
