@@ -1,5 +1,4 @@
 from django.urls import path
-from .views import upload_analysis_document, home, FormativeAssessmentDashboardView, FormativeAssessmentDetailView,IndividualFADetailView, IndividualStudentDetailView, delete_document, delete_document_ajax
 from rest_framework.routers import DefaultRouter
 from .views import *
 
