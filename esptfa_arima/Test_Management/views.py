@@ -34,7 +34,7 @@ from rest_framework import filters
 
 
 class AnalysisDocumentViewSet(viewsets.ModelViewSet):
-    queryset = AnalysisDocument.objects.all()
+    queryset = AnalysisDocument.objects.all().order_by('-upload_date')
     serializer_class = AnalysisDocumentSerializer
 
     # define filtering
