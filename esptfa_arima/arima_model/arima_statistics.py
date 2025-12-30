@@ -60,8 +60,6 @@ def compute_document_statistics(processed_data, analysis_document):
 
 
 def compute_test_statistics(processed_data, analysis_document):
-    logger.info(
-        f"Processing test statistics... for analysis document {analysis_document.pk}...")
     # group by test number
     for fa_number, fa_data in processed_data.groupby("test_number"):
 
@@ -115,8 +113,6 @@ def compute_test_statistics(processed_data, analysis_document):
 
 
 def compute_student_statistics(processed_data, analysis_document):
-    logger.info(
-        f"Processing student statistics for analysis document {analysis_document.pk}...")
     # group by student id
 
     for student_id, student_data in processed_data.groupby("student_id"):

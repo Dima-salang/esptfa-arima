@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import upload_analysis_document, home, FormativeAssessmentDashboardView, FormativeAssessmentDetailView,IndividualFADetailView, IndividualStudentDetailView, delete_document, delete_document_ajax
 from rest_framework.routers import DefaultRouter
-from .views import AnalysisDocumentViewSet, TestDraftViewSet, IdempotencyKeyViewSet, TestTopicViewSet, SubjectViewSet, SectionViewSet, QuarterViewSet
+from .views import *
 
 urlpatterns = [
     path("", home, name="home"),
@@ -25,5 +25,8 @@ router.register(r'test-topic', TestTopicViewSet, basename='test-topic')
 router.register(r'subject', SubjectViewSet, basename='subject')
 router.register(r'section', SectionViewSet, basename='section')
 router.register(r'quarter', QuarterViewSet, basename='quarter')
+router.register(r'analysis-document-statistic', AnalysisDocumentStatisticViewSet, basename='analysis-document-statistic')
+router.register(r'formative-assessment-statistic', FormativeAssessmentStatisticViewSet, basename='formative-assessment-statistic')
+router.register(r'student-scores-statistic', StudentScoresStatisticViewSet, basename='student-scores-statistic')
 urlpatterns += router.urls
 

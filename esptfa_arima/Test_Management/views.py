@@ -11,7 +11,6 @@ from arima_model.arima_model import arima_driver, preprocess_data
 from arima_model.visualization_manager import generate_heatmap, generate_student_line_chart, generate_score_dist_chart, generate_boxplot, generate_bar_chart, generate_student_vs_class_chart, generate_student_comparison_chart
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import AnalysisDocument, FormativeAssessmentScore, PredictedScore, AnalysisDocumentStatistic, StudentScoresStatistic, TestTopicMapping, TestTopic, FormativeAssessmentStatistic, StudentScoresStatistic, AnalysisDocumentInsights
 from django.db.models import Avg, Max, Min, F, ExpressionWrapper, FloatField
 import logging
 from django.db import transaction
@@ -192,80 +191,41 @@ class QuarterViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-@login_required
-@teacher_required
-def upload_analysis_document(request):
-    """Handle document uploads with error handling."""
-    try:
-        teacher = Teacher.objects.get(user_id=request.user)
-    except ObjectDoesNotExist:
-        messages.error(request, "You are not assigned as a teacher.")
-        return redirect("home")  # Redirect if user isn't a teacher
+class AnalysisDocumentStatisticViewSet(viewsets.ModelViewSet):
+    serializer_class = AnalysisDocumentStatisticSerializer
 
-    if request.method == "POST":
-        form = AnalysisDocumentForm(request.POST, request.FILES)
-        if form.is_valid():
-            with transaction.atomic():
-
-                document = form.save(commit=False)
-                document.teacher_id = teacher
-                # process the document and check if there are errors
-                document.save()
-
-                # Process test topics if provided
-                test_topics_str = form.cleaned_data.get('test_topics', '')
-                if test_topics_str:
-                    process_test_topics(document, test_topics_str)
-                else:
-                    # If no topics provided, use default naming based on CSV columns
-                    process_default_topics(document, form.test_columns)
-
-                try:
-                    # try and process the document
-                    process_analysis_document(document.analysis_document_id)
-
-                except Exception as e:
-                    messages.error(
-                        request, "Error processing the document: " + str(e))
-                    return redirect("formative_assessment_dashboard")
-                messages.success(
-                    request, "Document uploaded successfully! Please wait at least 5 minutes for the analysis to finish.")
-
-                # Redirect after success
-                return redirect("formative_assessment_dashboard")
-        
-        else:
-            messages.error(
-                request, "Invalid form submission. Please check your inputs.")
-
-    else:
-        form = AnalysisDocumentForm()
-
-    return render(request, "upload_document.html", {"form": form})
-
-
-
-
-
-
-def home(request):
-    return render(request, "home.html")
-
-# Dashboard: List all formative assessment documents for the teacher
-class FormativeAssessmentDashboardView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
-    model = AnalysisDocument
-    template_name = "dashboard.html"
-    context_object_name = "documents"
-    paginate_by = 10
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Show only the documents owned by the logged-in teacher and show the most recent ones
-       return AnalysisDocument.objects.filter(teacher_id=self.request.user.teacher).order_by('-upload_date')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["documents"] = context["page_obj"]
-        return context
+        # get the analysis document id from the request
+        analysis_document_id = self.request.query_params.get('analysis_document_id', None)
+        return AnalysisDocumentStatistic.objects.filter(analysis_document_id=analysis_document_id)
+
+
+class FormativeAssessmentStatisticViewSet(viewsets.ModelViewSet):
+    serializer_class = FormativeAssessmentStatisticSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # get the analysis document id from the request
+        analysis_document_id = self.request.query_params.get('analysis_document_id', None)
+        return FormativeAssessmentStatistic.objects.filter(analysis_document_id=analysis_document_id)
+
+
+class StudentScoresStatisticViewSet(viewsets.ModelViewSet):
+    serializer_class = StudentScoresStatisticSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # get the analysis document id from the request
+        analysis_document_id = self.request.query_params.get('analysis_document_id', None)
+        return StudentScoresStatistic.objects.filter(analysis_document_id=analysis_document_id)
+
 
 
 # Detail View: Show individual formative assessments and predicted scores
