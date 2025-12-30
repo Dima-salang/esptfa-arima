@@ -197,8 +197,6 @@ def make_predictions(student_data, features_df, analysis_document):
     Returns the student data with the predictions added col added
     """
 
-    # drop the student_id from the features_df since it is just an identifier
-    features_df = features_df.drop("student_id", axis=1)
 
     # transform into numpy array
     features_df = features_df.to_numpy()

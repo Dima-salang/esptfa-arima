@@ -17,5 +17,6 @@ router.register(r'quarter', QuarterViewSet, basename='quarter')
 router.register(r'analysis-document-statistic', AnalysisDocumentStatisticViewSet, basename='analysis-document-statistic')
 router.register(r'formative-assessment-statistic', FormativeAssessmentStatisticViewSet, basename='formative-assessment-statistic')
 router.register(r'student-scores-statistic', StudentScoresStatisticViewSet, basename='student-scores-statistic')
+router.register(r'predicted-score', PredictedScoreViewSet, basename='predicted-score')
 urlpatterns += router.urls
 

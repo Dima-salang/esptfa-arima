@@ -123,3 +123,15 @@ export const getStudents = async (sectionId?: string) => {
     const response = await api.get("/student/", { params });
     return response.data;
 };
+
+export const getAnalysisFullDetails = async (id: string | number) => {
+    const response = await api.get(`/analysis-document/${id}/full_details/`);
+    return response.data;
+};
+
+export const getPredictedScores = async (analysisDocumentId: string | number) => {
+    const response = await api.get("/predicted-score/", {
+        params: { analysis_document_id: analysisDocumentId }
+    });
+    return response.data;
+};

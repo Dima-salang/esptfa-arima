@@ -20,7 +20,8 @@ from utils.mixins.mixins import TeacherRequiredMixin
 from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import *
 from .models import *
@@ -85,6 +86,96 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error creating analysis document: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def full_details(self, request, pk=None):
+        try:
+            document = self.get_object()
+            if not document.status:
+                return Response({"message": "Document is still being processed"}, status=status.HTTP_202_ACCEPTED)
+
+            # 1. Base Stats
+            doc_stats = AnalysisDocumentStatistic.objects.filter(analysis_document=document).first()
+            doc_stats_data = AnalysisDocumentStatisticSerializer(doc_stats).data if doc_stats else None
+
+            # 2. Topic Mapping
+            topics_mapping = TestTopicMapping.objects.filter(analysis_document=document).select_related('topic')
+            topics_data = []
+            for tm in topics_mapping:
+                topics_data.append({
+                    "test_number": tm.topic.test_number,
+                    "topic_name": tm.topic.topic_name,
+                    "max_score": tm.topic.max_score
+                })
+
+            # 3. Formative Assessment Statistics (Class level per test)
+            fa_stats = FormativeAssessmentStatistic.objects.filter(analysis_document=document).order_by('formative_assessment_number')
+            fa_stats_data = FormativeAssessmentStatisticSerializer(fa_stats, many=True).data
+
+            # 4. Student Statistics and Predictions
+            student_stats = StudentScoresStatistic.objects.filter(analysis_document=document).select_related('student', 'student__user_id')
+            predictions = PredictedScore.objects.filter(analysis_document=document).select_related('student_id')
+            
+            # Create a lookup for predictions
+            pred_lookup = {p.student_id.lrn: p for p in predictions}
+            
+            # Combine student stats and predictions
+            student_performance = []
+            for ss in student_stats:
+                pred = pred_lookup.get(ss.student.lrn)
+                student_performance.append({
+                    "lrn": ss.student.lrn,
+                    "name": f"{ss.student.user_id.first_name} {ss.student.user_id.last_name}",
+                    "mean": ss.mean,
+                    "passing_rate": ss.passing_rate,
+                    "failing_rate": ss.failing_rate,
+                    "predicted_score": pred.score if pred else None,
+                    "predicted_status": pred.predicted_status if pred else "N/A",
+                    "intervention": self.get_intervention(pred) if pred else "No data"
+                })
+
+            # 5. Insights
+            insights_obj = AnalysisDocumentInsights.objects.filter(analysis_document=document).first()
+            insights_data = AnalysisDocumentInsightsSerializer(insights_obj).data if insights_obj else None
+
+            return Response({
+                "document": AnalysisDocumentSerializer(document).data,
+                "statistics": doc_stats_data,
+                "topics": topics_data,
+                "formative_assessments": fa_stats_data,
+                "student_performance": student_performance,
+                "insights": insights_data
+            })
+        except Exception as e:
+            logger.error(f"Error in full_details: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get_intervention(self, prediction):
+        if not prediction:
+            return "N/A"
+        
+        score_percent = (prediction.score / prediction.max_score) * 100 if prediction.max_score else 0
+        
+        if score_percent < 50:
+            return "Intensive Intervention Required: Immediate one-on-one session and remedial materials."
+        elif score_percent < 75:
+            return "Targeted Support: Peer tutoring and additional practice exercises on weak topics."
+        elif score_percent < 85:
+            return "Regular Monitoring: Continue standard instruction with occasional check-ins."
+        else:
+            return "Enrichment Activities: Provide advanced materials to further challenge the student."
+
+
+class PredictedScoreViewSet(viewsets.ModelViewSet):
+    queryset = PredictedScore.objects.all()
+    serializer_class = PredictedScoreSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        analysis_document_id = self.request.query_params.get('analysis_document_id', None)
+        if analysis_document_id:
+            return PredictedScore.objects.filter(analysis_document_id=analysis_document_id)
+        return PredictedScore.objects.all()
 
 
 class TestDraftViewSet(viewsets.ModelViewSet):
