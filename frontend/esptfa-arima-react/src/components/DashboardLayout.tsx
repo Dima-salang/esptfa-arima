@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
+import { logoutUser } from "@/lib/api-teacher";
 
 interface SidebarItemProps {
     icon: React.ElementType;
@@ -129,10 +130,7 @@ export default function DashboardLayout({
                                 <Button
                                     variant="ghost"
                                     className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 group"
-                                    onClick={() => {
-                                        localStorage.clear();
-                                        window.location.href = "/login";
-                                    }}
+                                    onClick={() => logoutUser()}
                                 >
                                     <LogOut className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                                     {isSidebarOpen && <span className="font-medium">Sign Out</span>}
@@ -224,10 +222,7 @@ export default function DashboardLayout({
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className="text-red-600 cursor-pointer"
-                                    onClick={() => {
-                                        localStorage.clear();
-                                        window.location.href = "/login";
-                                    }}
+                                    onClick={() => logoutUser()}
                                 >
                                     Log out
                                 </DropdownMenuItem>

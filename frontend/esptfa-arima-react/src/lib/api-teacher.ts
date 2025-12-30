@@ -147,3 +147,17 @@ export const getTeacherProfile = async () => {
     const response = await api.get("/teacher/me/");
     return response.data;
 };
+
+export const logoutUser = async () => {
+    try {
+        const refresh = localStorage.getItem("refresh");
+        if (refresh) {
+            await api.post("/logout/", { refresh });
+        }
+    } catch (error) {
+        console.error("Logout error:", error);
+    } finally {
+        localStorage.clear();
+        globalThis.location.href = "/login";
+    }
+};

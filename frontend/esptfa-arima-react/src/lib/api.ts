@@ -41,10 +41,13 @@ api.interceptors.response.use(
                     refresh: refreshToken,
                 });
 
-                const { access } = response.data;
+                const { access, refresh: newRefresh } = response.data;
 
                 // Update storage and headers
                 localStorage.setItem("access", access);
+                if (newRefresh) {
+                    localStorage.setItem("refresh", newRefresh);
+                }
                 api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
                 originalRequest.headers["Authorization"] = `Bearer ${access}`;
 
@@ -54,7 +57,7 @@ api.interceptors.response.use(
                 // If refresh fails, the refresh token is likely expired too
                 localStorage.removeItem("access");
                 localStorage.removeItem("refresh");
-                window.location.href = "/login";
+                globalThis.location.href = "/login";
                 throw refreshError;
             }
         }
