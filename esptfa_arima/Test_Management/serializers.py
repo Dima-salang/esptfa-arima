@@ -92,6 +92,8 @@ class AnalysisDocumentInsightsSerializer(serializers.ModelSerializer):
 
 
 class FormativeAssessmentStatisticSerializer(serializers.ModelSerializer):
+    fa_topic_name = serializers.ReadOnlyField(source='fa_topic.topic_name')
+
     class Meta:
         model = FormativeAssessmentStatistic
         fields = '__all__'

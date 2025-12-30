@@ -203,7 +203,7 @@ export default function AnalysisDetailPage() {
 
     // Prepare data for the trend chart
     const trendData = [...data.formative_assessments].map(fa => ({
-        name: `FA${fa.formative_assessment_number}`,
+        name: fa.fa_topic_name || `FA${fa.formative_assessment_number}`,
         mean: Number(fa.mean.toFixed(2)),
         threshold: Number(fa.passing_threshold.toFixed(2)),
         topic: fa.fa_topic_name || `Test ${fa.formative_assessment_number}`
@@ -211,7 +211,7 @@ export default function AnalysisDetailPage() {
 
     // Prepare data for the topic performance chart
     const topicData = [...data.formative_assessments].map(fa => ({
-        topic: fa.fa_topic?.topic_name || `FA${fa.formative_assessment_number}`,
+        topic: fa.fa_topic_name || `FA${fa.formative_assessment_number}`,
         passing_rate: (fa.passing_rate || 0).toFixed(1),
         failing_rate: (fa.failing_rate || 0).toFixed(1),
     }));
@@ -446,7 +446,7 @@ export default function AnalysisDetailPage() {
                                                         <th className="px-6 py-4 font-bold text-slate-700 uppercase tracking-tighter w-48 bg-slate-50 border-r border-slate-100 sticky left-0 z-30">Student Name</th>
                                                         {data.formative_assessments.map(fa => (
                                                             <th key={fa.formative_assessment_number} className="px-2 py-4 font-bold text-slate-700 text-center uppercase tracking-tighter border-r border-slate-100/50">
-                                                                FA{fa.formative_assessment_number}
+                                                                {fa.fa_topic_name || `FA${fa.formative_assessment_number}`}
                                                             </th>
                                                         ))}
                                                         <th className="px-6 py-4 font-black text-indigo-700 text-center uppercase tracking-tighter bg-indigo-50/50">Predicted</th>
@@ -476,7 +476,7 @@ export default function AnalysisDetailPage() {
                                                                                         </TooltipTrigger>
                                                                                         <TooltipContent side="top" className="bg-slate-900 text-white rounded-xl border-none p-3 shadow-2xl">
                                                                                             <div className="space-y-1">
-                                                                                                <p className="text-xs font-black">Assessment {fa.formative_assessment_number}</p>
+                                                                                                <p className="text-xs font-black">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
                                                                                                 <div className="h-px bg-slate-700 my-1" />
                                                                                                 <p className="text-xs">Score: <span className="font-bold">{score} / {fa.max_score}</span></p>
                                                                                                 <p className="text-[10px] text-slate-400">Status: <span className={score >= fa.passing_threshold ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{score >= fa.passing_threshold ? "PASSING" : "AT RISK"}</span></p>
@@ -771,7 +771,7 @@ export default function AnalysisDetailPage() {
                                                             !
                                                         </div>
                                                         <div>
-                                                            <p className="font-black text-slate-800 text-lg leading-tight">{fa.fa_topic?.topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
+                                                            <p className="font-black text-slate-800 text-lg leading-tight">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
                                                             <p className="text-xs text-slate-500 font-bold uppercase tracking-tight mt-1">Class Avg: {fa.mean.toFixed(1)} / {fa.max_score}</p>
                                                         </div>
                                                     </div>
@@ -805,7 +805,7 @@ export default function AnalysisDetailPage() {
                                                             ★
                                                         </div>
                                                         <div>
-                                                            <p className="font-black text-slate-800 text-lg leading-tight">{fa.fa_topic?.topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
+                                                            <p className="font-black text-slate-800 text-lg leading-tight">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
                                                             <p className="text-xs text-slate-500 font-bold uppercase tracking-tight mt-1">Class Avg: {fa.mean.toFixed(1)} / {fa.max_score}</p>
                                                         </div>
                                                     </div>
