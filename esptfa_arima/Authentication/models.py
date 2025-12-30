@@ -13,7 +13,7 @@ class Teacher(models.Model):
 
 class Student(models.Model):
     lrn = models.CharField(unique=True, primary_key=True, max_length=11)
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+    user_id = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     section = models.ForeignKey('Test_Management.Section', on_delete=models.CASCADE)
     
     def __str__(self):

@@ -135,3 +135,15 @@ export const getPredictedScores = async (analysisDocumentId: string | number) =>
     });
     return response.data;
 };
+
+export const getStudentAnalysisDetail = async (docId: string | number, lrn: string) => {
+    const response = await api.get(`/analysis-document/${docId}/student_analysis_detail/`, {
+        params: { lrn }
+    });
+    return response.data;
+};
+
+export const getTeacherProfile = async () => {
+    const response = await api.get("/teacher/me/");
+    return response.data;
+};

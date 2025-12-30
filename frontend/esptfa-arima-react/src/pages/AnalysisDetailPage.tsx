@@ -73,6 +73,7 @@ interface AnalysisDocument {
     subject?: { subject_name: string };
     quarter?: { quarter_name: string };
     section_id?: { section_name: string };
+    post_test_max_score?: number;
 }
 
 interface AnalysisStatistic {
@@ -82,6 +83,7 @@ interface AnalysisStatistic {
 }
 
 interface FormativeAssessment {
+    id: string;
     formative_assessment_number: string;
     mean: number;
     passing_threshold: number;
@@ -152,6 +154,13 @@ export default function AnalysisDetailPage() {
         s.lrn.includes(searchTerm)
     ) || [];
 
+    const validPredictions = data?.student_performance.filter(s => s.predicted_score !== null) || [];
+    const avgPredictedPoints = validPredictions.length > 0
+        ? validPredictions.reduce((acc, s) => acc + (s.predicted_score || 0), 0) / validPredictions.length
+        : 0;
+    const maxPossiblePoints = data?.document.post_test_max_score || 60;
+    const predictedMeanPercentage = (avgPredictedPoints / maxPossiblePoints) * 100;
+
     if (loading) {
         return (
             <DashboardLayout>
@@ -219,14 +228,15 @@ export default function AnalysisDetailPage() {
     const getInterventionColor = (score: number | null, max: number = 60) => {
         if (!score) return "bg-slate-100 text-slate-700 border-slate-200";
         const percent = (score / max) * 100;
-        if (percent < 50) return "bg-red-50 text-red-700 border-red-100";
-        if (percent < 75) return "bg-amber-50 text-amber-700 border-amber-100";
+        if (percent < 75) return "bg-red-50 text-red-700 border-red-100";
+        if (percent < 90) return "bg-amber-50 text-amber-700 border-amber-100";
         return "bg-emerald-50 text-emerald-700 border-emerald-100";
     };
 
-    const getScoreColor = (score: number, threshold: number) => {
-        if (score >= threshold) return "bg-emerald-500";
-        if (score >= threshold * 0.8) return "bg-amber-400";
+    const getScoreColor = (score: number, maxScore: number) => {
+        const percent = maxScore > 0 ? (score / maxScore) * 100 : 0;
+        if (percent >= 90) return "bg-emerald-500";
+        if (percent >= 75) return "bg-amber-400";
         return "bg-red-500";
     };
 
@@ -280,7 +290,7 @@ export default function AnalysisDetailPage() {
                             {[
                                 { title: "Avg Class Score", value: data.statistics?.mean.toFixed(2), icon: TrendingUp, color: "blue", desc: "Global average across assessments", help: "The combined mean score of all students across all formative assessments recorded in this document." },
                                 { title: "Target Threshold", value: data.statistics?.mean_passing_threshold.toFixed(2), icon: AlertCircle, color: "amber", desc: "Class passing target (75%)", help: "Calculated as 75% of the average maximum points across all tests. Students below this may need intervention." },
-                                { title: "Class Size", value: data.statistics?.total_students, icon: Users, color: "indigo", desc: `Students in ${data.document.section_id?.section_name}`, help: "Total number of unique students identified in this analysis document." },
+                                { title: "Predicted Mean", value: avgPredictedPoints.toFixed(1), icon: BrainCircuit, color: "indigo", desc: `Estimated Avg for Post-Test (${predictedMeanPercentage.toFixed(0)}%)`, help: "The average score our ARIMA model predicts the entire class will achieve in the upcoming Post-Test based on historical data." },
                                 { title: "Class Success %", value: `${data.student_performance.length > 0 ? (data.student_performance.filter(s => (s.passing_rate || 0) >= 75).length / data.student_performance.length * 100).toFixed(0) : 0}%`, icon: CheckCircle2, color: "emerald", desc: "Students above passing rate", help: "Percentage of students who maintain a passing rate of 75% or higher across their assessments." },
                             ].map((stat, idx) => (
                                 <Card key={idx} className="border-none shadow-sm ring-1 ring-slate-200 rounded-2xl">
@@ -323,9 +333,11 @@ export default function AnalysisDetailPage() {
                                             <TooltipProvider key={student.lrn}>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <Badge variant="outline" className="bg-white/80 hover:bg-white border-red-200 text-red-700 font-bold px-3 py-1.5 rounded-xl cursor-default transition-all shadow-sm">
-                                                            {student.name}
-                                                        </Badge>
+                                                        <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`}>
+                                                            <Badge variant="outline" className="bg-white/80 hover:bg-white border-red-200 text-red-700 font-bold px-3 py-1.5 rounded-xl cursor-pointer transition-all shadow-sm hover:scale-105">
+                                                                {student.name}
+                                                            </Badge>
+                                                        </Link>
                                                     </TooltipTrigger>
                                                     <TooltipContent className="bg-slate-900 text-white rounded-xl border-none p-3 shadow-xl">
                                                         <p className="text-xs font-black mb-1">{student.name}</p>
@@ -428,13 +440,13 @@ export default function AnalysisDetailPage() {
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-emerald-500" /> Mastery (≥75%)
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-500" /> Mastery (≥90%)
                                                 </div>
                                                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-amber-400" /> Near (≥60%)
+                                                    <div className="w-2 h-2 rounded-full bg-amber-400" /> Passing (≥75%)
                                                 </div>
                                                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-red-500" /> At Risk (&lt;60%)
+                                                    <div className="w-2 h-2 rounded-full bg-red-500" /> At Risk ({"<"}75%)
                                                 </div>
                                             </div>
                                         </div>
@@ -458,7 +470,9 @@ export default function AnalysisDetailPage() {
                                                         .map((student) => (
                                                             <tr key={student.lrn} className="group hover:bg-slate-50/80 transition-colors">
                                                                 <td className="px-6 py-3 font-bold text-slate-800 bg-white group-hover:bg-slate-50/80 border-r border-slate-100 sticky left-0 z-10 transition-colors">
-                                                                    {student.name}
+                                                                    <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="hover:text-indigo-600 transition-colors">
+                                                                        {student.name}
+                                                                    </Link>
                                                                 </td>
                                                                 {data.formative_assessments.map(fa => {
                                                                     const score = student.scores?.[fa.formative_assessment_number];
@@ -469,7 +483,7 @@ export default function AnalysisDetailPage() {
                                                                                     <Tooltip>
                                                                                         <TooltipTrigger asChild>
                                                                                             <div
-                                                                                                className={`w-9 h-9 rounded-xl mx-auto flex items-center justify-center font-black text-white transition-all hover:scale-110 shadow-sm ${getScoreColor(score, fa.passing_threshold)}`}
+                                                                                                className={`w-9 h-9 rounded-xl mx-auto flex items-center justify-center font-black text-white transition-all hover:scale-110 shadow-sm ${getScoreColor(score, fa.max_score)}`}
                                                                                             >
                                                                                                 {Math.round(score)}
                                                                                             </div>
@@ -516,9 +530,8 @@ export default function AnalysisDetailPage() {
                                                             <Pie
                                                                 data={[
                                                                     { name: 'Mastery', value: data.student_performance.filter(s => s.mean >= 90).length, color: '#10b981' },
-                                                                    { name: 'Proficient', value: data.student_performance.filter(s => s.mean >= 75 && s.mean < 90).length, color: '#6366f1' },
-                                                                    { name: 'Developing', value: data.student_performance.filter(s => s.mean >= 60 && s.mean < 75).length, color: '#f59e0b' },
-                                                                    { name: 'Remedial', value: data.student_performance.filter(s => s.mean < 60).length, color: '#ef4444' }
+                                                                    { name: 'Passing', value: data.student_performance.filter(s => s.mean >= 75 && s.mean < 90).length, color: '#fbbf24' },
+                                                                    { name: 'At Risk', value: data.student_performance.filter(s => s.mean < 75).length, color: '#ef4444' }
                                                                 ].filter(d => d.value > 0)}
                                                                 innerRadius={60}
                                                                 outerRadius={80}
@@ -549,18 +562,22 @@ export default function AnalysisDetailPage() {
                                                     <Badge className="bg-emerald-500 text-white border-none">TOP 5</Badge>
                                                 </h4>
                                                 {[...data.student_performance].sort((a, b) => b.mean - a.mean).slice(0, 3).map((s, i) => (
-                                                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/30 border border-emerald-100/50">
+                                                    <Link
+                                                        key={`top-${s.lrn}`}
+                                                        to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
+                                                        className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/30 border border-emerald-100/50 hover:bg-emerald-50 hover:scale-[1.02] transition-all cursor-pointer group"
+                                                    >
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-emerald-200">
+                                                            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
                                                                 {i + 1}
                                                             </div>
-                                                            <span className="font-bold text-slate-800">{s.name}</span>
+                                                            <span className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{s.name}</span>
                                                         </div>
                                                         <div className="text-right">
                                                             <span className="text-lg font-black text-emerald-600 font-mono">{s.mean.toFixed(1)}</span>
                                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</p>
                                                         </div>
-                                                    </div>
+                                                    </Link>
                                                 ))}
 
                                                 <h4 className="font-black text-slate-800 flex items-center gap-2 pt-2">
@@ -568,18 +585,22 @@ export default function AnalysisDetailPage() {
                                                     <Badge className="bg-orange-400 text-white border-none">REMEDIAL</Badge>
                                                 </h4>
                                                 {[...data.student_performance].sort((a, b) => a.mean - b.mean).slice(0, 2).map((s, i) => (
-                                                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-orange-50/30 border border-orange-100/50">
+                                                    <Link
+                                                        key={`risk-${s.lrn}`}
+                                                        to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
+                                                        className="flex items-center justify-between p-4 rounded-2xl bg-orange-50/30 border border-orange-100/50 hover:bg-orange-50 hover:scale-[1.02] transition-all cursor-pointer group"
+                                                    >
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-orange-200">
+                                                            <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
                                                                 {i + 1}
                                                             </div>
-                                                            <span className="font-bold text-slate-800">{s.name}</span>
+                                                            <span className="font-bold text-slate-800 group-hover:text-orange-700 transition-colors">{s.name}</span>
                                                         </div>
                                                         <div className="text-right">
                                                             <span className="text-lg font-black text-orange-600 font-mono">{s.mean.toFixed(1)}</span>
                                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</p>
                                                         </div>
-                                                    </div>
+                                                    </Link>
                                                 ))}
                                             </div>
                                         </div>
@@ -635,7 +656,9 @@ export default function AnalysisDetailPage() {
                                                                 {student.name.charAt(0)}
                                                             </div>
                                                             <div className="flex flex-col">
-                                                                <span className="font-bold text-slate-900 leading-tight">{student.name}</span>
+                                                                <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors">
+                                                                    {student.name}
+                                                                </Link>
                                                                 <span className="text-[10px] text-slate-400 font-mono tracking-wider">{student.lrn}</span>
                                                             </div>
                                                         </div>
@@ -799,7 +822,7 @@ export default function AnalysisDetailPage() {
                                             .sort((a, b) => b.passing_rate - a.passing_rate)
                                             .slice(0, 2)
                                             .map((fa, i) => (
-                                                <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-white/80 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
+                                                <div key={fa.id} className="flex items-center justify-between p-5 rounded-2xl bg-white/80 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-xl">
                                                             ★

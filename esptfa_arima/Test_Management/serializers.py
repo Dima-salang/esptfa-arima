@@ -55,9 +55,20 @@ class AnalysisDocumentSerializer(serializers.ModelSerializer):
 
 
 class FormativeAssessmentScoreSerializer(serializers.ModelSerializer):
+    formative_assessment_number = serializers.ReadOnlyField(source='test_number')
+    max_score = serializers.SerializerMethodField()
+
     class Meta:
         model = FormativeAssessmentScore
         fields = '__all__'
+    
+    def get_max_score(self, obj):
+        if obj.topic_mapping and obj.topic_mapping.topic:
+            return obj.topic_mapping.topic.max_score
+        # Fallback to calculating from passing_threshold if topic_mapping is missing
+        if obj.passing_threshold:
+            return obj.passing_threshold / 0.75
+        return 0
     
 
 
@@ -92,6 +103,7 @@ class AnalysisDocumentInsightsSerializer(serializers.ModelSerializer):
 
 
 class FormativeAssessmentStatisticSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='formative_assessment_statistic_id')
     fa_topic_name = serializers.ReadOnlyField(source='fa_topic.topic_name')
 
     class Meta:

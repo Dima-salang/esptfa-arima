@@ -166,6 +166,54 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error in full_details: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=True, methods=['get'])
+    def student_analysis_detail(self, request, pk=None):
+        try:
+            document = self.get_object()
+            lrn = request.query_params.get('lrn')
+            if not lrn:
+                return Response({"error": "LRN is required"}, status=status.HTTP_400_BAD_REQUEST)
+                
+            student = get_object_or_404(Student, lrn=lrn)
+            
+            # Student specific stats for this doc
+            ss_stats = StudentScoresStatistic.objects.filter(analysis_document=document, student=student).first()
+            
+            # Predicted score
+            prediction = PredictedScore.objects.filter(analysis_document=document, student_id=student).first()
+            
+            # Individual scores
+            scores_objs = FormativeAssessmentScore.objects.filter(analysis_document=document, student_id=student).order_by('test_number')
+            
+            # Class FA stats for comparison
+            # We use the serializer we just updated for fa_topic_name
+            fa_stats = FormativeAssessmentStatistic.objects.filter(analysis_document=document).order_by('formative_assessment_number')
+            
+            # Format scores to include topic name
+            scores_data = []
+            for s in scores_objs:
+                data = FormativeAssessmentScoreSerializer(s).data
+                # Find topic name from fa_stats if possible
+                topic_stat = next((stat for stat in fa_stats if stat.formative_assessment_number == s.test_number), None)
+                data['topic_name'] = topic_stat.fa_topic.topic_name if topic_stat and topic_stat.fa_topic else f"Test {s.test_number}"
+                scores_data.append(data)
+
+            return Response({
+                "student": {
+                    "lrn": student.lrn,
+                    "name": f"{student.user_id.first_name} {student.user_id.last_name}",
+                },
+                "student_stats": StudentScoresStatisticSerializer(ss_stats).data if ss_stats else None,
+                "prediction": PredictedScoreSerializer(prediction).data if prediction else None,
+                "intervention": self.get_intervention(prediction) if prediction else "No intervention data available.",
+                "scores": scores_data,
+                "class_averages": FormativeAssessmentStatisticSerializer(fa_stats, many=True).data,
+                "document": AnalysisDocumentSerializer(document).data
+            })
+        except Exception as e:
+            logger.error(f"Error in student_analysis_detail: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def get_intervention(self, prediction):
         if not prediction:
             return "N/A"
@@ -405,7 +453,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                             'student_id': assessment.student_id.student_id,
                             'first_name': assessment.student_id.first_name,
                             'last_name': assessment.student_id.last_name,
-                            'test_number': assessment.formative_assessment_number,
+                            'test_number': assessment.test_number,
                             'score': assessment.score,
                             'max_score': assessment.passing_threshold / 0.75,
                             'passing_threshold': assessment.passing_threshold,
@@ -844,7 +892,7 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
         # Generate insights for student performance
         import pandas as pd
         student_data = pd.DataFrame(list(context["formative_scores"].values(
-            'formative_assessment_number', 'score', 'passing_threshold'
+            'test_number', 'score', 'passing_threshold'
         )))
         
         if not student_data.empty:
@@ -854,7 +902,7 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
             # Calculate normalized scores for insights
             student_data['max_score'] = student_data['passing_threshold'] / 0.75
             student_data['normalized_scores'] = student_data['score'] / student_data['max_score']
-            student_data['test_number'] = student_data['formative_assessment_number'].astype(int)
+            student_data['test_number'] = student_data['test_number'].astype(int)
             
             # Get predicted score if available
             predicted_score_obj = context["predicted_score"].first()
@@ -921,8 +969,8 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
                     test_numbers = student_data["test_number"].tolist()
                     
                     # Calculate class averages for each test
-                    class_data = pd.DataFrame(list(all_scores.values('formative_assessment_number', 'score')))
-                    class_data['test_number'] = class_data['formative_assessment_number'].astype(int)
+                    class_data = pd.DataFrame(list(all_scores.values('test_number', 'score')))
+                    class_data['test_number'] = class_data['test_number'].astype(int)
                     
                     class_averages = []
                     for test_num in test_numbers:

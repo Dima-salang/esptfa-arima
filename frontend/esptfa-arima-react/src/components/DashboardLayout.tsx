@@ -69,7 +69,6 @@ export default function DashboardLayout({
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
         { icon: FileText, label: "Analysis Documents", href: "/dashboard/analysis" },
         { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" },
-        { icon: Users, label: "Students", href: "/dashboard/students" },
     ];
 
     return (
@@ -119,7 +118,7 @@ export default function DashboardLayout({
                                 </p>
                             )}
                             <div className="space-y-2">
-                                <SidebarItem icon={Settings} label={isSidebarOpen ? "Settings" : ""} href="/settings" />
+                                <SidebarItem icon={Settings} label={isSidebarOpen ? "Settings" : ""} href="/dashboard/settings" />
                                 <Button
                                     variant="ghost"
                                     className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 group"

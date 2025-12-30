@@ -6,7 +6,9 @@ import CreateAnalysisPage from "./pages/CreateAnalysisPage";
 import AssessmentEditorPage from "./pages/AssessmentEditorPage";
 import AllDraftsPage from "./pages/AllDraftsPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
+import StudentAnalysisPage from "./pages/StudentAnalysisPage";
 import AllAnalysisPage from "./pages/AllAnalysisPage";
+import SettingsPage from "./pages/SettingsPage";
 import "./App.css";
 
 // Basic Private Route wrapper
@@ -64,10 +66,26 @@ function App() {
           }
         />
         <Route
+          path="/dashboard/analysis/:docId/student/:lrn"
+          element={
+            <PrivateRoute>
+              <StudentAnalysisPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/dashboard/analysis"
           element={
             <PrivateRoute>
               <AllAnalysisPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/settings"
+          element={
+            <PrivateRoute>
+              <SettingsPage />
             </PrivateRoute>
           }
         />
