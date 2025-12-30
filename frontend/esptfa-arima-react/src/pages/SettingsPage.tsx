@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
@@ -18,40 +17,12 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { getTeacherProfile } from "@/lib/api-teacher";
-
-interface TeacherProfile {
-    teacher_id: number;
-    user_id: {
-        id: number;
-        username: string;
-        first_name: string;
-        last_name: string;
-        email: string;
-        acc_type: string;
-    };
-    expertise?: string;
-}
+import { useUserStore } from "@/store/useUserStore";
 
 export default function SettingsPage() {
-    const [profile, setProfile] = useState<TeacherProfile | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { profile, loading } = useUserStore();
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const data = await getTeacherProfile();
-                setProfile(data);
-            } catch (error) {
-                console.error("Error fetching profile:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProfile();
-    }, []);
-
-    if (loading) {
+    if (loading && !profile) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-[60vh]">
@@ -135,8 +106,6 @@ export default function SettingsPage() {
                                     <Input value={user?.last_name || ""} readOnly className="h-14 rounded-2xl bg-slate-50/50 border-slate-100 font-bold text-slate-600 focus-visible:ring-0 cursor-default" />
                                 </div>
                             </div>
-
-
 
                             <Separator className="opacity-50" />
 

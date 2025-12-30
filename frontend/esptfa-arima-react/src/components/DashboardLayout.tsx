@@ -13,7 +13,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useUserStore } from "@/store/useUserStore";
 
 interface SidebarItemProps {
     icon: React.ElementType;
@@ -63,6 +64,7 @@ export default function DashboardLayout({
     defaultCollapsed?: boolean
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(!defaultCollapsed);
+    const { profile, loading } = useUserStore();
     const location = useLocation();
 
     const menuItems = [
@@ -70,6 +72,11 @@ export default function DashboardLayout({
         { icon: FileText, label: "Analysis Documents", href: "/dashboard/analysis" },
         { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" },
     ];
+
+    const { user_id: user } = profile || {};
+    const fullName = user ? `${user.first_name} ${user.last_name}` : "System User";
+    const initials = user ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}` : "??";
+    const accType = user?.acc_type || "Educator";
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
@@ -137,17 +144,18 @@ export default function DashboardLayout({
                     {/* Sidebar Footer */}
                     <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50">
                         <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                                <AvatarImage src="https://github.com/shadcn.png" />
-                                <AvatarFallback>TD</AvatarFallback>
+                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-2 ring-indigo-50">
+                                <AvatarFallback className="bg-slate-900 text-white font-bold text-xs">
+                                    {loading ? "..." : initials}
+                                </AvatarFallback>
                             </Avatar>
                             {isSidebarOpen && (
                                 <div className="flex flex-col overflow-hidden">
                                     <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                                        John Teacher
+                                        {loading ? "Loading..." : fullName}
                                     </span>
-                                    <span className="text-xs text-slate-500 truncate">
-                                        Senior Educator
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate">
+                                        {loading ? "..." : accType}
                                     </span>
                                 </div>
                             )}
@@ -196,23 +204,33 @@ export default function DashboardLayout({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
                                     <Avatar className="h-10 w-10 ring-2 ring-slate-100">
-                                        <AvatarImage src="https://github.com/shadcn.png" />
-                                        <AvatarFallback>JD</AvatarFallback>
+                                        <AvatarFallback className="bg-indigo-600 text-white font-bold text-xs uppercase">
+                                            {loading ? "..." : initials}
+                                        </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">John Doe</p>
-                                        <p className="text-xs leading-none text-muted-foreground">john@doe.com</p>
+                                        <p className="text-sm font-bold leading-none">{loading ? "Loading..." : fullName}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">{loading ? "..." : user?.email}</p>
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Profile</DropdownMenuItem>
-                                <DropdownMenuItem>Settings</DropdownMenuItem>
+                                <Link to="/dashboard/settings">
+                                    <DropdownMenuItem className="cursor-pointer">Profile Settings</DropdownMenuItem>
+                                </Link>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">Log out</DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className="text-red-600 cursor-pointer"
+                                    onClick={() => {
+                                        localStorage.clear();
+                                        window.location.href = "/login";
+                                    }}
+                                >
+                                    Log out
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

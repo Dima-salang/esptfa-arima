@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -9,6 +10,7 @@ import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import StudentAnalysisPage from "./pages/StudentAnalysisPage";
 import AllAnalysisPage from "./pages/AllAnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
+import { useUserStore } from "./store/useUserStore";
 import "./App.css";
 
 // Basic Private Route wrapper
@@ -18,6 +20,12 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
+  const fetchProfile = useUserStore((state) => state.fetchProfile);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
   return (
     <Router>
       <Routes>
