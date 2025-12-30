@@ -27,10 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    FileText,
     ClipboardList,
-    Users,
-    TrendingUp,
     MoreHorizontal,
     Plus,
     Calendar,
@@ -68,44 +65,7 @@ export default function TeacherDashboard() {
         fetchData();
     }, []);
 
-    const stats = [
-        {
-            title: "Total Analysis",
-            value: documents.length,
-            description: "Uploaded documents",
-            icon: FileText,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-            id: "total-analysis"
-        },
-        {
-            title: "Active Drafts",
-            value: drafts.length,
-            description: "Currently in progress",
-            icon: ClipboardList,
-            color: "text-amber-600",
-            bg: "bg-amber-50",
-            id: "active-drafts"
-        },
-        {
-            title: "Total Students",
-            value: "156", // Mock for now
-            description: "Across all sections",
-            icon: Users,
-            color: "text-indigo-600",
-            bg: "bg-indigo-50",
-            id: "total-students"
-        },
-        {
-            title: "Avg. Performance",
-            value: "84%", // Mock for now
-            description: "+2.5% from last month",
-            icon: TrendingUp,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
-            id: "avg-performance"
-        },
-    ];
+
 
     const getStatusBadge = (status: boolean) => {
         if (status) {
@@ -144,27 +104,7 @@ export default function TeacherDashboard() {
                     </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {stats.map((stat) => (
-                        <Card key={stat.id} className="border-none shadow-sm ring-1 ring-slate-200 hover:shadow-md transition-shadow rounded-2xl overflow-hidden group">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-bold text-slate-600 uppercase tracking-wider">
-                                    {stat.title}
-                                </CardTitle>
-                                <div className={`${stat.bg} ${stat.color} p-2.5 rounded-xl group-hover:scale-110 transition-transform`}>
-                                    <stat.icon className="h-5 w-5" />
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-black text-slate-900">{stat.value}</div>
-                                <p className="text-xs text-slate-500 mt-1 font-medium flex items-center gap-1">
-                                    {stat.description}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+
 
                 <div className="grid gap-8 lg:grid-cols-7">
                     {/* Recent Documents Table */}
