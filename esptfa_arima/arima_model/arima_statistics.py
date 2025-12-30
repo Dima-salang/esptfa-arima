@@ -1,18 +1,9 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import logging
-import io
-from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Count, Sum, Avg, StdDev, Min, Max
 from Test_Management.models import AnalysisDocumentStatistic, FormativeAssessmentStatistic, StudentScoresStatistic, TestTopicMapping, Student, PredictedScore
-from .visualization_manager import (
-    get_fa_visualizations_with_insights,
-    get_student_visualizations_with_insights,
-    get_document_visualizations_with_insights
-)
 
 logger = logging.getLogger("arima_model")
 
@@ -65,11 +56,6 @@ def compute_document_statistics(processed_data, analysis_document):
         }
     )
 
-    # Generate visualizations and insights
-    get_document_visualizations_with_insights(
-        processed_data, analysis_document_statistic
-    )
-
     return analysis_document_statistic
 
 
@@ -100,14 +86,17 @@ def compute_test_statistics(processed_data, analysis_document):
         passing_rate = (passing_scores / total_scores) * 100
         failing_rate = (total_scores - passing_scores) / total_scores * 100
 
-        fa_topic = TestTopicMapping.objects.filter(
-            analysis_document=analysis_document, test_number=fa_number).first().topic
+        mapping = TestTopicMapping.objects.filter(
+            analysis_document=analysis_document, 
+            topic__test_number=str(fa_number)
+        ).first()
+        fa_topic = mapping.topic if mapping else None
         
         # commit to db
         with transaction.atomic():
             _, _ = FormativeAssessmentStatistic.objects.update_or_create(
                 analysis_document=analysis_document,
-                formative_assessment_number=fa_number,
+                formative_assessment_number=str(fa_number),
                 fa_topic=fa_topic,
                 defaults={
                     "mean": mean,
@@ -172,37 +161,5 @@ def compute_student_statistics(processed_data, analysis_document):
             
 
 
-def generate_heatmap(processed_data, value_column, title=None):
-    """
-        Plots and returns a heatmap image (as BytesIO) where rows are students, columns are test numbers, and cells are the specified value.
-        """
-    
-    plot_data = processed_data.copy()
-    plot_data[value_column] = plot_data[value_column] * 100
 
-    heatmap_data = plot_data.pivot_table(
-        index="student_id",
-        columns="test_number",
-        values=value_column
-    )
-
-
-
-    fig, ax = plt.subplots(figsize=(12, 8))  # set fig size
-
-
-    sns.heatmap(heatmap_data, annot=True, fmt=".1f",
-                cmap="YlGnBu", linewidths=0.5, ax=ax)
-
-    ax.set_title(title)
-    ax.set_xlabel("Formative Assessment Number")
-    ax.set_ylabel("Student ID")
-    plt.tight_layout()
-
-    # Save the plot to a BytesIO buffer instead of showing it
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format='png')
-    plt.close(fig)
-    buffer.seek(0)
-    return buffer
 
