@@ -43,14 +43,18 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
 
     # define the filters
     filterset_fields = ['subject', 'quarter', 'section', 'status']
-    search_fields = ['teacher_id__user__first_name', 
-                    'teacher_id__user__last_name', 
+    search_fields = ['teacher__first_name', 
+                    'teacher__last_name', 
                     'subject__subject_name', 
                     'quarter__quarter_name', 
                     'section__section_name',
                     'analysis_doc_title']
 
     ordering_fields = ['upload_date', 'status']
+
+    def get_queryset(self):
+        # Only return documents that belong to the logged in teacher
+        return AnalysisDocument.objects.filter(teacher=self.request.user).order_by('-upload_date')
 
 
 
@@ -112,13 +116,24 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             fa_stats = FormativeAssessmentStatistic.objects.filter(analysis_document=document).order_by('formative_assessment_number')
             fa_stats_data = FormativeAssessmentStatisticSerializer(fa_stats, many=True).data
 
-            # 4. Student Statistics and Predictions
+            # 4. Student Statistics, Predictions, and raw scores
             student_stats = StudentScoresStatistic.objects.filter(analysis_document=document).select_related('student', 'student__user_id')
             predictions = PredictedScore.objects.filter(analysis_document=document).select_related('student_id')
+            all_scores = FormativeAssessmentScore.objects.filter(analysis_document=document).values(
+                'student_id__lrn', 'test_number', 'score', 'passing_threshold'
+            )
             
             # Create a lookup for predictions
             pred_lookup = {p.student_id.lrn: p for p in predictions}
             
+            # Group scores by student for the matrix
+            scores_by_student = {}
+            for s in all_scores:
+                lrn = s['student_id__lrn']
+                if lrn not in scores_by_student:
+                    scores_by_student[lrn] = {}
+                scores_by_student[lrn][s['test_number']] = s['score']
+
             # Combine student stats and predictions
             student_performance = []
             for ss in student_stats:
@@ -131,7 +146,8 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                     "failing_rate": ss.failing_rate,
                     "predicted_score": pred.score if pred else None,
                     "predicted_status": pred.predicted_status if pred else "N/A",
-                    "intervention": self.get_intervention(pred) if pred else "No data"
+                    "intervention": self.get_intervention(pred) if pred else "No data",
+                    "scores": scores_by_student.get(ss.student.lrn, {})
                 })
 
             # 5. Insights
@@ -179,7 +195,7 @@ class PredictedScoreViewSet(viewsets.ModelViewSet):
 
 
 class TestDraftViewSet(viewsets.ModelViewSet):
-    queryset = TestDraft.objects.all()
+    queryset = TestDraft.objects.all().order_by('-created_at')
     serializer_class = TestDraftSerializer
 
     # define the permissions
@@ -240,6 +256,9 @@ class TestDraftViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(draft)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get_queryset(self):
+        return TestDraft.objects.filter(user_teacher=self.request.user).order_by('-created_at')
 
 
 class IdempotencyKeyViewSet(viewsets.ModelViewSet):

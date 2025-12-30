@@ -174,9 +174,11 @@ export default function TeacherDashboard() {
                                 <CardTitle className="text-xl font-bold">Recent Analysis</CardTitle>
                                 <CardDescription>Your latest uploaded assessment documents</CardDescription>
                             </div>
-                            <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold">
-                                View all <ArrowUpRight className="ml-1 h-4 w-4" />
-                            </Button>
+                            <Link to="/dashboard/analysis">
+                                <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold">
+                                    View all <ArrowUpRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            </Link>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -205,10 +207,15 @@ export default function TeacherDashboard() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        documents.slice(0, 5).map((doc) => (
+                                        documents.slice(0, 7).map((doc) => (
                                             <TableRow key={doc.analysis_document_id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
-                                                <TableCell className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                                    {doc.analysis_doc_title}
+                                                <TableCell className="p-0">
+                                                    <Link
+                                                        to={`/dashboard/analysis/${doc.analysis_document_id}`}
+                                                        className="block px-4 py-4 font-bold text-slate-900 group-hover:text-indigo-600 transition-colors"
+                                                    >
+                                                        {doc.analysis_doc_title}
+                                                    </Link>
                                                 </TableCell>
                                                 <TableCell className="text-slate-500 font-medium">
                                                     <div className="flex items-center gap-2">

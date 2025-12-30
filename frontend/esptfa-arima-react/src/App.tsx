@@ -5,6 +5,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import CreateAnalysisPage from "./pages/CreateAnalysisPage";
 import AssessmentEditorPage from "./pages/AssessmentEditorPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
+import AllAnalysisPage from "./pages/AllAnalysisPage";
 import "./App.css";
 
 // Basic Private Route wrapper
@@ -50,6 +51,14 @@ function App() {
           element={
             <PrivateRoute>
               <AnalysisDetailPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/analysis"
+          element={
+            <PrivateRoute>
+              <AllAnalysisPage />
             </PrivateRoute>
           }
         />

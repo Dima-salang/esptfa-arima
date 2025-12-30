@@ -64,8 +64,8 @@ export interface Topic {
     test_number?: number;
 }
 
-export const getAnalysisDocuments = async () => {
-    const response = await api.get("/analysis-document/");
+export const getAnalysisDocuments = async (filters?: Record<string, any>) => {
+    const response = await api.get("/analysis-document/", { params: filters });
     return response.data;
 };
 
