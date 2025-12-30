@@ -4,6 +4,7 @@ import RegisterPage from "./pages/RegisterPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import CreateAnalysisPage from "./pages/CreateAnalysisPage";
 import AssessmentEditorPage from "./pages/AssessmentEditorPage";
+import AllDraftsPage from "./pages/AllDraftsPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import AllAnalysisPage from "./pages/AllAnalysisPage";
 import "./App.css";
@@ -43,6 +44,14 @@ function App() {
           element={
             <PrivateRoute>
               <AssessmentEditorPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/drafts"
+          element={
+            <PrivateRoute>
+              <AllDraftsPage />
             </PrivateRoute>
           }
         />

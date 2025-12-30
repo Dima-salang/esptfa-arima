@@ -59,7 +59,6 @@ import {
     AlertCircle,
     CheckCircle2,
     Search,
-    Download,
     BrainCircuit,
     Info,
     HelpCircle,

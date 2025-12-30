@@ -195,7 +195,7 @@ class PredictedScoreViewSet(viewsets.ModelViewSet):
 
 
 class TestDraftViewSet(viewsets.ModelViewSet):
-    queryset = TestDraft.objects.all().order_by('-created_at')
+    queryset = TestDraft.objects.all()
     serializer_class = TestDraftSerializer
 
     # define the permissions
@@ -205,6 +205,9 @@ class TestDraftViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
 
     # define the filters
+    filterset_fields = ['subject', 'quarter', 'section_id', 'status']
+    search_fields = ['title', 'subject__subject_name', 'quarter__quarter_name', 'section_id__section_name']
+    ordering_fields = ['created_at', 'updated_at', 'status']
 
     # gets or creates the draft if it doesn't exist 
     # if it does not exist, the idempotency key for it also created and is returned

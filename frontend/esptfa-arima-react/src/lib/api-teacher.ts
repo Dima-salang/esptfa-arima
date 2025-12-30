@@ -69,8 +69,8 @@ export const getAnalysisDocuments = async (filters?: Record<string, any>) => {
     return response.data;
 };
 
-export const getTestDrafts = async () => {
-    const response = await api.get("/test-draft/");
+export const getTestDrafts = async (filters?: Record<string, any>) => {
+    const response = await api.get("/test-draft/", { params: filters });
     return response.data;
 };
 

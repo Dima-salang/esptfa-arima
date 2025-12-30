@@ -252,9 +252,16 @@ export default function TeacherDashboard() {
 
                     {/* Test Drafts Sidebar */}
                     <Card className="lg:col-span-3 border-none shadow-sm ring-1 ring-slate-200 rounded-2xl overflow-hidden self-start">
-                        <CardHeader>
-                            <CardTitle className="text-xl font-bold">In-Progress Drafts</CardTitle>
-                            <CardDescription>Tests you are currently working on</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xl font-bold">In-Progress Drafts</CardTitle>
+                                <CardDescription>Tests you are currently working on</CardDescription>
+                            </div>
+                            <Link to="/dashboard/drafts">
+                                <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold">
+                                    View all <ArrowUpRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            </Link>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {loading ? (
@@ -293,9 +300,6 @@ export default function TeacherDashboard() {
                                     </Link>
                                 ))
                             )}
-                            <Button variant="outline" className="w-full h-11 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all mt-4">
-                                View All Drafts
-                            </Button>
                         </CardContent>
                     </Card>
                 </div>
