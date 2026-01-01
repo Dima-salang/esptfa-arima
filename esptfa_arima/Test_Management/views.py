@@ -21,6 +21,7 @@ from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
 from rest_framework import viewsets, permissions, status, filters
+from .permissions.permissions import IsTeacher
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import *
@@ -61,7 +62,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
     
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
     # define the create method
     def create(self, request, *args, **kwargs):
@@ -247,7 +248,7 @@ class TestDraftViewSet(viewsets.ModelViewSet):
     serializer_class = TestDraftSerializer
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
     # filtering
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -336,11 +337,32 @@ class SubjectViewSet(viewsets.ModelViewSet):
     # define the permissions
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        # if the user is a superuser, return all subjects
+        if self.request.user.is_superuser:
+            return Subject.objects.all()
+        
+        # filter by teacher assignment
+        teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
+        return Subject.objects.filter(pk__in=teacher_assignments.values_list('subject_id', flat=True))
+
 
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        # if the user is a superuser, return all sections
+        if self.request.user.is_superuser:
+            return Section.objects.all()
+        
+        if self.request.user.is_authenticated and self.request.user.teacher is not None :
+            # filter by teacher assignment
+            teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
+            return Section.objects.filter(pk__in=teacher_assignments.values_list('section_id', flat=True))
+        # else we return to allow selecting any section in the registration
+        return Section.objects.all()
 
 
 
@@ -349,7 +371,15 @@ class QuarterViewSet(viewsets.ModelViewSet):
     serializer_class = QuarterSerializer
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+
+class TeacherAssignmentViewSet(viewsets.ModelViewSet):
+    queryset = TeacherAssignment.objects.all()
+    serializer_class = TeacherAssignmentSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
 
 class AnalysisDocumentStatisticViewSet(viewsets.ModelViewSet):

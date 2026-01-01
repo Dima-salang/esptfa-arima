@@ -22,6 +22,26 @@ class SectionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class TeacherUserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'name']
+    
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip() or obj.username
+
+class TeacherAssignmentSerializer(serializers.ModelSerializer):
+    teacher_details = TeacherUserSerializer(source='teacher', read_only=True)
+    subject_details = SubjectSerializer(source='subject', read_only=True)
+    section_details = SectionSerializer(source='section', read_only=True)
+
+    class Meta:
+        model = TeacherAssignment
+        fields = '__all__'
+
+
+
 class TestDraftSerializer(serializers.ModelSerializer):
     subject = SubjectSerializer(read_only=True)
     quarter = QuarterSerializer(read_only=True)

@@ -10,8 +10,10 @@ import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import StudentAnalysisPage from "./pages/StudentAnalysisPage";
 import AllAnalysisPage from "./pages/AllAnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
+import TeacherAssignmentsPage from "./pages/TeacherAssignmentsPage";
 import { useUserStore } from "./store/useUserStore";
 import "./App.css";
+
 
 // Basic Private Route wrapper
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -97,6 +99,15 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/dashboard/assignments"
+          element={
+            <PrivateRoute>
+              <TeacherAssignmentsPage />
+            </PrivateRoute>
+          }
+        />
+
 
         {/* Redirect root to login */}
         <Route path="/" element={<Navigate to="/login" />} />

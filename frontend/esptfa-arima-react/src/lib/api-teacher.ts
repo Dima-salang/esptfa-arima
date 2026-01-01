@@ -66,27 +66,27 @@ export interface Topic {
 
 export const getAnalysisDocuments = async (filters?: Record<string, any>) => {
     const response = await api.get("/analysis-document/", { params: filters });
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const getTestDrafts = async (filters?: Record<string, any>) => {
     const response = await api.get("/test-draft/", { params: filters });
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const getSubjects = async () => {
     const response = await api.get("/subject/");
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const getQuarters = async () => {
     const response = await api.get("/quarter/");
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const getSections = async () => {
     const response = await api.get("/section/");
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const deleteAnalysisDocument = async (id: number) => {
@@ -121,7 +121,7 @@ export const createAnalysisDocument = async (testDraftId: string) => {
 export const getStudents = async (sectionId?: string) => {
     const params = sectionId ? { section: sectionId } : {};
     const response = await api.get("/student/", { params });
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const getAnalysisFullDetails = async (id: string | number) => {
@@ -133,7 +133,7 @@ export const getPredictedScores = async (analysisDocumentId: string | number) =>
     const response = await api.get("/predicted-score/", {
         params: { analysis_document_id: analysisDocumentId }
     });
-    return response.data;
+    return response.data.results || response.data;
 };
 
 export const getStudentAnalysisDetail = async (docId: string | number, lrn: string) => {

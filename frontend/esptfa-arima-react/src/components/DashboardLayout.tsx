@@ -78,6 +78,14 @@ export default function DashboardLayout({
     const fullName = user ? `${user.first_name} ${user.last_name}` : "System User";
     const initials = user ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}` : "??";
     const accType = user?.acc_type || "Educator";
+    const isSuperuser = user?.acc_type === "ADMIN";
+
+    // Add Admin only items
+    if (isSuperuser) {
+        menuItems.push({ icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" });
+    }
+
+
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
