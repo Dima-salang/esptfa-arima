@@ -15,8 +15,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password', 'acc_type', 'lrn', 'section']
     
     def validate_password(self, value):
-        validate_password(value)
+        try:
+            validate_password(value)
+        except Exception as e:
+            raise serializers.ValidationError(list(e.messages) if hasattr(e, 'messages') else str(e))
         return value
+
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
