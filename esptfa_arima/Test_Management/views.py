@@ -338,10 +338,13 @@ class SubjectViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-
+        # if the user is a superuser, return all subjects
+        if self.request.user.is_superuser:
+            return Subject.objects.all()
+        
         # filter by teacher assignment
         teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
-        return Subject.objects.filter(id__in=teacher_assignments.values_list('subject_id', flat=True))
+        return Subject.objects.filter(pk__in=teacher_assignments.values_list('subject_id', flat=True))
 
 
 class SectionViewSet(viewsets.ModelViewSet):
@@ -350,10 +353,14 @@ class SectionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
+        # if the user is a superuser, return all sections
+        if self.request.user.is_superuser:
+            return Section.objects.all()
+        
         if self.request.user.is_authenticated and self.request.user.teacher is not None :
             # filter by teacher assignment
             teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
-            return Section.objects.filter(id__in=teacher_assignments.values_list('section_id', flat=True))
+            return Section.objects.filter(pk__in=teacher_assignments.values_list('section_id', flat=True))
         # else we return to allow selecting any section in the registration
         return Section.objects.all()
 
