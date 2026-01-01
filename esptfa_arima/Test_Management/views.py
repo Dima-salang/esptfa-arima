@@ -21,6 +21,7 @@ from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
 from rest_framework import viewsets, permissions, status, filters
+from .permissions.permissions import IsTeacher
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import *
@@ -61,7 +62,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
     
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
     # define the create method
     def create(self, request, *args, **kwargs):
@@ -247,7 +248,7 @@ class TestDraftViewSet(viewsets.ModelViewSet):
     serializer_class = TestDraftSerializer
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
     # filtering
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -363,7 +364,7 @@ class QuarterViewSet(viewsets.ModelViewSet):
     serializer_class = QuarterSerializer
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
 
 class TeacherAssignmentViewSet(viewsets.ModelViewSet):
@@ -371,7 +372,7 @@ class TeacherAssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = TeacherAssignmentSerializer
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
 
 class AnalysisDocumentStatisticViewSet(viewsets.ModelViewSet):
