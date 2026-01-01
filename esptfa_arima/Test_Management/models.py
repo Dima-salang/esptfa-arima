@@ -37,6 +37,17 @@ class Section(models.Model):
         return self.section_name
 
 
+# pairs the teacher for a specific subject and section
+class TeacherAssignment(models.Model):
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    section = models.ForeignKey(Section, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.teacher} - {self.section} - {self.subject}"
+
 # draft version of the analysis document
 class TestDraft(models.Model):
     user_teacher = models.ForeignKey(User, on_delete=models.CASCADE)
