@@ -1,5 +1,6 @@
-
 # Create your views here.
+from django.core.exceptions import ValidationError
+
 from django.http import HttpResponse
 from django.contrib.auth import logout
 from django.shortcuts import render, redirect
@@ -79,23 +80,30 @@ class RegisterViewSet(ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # register the user
-        register_user(
-            serializer.validated_data.get("username"),
-            serializer.validated_data.get("password"),
-            serializer.validated_data.get("first_name"),
-            serializer.validated_data.get("last_name"),
-            serializer.validated_data.get("email"),
-            serializer.validated_data.get("acc_type"),
-            serializer.validated_data.get("lrn"),
-            serializer.validated_data.get("section")
-        )
+        try:
+            # register the user
+            register_user(
+                serializer.validated_data.get("username"),
+                serializer.validated_data.get("password"),
+                serializer.validated_data.get("first_name"),
+                serializer.validated_data.get("last_name"),
+                serializer.validated_data.get("email"),
+                serializer.validated_data.get("acc_type"),
+                serializer.validated_data.get("lrn"),
+                serializer.validated_data.get("section")
+            )
+        except ValidationError as e:
+            # Propagate Django validation errors as DRF validation errors
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError(detail=e.messages)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
+
 
 class TeacherViewSet(viewsets.ModelViewSet):
     queryset = Teacher.objects.all()

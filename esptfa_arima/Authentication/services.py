@@ -3,6 +3,7 @@ from .models import Teacher, Student
 from model_types import ACC_TYPE
 from django.contrib.auth import authenticate
 from Test_Management.models import Section
+from django.core.exceptions import ValidationError
 
 def login_user(username, password):
     user = authenticate(username=username, password=password)
@@ -35,20 +36,28 @@ def register_user(username, password, first_name, last_name, email, acc_type, lr
     elif acc_type == ACC_TYPE.STUDENT:
         if section_id is None:
             user.delete() # Cleanup if validation failed late
-            raise ValueError("Section ID is required for student registration")
+            raise ValidationError("Section ID is required for student registration")
         try:
             section = Section.objects.get(section_id=section_id)
         except Section.DoesNotExist:
             user.delete() # Cleanup
-            raise ValueError("Section does not exist")
+            raise ValidationError("Section does not exist")
 
-        # check if there is already an existing student, then we link it to the user account 
-        if Student.objects.filter(lrn=lrn, section=section).exists():
-            student = Student.objects.get(lrn=lrn, section=section)
-            student.user_id = user
-            student.save()
-            return user
+        # check if there is already an existing student record
+        student_obj = Student.objects.filter(lrn=lrn, section=section).first()
+        
+        if student_obj:
+            if student_obj.user_id is None:
+                # Link the existing unlinked student record to this user
+                student_obj.user_id = user
+                student_obj.save()
+            else:
+                # Record is already taken by another user
+                user.delete()
+                raise ValidationError("A student with this LRN is already registered with another account.")
+        else:
+            # No existing record, create a new one
+            Student.objects.create(user_id=user, lrn=lrn, section=section)
 
-        Student.objects.create(user_id=user, lrn=lrn, section=section)
     
     return user

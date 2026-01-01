@@ -120,11 +120,16 @@ export default function RegisterPage() {
                         } else {
                             // Extract first error from field errors
                             const fieldErrors = Object.entries(data).map(([field, msgs]) => {
+                                // non_field_errors often contains the specific service-level errors
+                                if (field === "non_field_errors") return Array.isArray(msgs) ? msgs.join(" ") : msgs;
+                                if (field === "detail") return msgs;
+
                                 const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace("_", " ");
                                 const errorMsg = Array.isArray(msgs) ? msgs[0] : msgs;
                                 return `${fieldName}: ${errorMsg}`;
                             });
                             setError(fieldErrors.join(" | "));
+
 
                             // Also optionally set formik field errors
                             const errors: any = {};
