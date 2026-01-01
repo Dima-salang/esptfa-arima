@@ -54,8 +54,19 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
     ordering_fields = ['upload_date', 'status']
 
     def get_queryset(self):
-        # Only return documents that belong to the logged in teacher
-        return AnalysisDocument.objects.filter(teacher=self.request.user).order_by('-upload_date')
+        user = self.request.user
+        
+        # Superusers can see everything
+        if user.is_superuser:
+            return AnalysisDocument.objects.all().order_by('-upload_date')
+            
+        # Check if student
+        if hasattr(user, 'student'):
+            return AnalysisDocument.objects.filter(section=user.student.section).order_by('-upload_date')
+            
+        # Teachers see their own documents
+        return AnalysisDocument.objects.filter(teacher=user).order_by('-upload_date')
+
 
 
 
@@ -353,6 +364,10 @@ class SectionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
+        # if the user is an anonymous user, like in the instance of registration
+        if not self.request.user.is_authenticated:
+            return Section.objects.all()
+        
         # if the user is a superuser, return all sections
         if self.request.user.is_superuser:
             return Section.objects.all()
@@ -362,7 +377,6 @@ class SectionViewSet(viewsets.ModelViewSet):
             teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
             return Section.objects.filter(pk__in=teacher_assignments.values_list('section_id', flat=True))
         # else we return to allow selecting any section in the registration
-        return Section.objects.all()
 
 
 

@@ -79,3 +79,9 @@ export const getAllSections = async () => {
     return response.data;
 };
 
+export const getSystemStats = async () => {
+    const response = await api.get("/system-stats/");
+    return response.data;
+};
+
+

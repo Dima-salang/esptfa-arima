@@ -11,10 +11,13 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.decorators import action
 from django.contrib.auth.models import User
 from .models import Teacher, Student
+from Test_Management.models import Section, Subject, AnalysisDocument
 from .serializers import UserSerializer, TeacherSerializer, StudentSerializer
 from .services import register_user, login_user
+
 
 
 def register(request):
@@ -70,7 +73,13 @@ class RegisterViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -115,9 +124,31 @@ class LogoutViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class SystemStatsViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def list(self, request):
+        return Response({
+            "total_students": Student.objects.count(),
+            "total_teachers": Teacher.objects.count(),
+            "total_sections": Section.objects.count(),
+            "total_subjects": Subject.objects.count(),
+            "total_documents": AnalysisDocument.objects.count(),
+        })
+
 class StudentViewSet(ModelViewSet):
+
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
 
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        student = Student.objects.filter(user_id=request.user).first()
+        if not student:
+            return Response({"detail": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(student)
+        return Response(serializer.data)
+
     # define the permissions
+
     permission_classes = [permissions.IsAuthenticated]
