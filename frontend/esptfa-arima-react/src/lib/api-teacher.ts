@@ -64,13 +64,13 @@ export interface Topic {
     test_number?: number;
 }
 
-export const getAnalysisDocuments = async () => {
-    const response = await api.get("/analysis-document/");
+export const getAnalysisDocuments = async (filters?: Record<string, any>) => {
+    const response = await api.get("/analysis-document/", { params: filters });
     return response.data;
 };
 
-export const getTestDrafts = async () => {
-    const response = await api.get("/test-draft/");
+export const getTestDrafts = async (filters?: Record<string, any>) => {
+    const response = await api.get("/test-draft/", { params: filters });
     return response.data;
 };
 
@@ -122,4 +122,42 @@ export const getStudents = async (sectionId?: string) => {
     const params = sectionId ? { section: sectionId } : {};
     const response = await api.get("/student/", { params });
     return response.data;
+};
+
+export const getAnalysisFullDetails = async (id: string | number) => {
+    const response = await api.get(`/analysis-document/${id}/full_details/`);
+    return response.data;
+};
+
+export const getPredictedScores = async (analysisDocumentId: string | number) => {
+    const response = await api.get("/predicted-score/", {
+        params: { analysis_document_id: analysisDocumentId }
+    });
+    return response.data;
+};
+
+export const getStudentAnalysisDetail = async (docId: string | number, lrn: string) => {
+    const response = await api.get(`/analysis-document/${docId}/student_analysis_detail/`, {
+        params: { lrn }
+    });
+    return response.data;
+};
+
+export const getTeacherProfile = async () => {
+    const response = await api.get("/teacher/me/");
+    return response.data;
+};
+
+export const logoutUser = async () => {
+    try {
+        const refresh = localStorage.getItem("refresh");
+        if (refresh) {
+            await api.post("/logout/", { refresh });
+        }
+    } catch (error) {
+        console.error("Logout error:", error);
+    } finally {
+        localStorage.clear();
+        globalThis.location.href = "/login";
+    }
 };

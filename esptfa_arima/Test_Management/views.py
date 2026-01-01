@@ -20,7 +20,8 @@ from utils.mixins.mixins import TeacherRequiredMixin
 from utils.insights import get_visualization_insights, get_gemini_insights
 logger = logging.getLogger("arima_model")
 import pandas as pd
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import *
 from .models import *
@@ -33,7 +34,7 @@ from rest_framework import filters
 
 
 class AnalysisDocumentViewSet(viewsets.ModelViewSet):
-    queryset = AnalysisDocument.objects.all()
+    queryset = AnalysisDocument.objects.all().order_by('-upload_date')
     serializer_class = AnalysisDocumentSerializer
 
     # define filtering
@@ -42,14 +43,18 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
 
     # define the filters
     filterset_fields = ['subject', 'quarter', 'section', 'status']
-    search_fields = ['teacher_id__user__first_name', 
-                    'teacher_id__user__last_name', 
+    search_fields = ['teacher__first_name', 
+                    'teacher__last_name', 
                     'subject__subject_name', 
                     'quarter__quarter_name', 
                     'section__section_name',
                     'analysis_doc_title']
 
     ordering_fields = ['upload_date', 'status']
+
+    def get_queryset(self):
+        # Only return documents that belong to the logged in teacher
+        return AnalysisDocument.objects.filter(teacher=self.request.user).order_by('-upload_date')
 
 
 
@@ -86,6 +91,156 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error creating analysis document: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=True, methods=['get'])
+    def full_details(self, request, pk=None):
+        try:
+            document = self.get_object()
+            if not document.status:
+                return Response({"message": "Document is still being processed"}, status=status.HTTP_202_ACCEPTED)
+
+            # 1. Base Stats
+            doc_stats = AnalysisDocumentStatistic.objects.filter(analysis_document=document).first()
+            doc_stats_data = AnalysisDocumentStatisticSerializer(doc_stats).data if doc_stats else None
+
+            # 2. Topic Mapping
+            topics_mapping = TestTopicMapping.objects.filter(analysis_document=document).select_related('topic')
+            topics_data = []
+            for tm in topics_mapping:
+                topics_data.append({
+                    "test_number": tm.topic.test_number,
+                    "topic_name": tm.topic.topic_name,
+                    "max_score": tm.topic.max_score
+                })
+
+            # 3. Formative Assessment Statistics (Class level per test)
+            fa_stats = FormativeAssessmentStatistic.objects.filter(analysis_document=document).order_by('formative_assessment_number')
+            fa_stats_data = FormativeAssessmentStatisticSerializer(fa_stats, many=True).data
+
+            # 4. Student Statistics, Predictions, and raw scores
+            student_stats = StudentScoresStatistic.objects.filter(analysis_document=document).select_related('student', 'student__user_id')
+            predictions = PredictedScore.objects.filter(analysis_document=document).select_related('student_id')
+            all_scores = FormativeAssessmentScore.objects.filter(analysis_document=document).values(
+                'student_id__lrn', 'test_number', 'score', 'passing_threshold'
+            )
+            
+            # Create a lookup for predictions
+            pred_lookup = {p.student_id.lrn: p for p in predictions}
+            
+            # Group scores by student for the matrix
+            scores_by_student = {}
+            for s in all_scores:
+                lrn = s['student_id__lrn']
+                if lrn not in scores_by_student:
+                    scores_by_student[lrn] = {}
+                scores_by_student[lrn][s['test_number']] = s['score']
+
+            # Combine student stats and predictions
+            student_performance = []
+            for ss in student_stats:
+                pred = pred_lookup.get(ss.student.lrn)
+                student_performance.append({
+                    "lrn": ss.student.lrn,
+                    "name": f"{ss.student.user_id.first_name} {ss.student.user_id.last_name}",
+                    "mean": ss.mean,
+                    "passing_rate": ss.passing_rate,
+                    "failing_rate": ss.failing_rate,
+                    "predicted_score": pred.score if pred else None,
+                    "predicted_status": pred.predicted_status if pred else "N/A",
+                    "intervention": self.get_intervention(pred) if pred else "No data",
+                    "scores": scores_by_student.get(ss.student.lrn, {})
+                })
+
+            # 5. Insights
+            insights_obj = AnalysisDocumentInsights.objects.filter(analysis_document=document).first()
+            insights_data = AnalysisDocumentInsightsSerializer(insights_obj).data if insights_obj else None
+
+            return Response({
+                "document": AnalysisDocumentSerializer(document).data,
+                "statistics": doc_stats_data,
+                "topics": topics_data,
+                "formative_assessments": fa_stats_data,
+                "student_performance": student_performance,
+                "insights": insights_data
+            })
+        except Exception as e:
+            logger.error(f"Error in full_details: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def student_analysis_detail(self, request, pk=None):
+        try:
+            document = self.get_object()
+            lrn = request.query_params.get('lrn')
+            if not lrn:
+                return Response({"error": "LRN is required"}, status=status.HTTP_400_BAD_REQUEST)
+                
+            student = get_object_or_404(Student, lrn=lrn)
+            
+            # Student specific stats for this doc
+            ss_stats = StudentScoresStatistic.objects.filter(analysis_document=document, student=student).first()
+            
+            # Predicted score
+            prediction = PredictedScore.objects.filter(analysis_document=document, student_id=student).first()
+            
+            # Individual scores
+            scores_objs = FormativeAssessmentScore.objects.filter(analysis_document=document, student_id=student).order_by('test_number')
+            
+            # Class FA stats for comparison
+            # We use the serializer we just updated for fa_topic_name
+            fa_stats = FormativeAssessmentStatistic.objects.filter(analysis_document=document).order_by('formative_assessment_number')
+            
+            # Format scores to include topic name
+            scores_data = []
+            for s in scores_objs:
+                data = FormativeAssessmentScoreSerializer(s).data
+                # Find topic name from fa_stats if possible
+                topic_stat = next((stat for stat in fa_stats if stat.formative_assessment_number == s.test_number), None)
+                data['topic_name'] = topic_stat.fa_topic.topic_name if topic_stat and topic_stat.fa_topic else f"Test {s.test_number}"
+                scores_data.append(data)
+
+            return Response({
+                "student": {
+                    "lrn": student.lrn,
+                    "name": f"{student.user_id.first_name} {student.user_id.last_name}",
+                },
+                "student_stats": StudentScoresStatisticSerializer(ss_stats).data if ss_stats else None,
+                "prediction": PredictedScoreSerializer(prediction).data if prediction else None,
+                "intervention": self.get_intervention(prediction) if prediction else "No intervention data available.",
+                "scores": scores_data,
+                "class_averages": FormativeAssessmentStatisticSerializer(fa_stats, many=True).data,
+                "document": AnalysisDocumentSerializer(document).data
+            })
+        except Exception as e:
+            logger.error(f"Error in student_analysis_detail: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get_intervention(self, prediction):
+        if not prediction:
+            return "N/A"
+        
+        score_percent = (prediction.score / prediction.max_score) * 100 if prediction.max_score else 0
+        
+        if score_percent < 50:
+            return "Intensive Intervention Required: Immediate one-on-one session and remedial materials."
+        elif score_percent < 75:
+            return "Targeted Support: Peer tutoring and additional practice exercises on weak topics."
+        elif score_percent < 85:
+            return "Regular Monitoring: Continue standard instruction with occasional check-ins."
+        else:
+            return "Enrichment Activities: Provide advanced materials to further challenge the student."
+
+
+class PredictedScoreViewSet(viewsets.ModelViewSet):
+    queryset = PredictedScore.objects.all()
+    serializer_class = PredictedScoreSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        analysis_document_id = self.request.query_params.get('analysis_document_id', None)
+        if analysis_document_id:
+            return PredictedScore.objects.filter(analysis_document_id=analysis_document_id)
+        return PredictedScore.objects.all()
+
 
 class TestDraftViewSet(viewsets.ModelViewSet):
     queryset = TestDraft.objects.all()
@@ -98,6 +253,9 @@ class TestDraftViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
 
     # define the filters
+    filterset_fields = ['subject', 'quarter', 'section_id', 'status']
+    search_fields = ['title', 'subject__subject_name', 'quarter__quarter_name', 'section_id__section_name']
+    ordering_fields = ['created_at', 'updated_at', 'status']
 
     # gets or creates the draft if it doesn't exist 
     # if it does not exist, the idempotency key for it also created and is returned
@@ -149,6 +307,9 @@ class TestDraftViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(draft)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get_queryset(self):
+        return TestDraft.objects.filter(user_teacher=self.request.user).order_by('-created_at')
 
 
 class IdempotencyKeyViewSet(viewsets.ModelViewSet):
@@ -292,7 +453,7 @@ class FormativeAssessmentDetailView(LoginRequiredMixin, TeacherRequiredMixin, De
                             'student_id': assessment.student_id.student_id,
                             'first_name': assessment.student_id.first_name,
                             'last_name': assessment.student_id.last_name,
-                            'test_number': assessment.formative_assessment_number,
+                            'test_number': assessment.test_number,
                             'score': assessment.score,
                             'max_score': assessment.passing_threshold / 0.75,
                             'passing_threshold': assessment.passing_threshold,
@@ -731,7 +892,7 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
         # Generate insights for student performance
         import pandas as pd
         student_data = pd.DataFrame(list(context["formative_scores"].values(
-            'formative_assessment_number', 'score', 'passing_threshold'
+            'test_number', 'score', 'passing_threshold'
         )))
         
         if not student_data.empty:
@@ -741,7 +902,7 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
             # Calculate normalized scores for insights
             student_data['max_score'] = student_data['passing_threshold'] / 0.75
             student_data['normalized_scores'] = student_data['score'] / student_data['max_score']
-            student_data['test_number'] = student_data['formative_assessment_number'].astype(int)
+            student_data['test_number'] = student_data['test_number'].astype(int)
             
             # Get predicted score if available
             predicted_score_obj = context["predicted_score"].first()
@@ -808,8 +969,8 @@ class IndividualStudentDetailView(LoginRequiredMixin, TeacherRequiredMixin, Deta
                     test_numbers = student_data["test_number"].tolist()
                     
                     # Calculate class averages for each test
-                    class_data = pd.DataFrame(list(all_scores.values('formative_assessment_number', 'score')))
-                    class_data['test_number'] = class_data['formative_assessment_number'].astype(int)
+                    class_data = pd.DataFrame(list(all_scores.values('test_number', 'score')))
+                    class_data['test_number'] = class_data['test_number'].astype(int)
                     
                     class_averages = []
                     for test_num in test_numbers:

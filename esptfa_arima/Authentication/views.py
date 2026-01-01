@@ -88,14 +88,32 @@ class RegisterViewSet(ModelViewSet):
 
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
 
-class TeacherViewSet(ModelViewSet):
-    
+class TeacherViewSet(viewsets.ModelViewSet):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
-
-    # define the permissions
     permission_classes = [permissions.IsAuthenticated]
 
+    from rest_framework.decorators import action
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        teacher = Teacher.objects.filter(user_id=request.user).first()
+        if not teacher:
+            return Response({"detail": "Teacher profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(teacher)
+        return Response(serializer.data)
+
+
+class LogoutViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class StudentViewSet(ModelViewSet):
     queryset = Student.objects.all()

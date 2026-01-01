@@ -5,15 +5,27 @@ from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    acc_type = serializers.CharField(write_only=True, required=False)
+    acc_type = serializers.CharField(required=False)
     lrn = serializers.CharField(write_only=True, required=False, allow_null=True)
     section = serializers.CharField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'acc_type', 'lrn', 'section']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password', 'acc_type', 'lrn', 'section']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if hasattr(instance, 'teacher'):
+            ret['acc_type'] = 'TEACHER'
+        elif hasattr(instance, 'student'):
+            ret['acc_type'] = 'STUDENT'
+        else:
+            ret['acc_type'] = 'ADMIN' if instance.is_superuser else 'USER'
+        return ret
 
 class TeacherSerializer(serializers.ModelSerializer):
+    user_id = UserSerializer(read_only=True)
+
     class Meta:
         model = Teacher
         fields = '__all__'
@@ -21,6 +33,8 @@ class TeacherSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    user_id = UserSerializer(read_only=True)
+
     class Meta:
         model = Student
         fields = '__all__'

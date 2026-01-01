@@ -18,6 +18,7 @@ from .arima_statistics import compute_document_statistics, compute_test_statisti
 
 MASTERY_THRESHOLD = 0.90
 PASSING_THRESHOLD = 0.75
+DEFAULT_POST_TEST_MAX_SCORE = 60.0
 
 logger = logging.getLogger("arima_model")
 
@@ -84,6 +85,7 @@ def preprocess_data(analysis_document):
         
         # calculate the weighted mean of the scores
         features_list.append({
+            "student_id": student_id,
             "weighted_mean_score": weighted_mean_score(scores),
             "std_score": score_std(scores),
             "last_score": last_score(scores),
@@ -94,10 +96,11 @@ def preprocess_data(analysis_document):
             "mastery_consistency": mastery_consistency(scores),
             "recent_decay": recent_decay(scores),
             "downside_risk": downside_risk(scores),
+            "normalized_passing_threshold": 0.75, # adding this for predicted status
+            "test_number": student_data["test_number"].max() # use the last test number as ref
         })
         
     feature_df = pd.DataFrame(features_list)
-    print(feature_df.to_string())
 
     return df, feature_df
 
@@ -190,40 +193,44 @@ def make_stationary(student_data):
 
 
 
-def make_predictions(student_data, features_df, analysis_document):
+def make_predictions(features_df, analysis_document):
     """
-    Make predictions for all students using the features_df and analysis_document
-
-    Returns the student data with the predictions added col added
+    Make predictions for all students using the features_df (aggregated) and analysis_document
+    Returns features_df with predictions and status added.
     """
+    # drop the non-feature columns
+    X = features_df.drop(columns=["student_id", "normalized_passing_threshold", "test_number"], errors='ignore')
+    x_numpy = X.to_numpy()
 
-    # drop the student_id from the features_df since it is just an identifier
-    features_df = features_df.drop("student_id", axis=1)
-
-    # transform into numpy array
-    features_df = features_df.to_numpy()
-
-    # get the model by pickling
-    model_path = os.path.join(os.path.dirname(__file__), "models", "esptfa_xgboost.pkl")
+    # get the model from the model file
+    model_path = os.path.join(os.path.dirname(__file__), "model", "esptfa_xgboost.pkl")
     if not os.path.exists(model_path):
-        raise FileNotFoundError("Model not found at path: {}".format(model_path))
-    model = pickle.load(open(model_path, "rb"))
+        logger.error(f"Model not found at path: {model_path}")
+        raise FileNotFoundError(f"Model not found at path: {model_path}")
+    
+    try:
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+    except Exception as e:
+        logger.error(f"Error loading model: {e}")
+        raise
 
     # make the predictions
-    predictions = model.predict(features_df)
-
-    # add the predictions to the student data
-    student_data["predictions"] = predictions
-
-    # make the max score the same shape as the predictions
-    # used for reversing the operation and getting the human-readable post test score
-    student_data["post_test_max_score"] = analysis_document.post_test_max_score * np.ones(len(predictions))
+    # predictions is a numpy array of length = number of students
+    normalized_predictions = model.predict(x_numpy)
+    
+    # set post test max score
+    post_test_max_score = analysis_document.post_test_max_score if analysis_document.post_test_max_score else DEFAULT_POST_TEST_MAX_SCORE
+    
+    # add the predictions to the features_df (one row per student)
+    # convert to raw scores for saving to DB
+    features_df["predictions"] = normalized_predictions * post_test_max_score
+    features_df["post_test_max_score"] = post_test_max_score
 
     # assign the predicted status
-    # used for guidance in intervention
-    student_data = assign_predicted_status(student_data)
+    features_df = assign_predicted_status(features_df)
 
-    return student_data
+    return features_df
 
 
 
@@ -232,7 +239,7 @@ def assign_predicted_status(student_data):
         Assign the predicted status to the student data
     """
     # Vectorized assignment is more efficient and avoids iterrows copy issues
-    mask = (student_data["predictions"] * student_data["post_test_max_score"]) >= (student_data["post_test_max_score"] * student_data["normalized_passing_threshold"])
+    mask = student_data["predictions"] >= (student_data["post_test_max_score"] * student_data["normalized_passing_threshold"])
     student_data["predicted_status"] = np.where(mask, "Pass", "Fail")
     
     return student_data 
@@ -394,15 +401,20 @@ def arima_driver(analysis_document):
     """ Driver function for the ARIMA model prediction. Starts the process of predicting scores for students."""
     try:
         processed_data, features_df = preprocess_data(analysis_document)
-        processed_data_with_predictions = make_predictions(processed_data, features_df, analysis_document)
-        save_predictions(processed_data_with_predictions, analysis_document)
+        predictions_df = make_predictions(features_df, analysis_document)
+        save_predictions(predictions_df, analysis_document)
 
-        compute_document_statistics(processed_data_with_predictions, analysis_document)
-        compute_test_statistics(processed_data_with_predictions, analysis_document)
-        compute_student_statistics(processed_data_with_predictions, analysis_document)
+        compute_document_statistics(processed_data, analysis_document)
+        compute_test_statistics(processed_data, analysis_document)
+        compute_student_statistics(processed_data, analysis_document)
+
+        logger.info("Analysis document processed successfully for analysis document {}".format(analysis_document.analysis_document_id))
+
 
         # Update the status of the analysis document to True (processed)
         document_status = True
+        analysis_document.status = document_status
+        analysis_document.save()
         return document_status
     
     except FormativeAssessmentScore.DoesNotExist:

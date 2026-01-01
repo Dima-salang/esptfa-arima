@@ -27,10 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    FileText,
     ClipboardList,
-    Users,
-    TrendingUp,
     MoreHorizontal,
     Plus,
     Calendar,
@@ -68,44 +65,7 @@ export default function TeacherDashboard() {
         fetchData();
     }, []);
 
-    const stats = [
-        {
-            title: "Total Analysis",
-            value: documents.length,
-            description: "Uploaded documents",
-            icon: FileText,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-            id: "total-analysis"
-        },
-        {
-            title: "Active Drafts",
-            value: drafts.length,
-            description: "Currently in progress",
-            icon: ClipboardList,
-            color: "text-amber-600",
-            bg: "bg-amber-50",
-            id: "active-drafts"
-        },
-        {
-            title: "Total Students",
-            value: "156", // Mock for now
-            description: "Across all sections",
-            icon: Users,
-            color: "text-indigo-600",
-            bg: "bg-indigo-50",
-            id: "total-students"
-        },
-        {
-            title: "Avg. Performance",
-            value: "84%", // Mock for now
-            description: "+2.5% from last month",
-            icon: TrendingUp,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
-            id: "avg-performance"
-        },
-    ];
+
 
     const getStatusBadge = (status: boolean) => {
         if (status) {
@@ -144,27 +104,7 @@ export default function TeacherDashboard() {
                     </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {stats.map((stat) => (
-                        <Card key={stat.id} className="border-none shadow-sm ring-1 ring-slate-200 hover:shadow-md transition-shadow rounded-2xl overflow-hidden group">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-bold text-slate-600 uppercase tracking-wider">
-                                    {stat.title}
-                                </CardTitle>
-                                <div className={`${stat.bg} ${stat.color} p-2.5 rounded-xl group-hover:scale-110 transition-transform`}>
-                                    <stat.icon className="h-5 w-5" />
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-black text-slate-900">{stat.value}</div>
-                                <p className="text-xs text-slate-500 mt-1 font-medium flex items-center gap-1">
-                                    {stat.description}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+
 
                 <div className="grid gap-8 lg:grid-cols-7">
                     {/* Recent Documents Table */}
@@ -174,9 +114,11 @@ export default function TeacherDashboard() {
                                 <CardTitle className="text-xl font-bold">Recent Analysis</CardTitle>
                                 <CardDescription>Your latest uploaded assessment documents</CardDescription>
                             </div>
-                            <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold">
-                                View all <ArrowUpRight className="ml-1 h-4 w-4" />
-                            </Button>
+                            <Link to="/dashboard/analysis">
+                                <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold">
+                                    View all <ArrowUpRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            </Link>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -205,10 +147,15 @@ export default function TeacherDashboard() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        documents.slice(0, 5).map((doc) => (
+                                        documents.slice(0, 7).map((doc) => (
                                             <TableRow key={doc.analysis_document_id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
-                                                <TableCell className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                                    {doc.analysis_doc_title}
+                                                <TableCell className="p-0">
+                                                    <Link
+                                                        to={`/dashboard/analysis/${doc.analysis_document_id}`}
+                                                        className="block px-4 py-4 font-bold text-slate-900 group-hover:text-indigo-600 transition-colors"
+                                                    >
+                                                        {doc.analysis_doc_title}
+                                                    </Link>
                                                 </TableCell>
                                                 <TableCell className="text-slate-500 font-medium">
                                                     <div className="flex items-center gap-2">
@@ -227,7 +174,9 @@ export default function TeacherDashboard() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" className="rounded-xl border-slate-200">
-                                                            <DropdownMenuItem className="font-medium cursor-pointer">View Analysis</DropdownMenuItem>
+                                                            <Link to={`/dashboard/analysis/${doc.analysis_document_id}`}>
+                                                                <DropdownMenuItem className="font-medium cursor-pointer">View Analysis</DropdownMenuItem>
+                                                            </Link>
                                                             <DropdownMenuItem className="font-medium cursor-pointer">Download Report</DropdownMenuItem>
                                                             <DropdownMenuItem className="font-medium cursor-pointer text-red-600">Delete</DropdownMenuItem>
                                                         </DropdownMenuContent>
@@ -243,9 +192,16 @@ export default function TeacherDashboard() {
 
                     {/* Test Drafts Sidebar */}
                     <Card className="lg:col-span-3 border-none shadow-sm ring-1 ring-slate-200 rounded-2xl overflow-hidden self-start">
-                        <CardHeader>
-                            <CardTitle className="text-xl font-bold">In-Progress Drafts</CardTitle>
-                            <CardDescription>Tests you are currently working on</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-xl font-bold">In-Progress Drafts</CardTitle>
+                                <CardDescription>Tests you are currently working on</CardDescription>
+                            </div>
+                            <Link to="/dashboard/drafts">
+                                <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold">
+                                    View all <ArrowUpRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            </Link>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {loading ? (
@@ -284,9 +240,6 @@ export default function TeacherDashboard() {
                                     </Link>
                                 ))
                             )}
-                            <Button variant="outline" className="w-full h-11 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all mt-4">
-                                View All Drafts
-                            </Button>
                         </CardContent>
                     </Card>
                 </div>
