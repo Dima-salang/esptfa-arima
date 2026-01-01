@@ -381,6 +381,14 @@ class TeacherAssignmentViewSet(viewsets.ModelViewSet):
     # define the permissions
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
 
+    def get_queryset(self):
+        # if the user is a superuser, return all teacher assignments
+        if self.request.user.is_superuser:
+            return TeacherAssignment.objects.all()
+        
+        # filter by teacher assignment
+        return TeacherAssignment.objects.filter(teacher=self.request.user)
+
 
 class AnalysisDocumentStatisticViewSet(viewsets.ModelViewSet):
     serializer_class = AnalysisDocumentStatisticSerializer
