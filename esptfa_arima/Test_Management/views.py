@@ -352,6 +352,14 @@ class QuarterViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+class TeacherAssignmentViewSet(viewsets.ModelViewSet):
+    queryset = TeacherAssignment.objects.all()
+    serializer_class = TeacherAssignmentSerializer
+
+    # define the permissions
+    permission_classes = [permissions.IsAuthenticated]
+
+
 class AnalysisDocumentStatisticViewSet(viewsets.ModelViewSet):
     serializer_class = AnalysisDocumentStatisticSerializer
 
