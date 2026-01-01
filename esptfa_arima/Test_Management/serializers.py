@@ -22,6 +22,12 @@ class SectionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class TeacherAssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeacherAssignment
+        fields = '__all__'
+
+
 class TestDraftSerializer(serializers.ModelSerializer):
     subject = SubjectSerializer(read_only=True)
     quarter = QuarterSerializer(read_only=True)
