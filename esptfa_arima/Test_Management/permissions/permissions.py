@@ -7,7 +7,3 @@ class IsTeacher(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.teacher is not None
 
-
-class HasTeacherAssignment(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.teacher is not None

@@ -336,11 +336,25 @@ class SubjectViewSet(viewsets.ModelViewSet):
     # define the permissions
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+
+        # filter by teacher assignment
+        teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
+        return Subject.objects.filter(id__in=teacher_assignments.values_list('subject_id', flat=True))
+
 
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated and self.request.user.teacher is not None :
+            # filter by teacher assignment
+            teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
+            return Section.objects.filter(id__in=teacher_assignments.values_list('section_id', flat=True))
+        # else we return to allow selecting any section in the registration
+        return Section.objects.all()
 
 
 
