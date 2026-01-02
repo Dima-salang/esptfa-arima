@@ -18,7 +18,7 @@ from django.contrib.auth.models import User
 from .models import Teacher, Student
 from Test_Management.models import Section, Subject, AnalysisDocument
 from .serializers import UserSerializer, TeacherSerializer, StudentSerializer
-from .services import register_user, login_user
+from .services import register_user, login_user, process_manual_import, process_csv_import
 import pandas as pd
 
 
@@ -90,6 +90,7 @@ class RegisterViewSet(ModelViewSet):
                 serializer.validated_data.get("username"),
                 serializer.validated_data.get("password"),
                 serializer.validated_data.get("first_name"),
+                serializer.validated_data.get("middle_name"),
                 serializer.validated_data.get("last_name"),
                 serializer.validated_data.get("email"),
                 serializer.validated_data.get("acc_type"),
