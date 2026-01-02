@@ -135,8 +135,9 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                 'student_id__lrn', 'test_number', 'score', 'passing_threshold'
             )
             
-            # Create a lookup for predictions
+            # Create a lookup for predictions and actual scores
             pred_lookup = {p.student_id.lrn: p for p in predictions}
+            actual_lookup = {a.student.lrn: a for a in ActualPostTest.objects.filter(analysis_document=document)}
             
             # Group scores by student for the matrix
             scores_by_student = {}
@@ -150,14 +151,17 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             student_performance = []
             for ss in student_stats:
                 pred = pred_lookup.get(ss.student.lrn)
+                actual = actual_lookup.get(ss.student.lrn)
                 student_performance.append({
                     "lrn": ss.student.lrn,
-                    "name": f"{ss.student.user_id.first_name} {ss.student.user_id.last_name}",
+                    "name": ss.student.full_name,
                     "mean": ss.mean,
                     "passing_rate": ss.passing_rate,
                     "failing_rate": ss.failing_rate,
                     "predicted_score": pred.score if pred else None,
                     "predicted_status": pred.predicted_status if pred else "N/A",
+                    "actual_score": actual.score if actual else None,
+                    "actual_max": actual.max_score if actual else None,
                     "intervention": self.get_intervention(pred) if pred else "No data",
                     "scores": scores_by_student.get(ss.student.lrn, {})
                 })
@@ -191,8 +195,11 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # Student specific stats for this doc
             ss_stats = StudentScoresStatistic.objects.filter(analysis_document=document, student=student).first()
             
-            # Predicted score
+            # Prediction
             prediction = PredictedScore.objects.filter(analysis_document=document, student_id=student).first()
+            
+            # Actual Post Test
+            actual = ActualPostTest.objects.filter(analysis_document=document, student=student).first()
             
             # Individual scores
             scores_objs = FormativeAssessmentScore.objects.filter(analysis_document=document, student_id=student).order_by('test_number')
@@ -213,10 +220,11 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             return Response({
                 "student": {
                     "lrn": student.lrn,
-                    "name": f"{student.user_id.first_name} {student.user_id.last_name}",
+                    "name": student.full_name,
                 },
                 "student_stats": StudentScoresStatisticSerializer(ss_stats).data if ss_stats else None,
                 "prediction": PredictedScoreSerializer(prediction).data if prediction else None,
+                "actual_post_test": ActualPostTestSerializer(actual).data if actual else None,
                 "intervention": self.get_intervention(prediction) if prediction else "No intervention data available.",
                 "scores": scores_data,
                 "class_averages": FormativeAssessmentStatisticSerializer(fa_stats, many=True).data,
@@ -438,6 +446,56 @@ class StudentScoresStatisticViewSet(viewsets.ModelViewSet):
         # get the analysis document id from the request
         analysis_document_id = self.request.query_params.get('analysis_document_id', None)
         return StudentScoresStatistic.objects.filter(analysis_document_id=analysis_document_id)
+
+
+class ActualPostTestViewSet(viewsets.ModelViewSet):
+    queryset = ActualPostTest.objects.all()
+    serializer_class = ActualPostTestSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def get_queryset(self):
+        # Filter by analysis document if provided
+        analysis_document_id = self.request.query_params.get('analysis_document_id', None)
+        if analysis_document_id:
+            return ActualPostTest.objects.filter(analysis_document_id=analysis_document_id)
+        return ActualPostTest.objects.all()
+
+    @action(detail=False, methods=['post'])
+    def bulk_upload(self, request):
+        analysis_document_id = request.data.get('analysis_document_id')
+        scores = request.data.get('scores', []) # List of {lrn: ..., score: ..., max_score: ...}
+        
+        if not analysis_document_id:
+            return Response({"error": "analysis_document_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            document = AnalysisDocument.objects.get(pk=analysis_document_id)
+            
+            created_objects = []
+            with transaction.atomic():
+                # Delete existing actual scores for this doc if any? 
+                # Or just update? Let's update or create.
+                for score_item in scores:
+                    lrn = score_item.get('lrn')
+                    score = score_item.get('score')
+                    max_score = score_item.get('max_score')
+                    
+                    student = Student.objects.get(lrn=lrn)
+                    
+                    obj, created = ActualPostTest.objects.update_or_create(
+                        analysis_document=document,
+                        student=student,
+                        defaults={'score': score, 'max_score': max_score}
+                    )
+                    created_objects.append(obj)
+                    
+            return Response({"message": f"Successfully uploaded {len(created_objects)} scores"}, status=status.HTTP_201_CREATED)
+        except AnalysisDocument.DoesNotExist:
+            return Response({"error": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Student.DoesNotExist as e:
+            return Response({"error": f"Student not found: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
