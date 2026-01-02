@@ -20,5 +20,5 @@ class Student(models.Model):
     section = models.ForeignKey('Test_Management.Section', on_delete=models.CASCADE)
     
     def __str__(self):
-        return self.user_id.get_full_name() or self.user_id.username
+        return self.user_id.get_full_name() if self.user_id else self.lrn
 
