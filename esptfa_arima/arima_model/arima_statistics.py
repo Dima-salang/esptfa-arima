@@ -137,6 +137,8 @@ def compute_student_statistics(processed_data, analysis_document):
         passing_scores = (normalized_scores >= normalized_passing_threshold).sum() 
         passing_rate = (passing_scores / total_scores) * 100
         failing_rate = (total_scores - passing_scores) / total_scores * 100
+        sum_scores = student_data["score"].sum()
+        max_possible_score = student_data["max_score"].sum()
 
         # commit to db
         with transaction.atomic():
@@ -151,7 +153,9 @@ def compute_student_statistics(processed_data, analysis_document):
                     "minimum": minimum,
                     "maximum": maximum,
                     "passing_rate": passing_rate,
-                    "failing_rate": failing_rate
+                    "failing_rate": failing_rate,
+                    "sum_scores": sum_scores,
+                    "max_possible_score": max_possible_score
                 }
             )
             
