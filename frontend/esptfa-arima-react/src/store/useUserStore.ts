@@ -22,7 +22,7 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set) => ({
     user: null,
-    loading: false,
+    loading: typeof globalThis.window !== 'undefined' ? !!localStorage.getItem("access") : false,
     error: null,
 
     fetchProfile: async () => {
