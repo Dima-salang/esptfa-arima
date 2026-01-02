@@ -46,10 +46,16 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
     }, [open, students, maxScore]);
 
     const handleScoreChange = (lrn: string, value: string) => {
-        // Allow only numbers and decimal
+        // Enforce strictly decimal numeric input (numbers and potentially one dot)
         if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
 
         setScores(prev => prev.map(s => s.lrn === lrn ? { ...s, score: value } : s));
+    };
+
+    const handleMaxScoreChange = (value: string) => {
+        // Enforce strictly decimal numeric input
+        if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
+        setInputMaxScore(value);
     };
 
     const handleSave = async () => {
@@ -104,7 +110,8 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Max Score</span>
                             <Input
                                 value={inputMaxScore}
-                                onChange={(e) => setInputMaxScore(e.target.value)}
+                                onChange={(e) => handleMaxScoreChange(e.target.value)}
+                                inputMode="decimal"
                                 className="w-20 h-8 font-black text-center border-none bg-slate-50 rounded-lg focus-visible:ring-indigo-600"
                             />
                         </div>
@@ -131,6 +138,7 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
                                                 value={student.score}
                                                 onChange={(e) => handleScoreChange(student.lrn, e.target.value)}
                                                 placeholder="0.0"
+                                                inputMode="decimal"
                                                 className="w-24 h-10 text-right font-black border-slate-200 rounded-xl focus:ring-indigo-600"
                                             />
                                             <span className="text-slate-300 font-bold">/</span>
