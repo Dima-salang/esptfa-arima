@@ -22,6 +22,7 @@ import {
     CardContent,
     CardHeader,
 } from "@/components/ui/card";
+import { toast } from "sonner";
 import {
     Table,
     TableBody,
@@ -144,9 +145,11 @@ export default function AllAnalysisPage() {
         if (confirm("Are you sure you want to delete this analysis document?")) {
             try {
                 await deleteAnalysisDocument(id);
+                toast.success("Analysis document deleted.");
                 fetchDocuments();
             } catch (error) {
                 console.error("Error deleting document:", error);
+                toast.error("Failed to delete document.");
             }
         }
     };

@@ -14,6 +14,7 @@ import type {
     Subject,
     Section
 } from "@/lib/api-admin";
+import { toast } from "sonner";
 import {
 
     Card,
@@ -87,7 +88,7 @@ export default function TeacherAssignmentsPage() {
 
     const handleCreateAssignment = async () => {
         if (!selectedTeacher || !selectedSubject || !selectedSection) {
-            alert("Please select all fields");
+            toast.error("Please select all fields");
             return;
         }
 
@@ -101,10 +102,11 @@ export default function TeacherAssignmentsPage() {
             setSelectedTeacher("");
             setSelectedSubject("");
             setSelectedSection("");
+            toast.success("Assignment created successfully");
             await fetchData();
         } catch (error) {
             console.error("Error creating assignment:", error);
-            alert("Failed to create assignment. Ensure it doesn't already exist.");
+            toast.error("Failed to create assignment. Ensure it doesn't already exist.");
         } finally {
             setSubmitting(false);
         }
@@ -116,9 +118,10 @@ export default function TeacherAssignmentsPage() {
         try {
             await deleteTeacherAssignment(id);
             setAssignments(assignments.filter(a => a.id !== id));
+            toast.success("Assignment deleted successfully");
         } catch (error) {
             console.error("Error deleting assignment:", error);
-            alert("Failed to delete assignment.");
+            toast.error("Failed to delete assignment.");
         }
     };
 

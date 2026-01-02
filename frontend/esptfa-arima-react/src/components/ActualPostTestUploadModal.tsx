@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, Upload, Loader2, Save } from "lucide-react";
 import { bulkUploadActualScores } from "@/lib/api-teacher";
+import { toast } from "sonner";
 
 interface StudentScore {
     lrn: string;
@@ -68,19 +69,20 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
             }));
 
         if (payload.length === 0) {
-            alert("Please enter at least one score to upload.");
+            toast.error("Please enter at least one score to upload.");
             return;
         }
 
         setLoading(true);
         try {
             await bulkUploadActualScores(analysisDocumentId, payload);
-            alert(`Successfully uploaded ${payload.length} scores.`);
+            toast.success(`Successfully uploaded ${payload.length} scores.`);
             setOpen(false);
             onSuccess();
         } catch (error: any) {
             console.error("Upload error:", error);
-            alert(error.response?.data?.error || "An error occurred while uploading scores.");
+            const errMsg = error.response?.data?.error || "An error occurred while uploading scores.";
+            toast.error(errMsg);
         } finally {
             setLoading(false);
         }

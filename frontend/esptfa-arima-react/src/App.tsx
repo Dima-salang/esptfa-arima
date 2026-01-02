@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentImportPage from "./pages/StudentImportPage";
 import { useUserStore } from "./store/useUserStore";
+import { Toaster } from "@/components/ui/sonner";
 import "./App.css";
 
 
@@ -54,6 +55,7 @@ function App() {
 
   return (
     <Router>
+      <Toaster position="top-right" expand={false} richColors />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
