@@ -32,6 +32,12 @@ export interface Student {
     section: number | Section;
 }
 
+export interface ActualPostTestScore {
+    lrn: string;
+    score: number;
+    max_score: number;
+}
+
 export interface AnalysisDocument {
     analysis_document_id: number;
     analysis_doc_title: string;
@@ -146,7 +152,7 @@ export const getStudentAnalysisDetail = async (docId: string | number, lrn: stri
     return response.data;
 };
 
-export const bulkUploadActualScores = async (analysisDocumentId: number, scores: any[]) => {
+export const bulkUploadActualScores = async (analysisDocumentId: number, scores: ActualPostTestScore[]) => {
     const response = await api.post("/actual-post-test/bulk_upload/", {
         analysis_document_id: analysisDocumentId,
         scores

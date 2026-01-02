@@ -93,7 +93,7 @@ export default function StudentDashboard() {
                                     </div>
                                 )}
 
-                                {!loading && docs.length > 0 && (
+                                {!loading && docs.length > 0 && studentProfile && (
                                     <>
                                         {docs.slice(0, 5).map((doc) => (
                                             <Link
