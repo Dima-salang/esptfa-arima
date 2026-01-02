@@ -188,8 +188,8 @@ export default function AssessmentEditorPage() {
         try {
             const studentsMetadata = students.map(s => ({
                 student_id: s.lrn,
-                first_name: s.user_id?.first_name || "",
-                last_name: s.user_id?.last_name || "",
+                first_name: s.first_name || "",
+                last_name: s.last_name || "",
                 section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
             }));
 
@@ -340,8 +340,8 @@ export default function AssessmentEditorPage() {
         try {
             const studentsMetadata = students.map(s => ({
                 student_id: s.lrn,
-                first_name: s.user_id?.first_name || "",
-                last_name: s.user_id?.last_name || "",
+                first_name: s.first_name || "",
+                last_name: s.last_name || "",
                 section: typeof draft?.section_id === 'object' ? draft.section_id.section_name : ""
             }));
 
@@ -626,7 +626,7 @@ export default function AssessmentEditorPage() {
                                             <TableCell className="sticky left-0 bg-white z-20 shadow-[4px_0_12px_rgba(0,0,0,0.02)] group-hover:bg-indigo-50/50 transition-colors px-8 h-12 border-r border-slate-50 font-medium">
                                                 <div className="flex flex-col py-1">
                                                     <span className="font-bold text-slate-900 text-sm leading-none group-hover:text-indigo-800 transition-colors">
-                                                        {student.user_id?.last_name || 'Unknown'}, {student.user_id?.first_name || 'Student'}
+                                                        {student.last_name || 'Unknown'}, {student.first_name || 'Student'}
                                                     </span>
                                                     <span className="text-[9px] font-bold text-slate-400 mt-1.5 font-mono tracking-wider">
                                                         {student.lrn}
