@@ -182,7 +182,7 @@ export default function AllAnalysisPage() {
                         </p>
                     </div>
                     {!isStudent && (
-                        <Link to="/dashboard/test-drafts">
+                        <Link to="/dashboard/create-analysis">
                             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
                                 <Plus className="h-5 w-5" /> New Analysis
                             </Button>
