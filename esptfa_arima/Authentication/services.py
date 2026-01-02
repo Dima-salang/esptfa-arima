@@ -4,6 +4,7 @@ from model_types import ACC_TYPE
 from django.contrib.auth import authenticate
 from Test_Management.models import Section
 from django.core.exceptions import ValidationError
+import pandas as pd
 
 def login_user(username, password):
     user = authenticate(username=username, password=password)
@@ -61,3 +62,18 @@ def register_user(username, password, first_name, last_name, email, acc_type, lr
 
     
     return user
+
+
+# processing csv for bulk import
+
+def process_csv_import(file):
+    try:
+        # read the csv file
+        students_csv = pd.read_csv(file)
+
+        # parse
+    except Exception as e:
+        raise ValidationError(str(e))
+
+        
+    
