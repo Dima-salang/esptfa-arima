@@ -75,12 +75,12 @@ export interface Topic {
 
 export const getAnalysisDocuments = async (filters?: Record<string, any>) => {
     const response = await api.get("/analysis-document/", { params: filters });
-    return response.data.results || response.data;
+    return response.data;
 };
 
 export const getTestDrafts = async (filters?: Record<string, any>) => {
     const response = await api.get("/test-draft/", { params: filters });
-    return response.data.results || response.data;
+    return response.data;
 };
 
 export const getSubjects = async () => {
