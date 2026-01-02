@@ -7,13 +7,16 @@ import {
     getQuarters,
     getSections,
     deleteAnalysisDocument,
+    getStudentProfile,
 } from "@/lib/api-teacher";
 import type {
     Subject,
     Quarter,
     Section,
-    AnalysisDocument
+    AnalysisDocument,
+    Student,
 } from "@/lib/api-teacher";
+import { useUserStore } from "@/store/useUserStore";
 import {
     Card,
     CardContent,
@@ -60,6 +63,9 @@ export default function AllAnalysisPage() {
     const [quarters, setQuarters] = useState<Quarter[]>([]);
     const [sections, setSections] = useState<Section[]>([]);
     const [loading, setLoading] = useState(true);
+    const [studentProfile, setStudentProfile] = useState<Student | null>(null);
+    const { user } = useUserStore();
+    const isStudent = user?.acc_type === "STUDENT";
     const [totalCount, setTotalCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10); // Default DRF pagination size is often 10
@@ -83,6 +89,11 @@ export default function AllAnalysisPage() {
                 setSubjects(Array.isArray(subs) ? subs : subs.results || []);
                 setQuarters(Array.isArray(qtrs) ? qtrs : qtrs.results || []);
                 setSections(Array.isArray(sects) ? sects : sects.results || []);
+
+                if (isStudent) {
+                    const profile = await getStudentProfile();
+                    setStudentProfile(profile);
+                }
             } catch (error) {
                 console.error("Error fetching filter data:", error);
             }
@@ -160,14 +171,20 @@ export default function AllAnalysisPage() {
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Analysis Archive</h1>
-                        <p className="text-slate-500 font-medium italic">Explore Historical Assessment Trends and Predictions</p>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                            {isStudent ? "Academic Archive" : "Analysis Archive"}
+                        </h1>
+                        <p className="text-slate-500 font-medium italic">
+                            {isStudent ? "View your historical academic performance and predictions" : "Explore Historical Assessment Trends and Predictions"}
+                        </p>
                     </div>
-                    <Link to="/dashboard/test-drafts">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
-                            <Plus className="h-5 w-5" /> New Analysis
-                        </Button>
-                    </Link>
+                    {!isStudent && (
+                        <Link to="/dashboard/test-drafts">
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+                                <Plus className="h-5 w-5" /> New Analysis
+                            </Button>
+                        </Link>
+                    )}
                 </div>
 
                 <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
@@ -207,17 +224,19 @@ export default function AllAnalysisPage() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={filters.section} onValueChange={(val) => setFilters({ ...filters, section: val })}>
-                                <SelectTrigger className="w-[180px] h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white font-medium">
-                                    <SelectValue placeholder="Section" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl">
-                                    <SelectItem value="all">All Sections</SelectItem>
-                                    {sections.map(s => (
-                                        <SelectItem key={s.section_id} value={s.section_id.toString()}>{s.section_name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            {!isStudent && (
+                                <Select value={filters.section} onValueChange={(val) => setFilters({ ...filters, section: val })}>
+                                    <SelectTrigger className="w-[180px] h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white font-medium">
+                                        <SelectValue placeholder="Section" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl">
+                                        <SelectItem value="all">All Sections</SelectItem>
+                                        {sections.map(s => (
+                                            <SelectItem key={s.section_id} value={s.section_id.toString()}>{s.section_name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
 
                             <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
                                 <SelectTrigger className="w-[150px] h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white font-medium">
@@ -281,7 +300,10 @@ export default function AllAnalysisPage() {
                                         <TableRow key={doc.analysis_document_id} className="group hover:bg-slate-50/50 transition-all border-slate-50 h-20">
                                             <TableCell className="px-8">
                                                 <Link
-                                                    to={`/dashboard/analysis/${doc.analysis_document_id}`}
+                                                    to={isStudent
+                                                        ? `/dashboard/student-analysis/${doc.analysis_document_id}/${studentProfile?.lrn}`
+                                                        : `/dashboard/analysis/${doc.analysis_document_id}`
+                                                    }
                                                     className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight block truncate max-w-[400px]"
                                                 >
                                                     {doc.analysis_doc_title}
@@ -315,17 +337,24 @@ export default function AllAnalysisPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="rounded-xl border-slate-200 min-w-[180px] p-2 shadow-xl">
-                                                        <Link to={`/dashboard/analysis/${doc.analysis_document_id}`}>
+                                                        <Link to={isStudent
+                                                            ? `/dashboard/student-analysis/${doc.analysis_document_id}/${studentProfile?.lrn}`
+                                                            : `/dashboard/analysis/${doc.analysis_document_id}`
+                                                        }>
                                                             <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">View Analysis</DropdownMenuItem>
                                                         </Link>
                                                         <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">Download Report</DropdownMenuItem>
-                                                        <div className="h-px bg-slate-100 my-1" />
-                                                        <DropdownMenuItem
-                                                            className="font-bold cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 rounded-lg"
-                                                            onClick={() => handleDelete(doc.analysis_document_id)}
-                                                        >
-                                                            Delete Document
-                                                        </DropdownMenuItem>
+                                                        {!isStudent && (
+                                                            <>
+                                                                <div className="h-px bg-slate-100 my-1" />
+                                                                <DropdownMenuItem
+                                                                    className="font-bold cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 rounded-lg"
+                                                                    onClick={() => handleDelete(doc.analysis_document_id)}
+                                                                >
+                                                                    Delete Document
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
