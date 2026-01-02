@@ -146,4 +146,35 @@ def get_sections_dict() -> dict:
         raise ValidationError(str(e))
 
         
+# manual importing of students
+# accepts an array of students to be created
+def process_manual_import(students: list[dict]) -> None:
+    try:
+        students_to_save = [] 
+        # loop through the students and create them
+        for student in students:
+            lrn = student.get("lrn")
+            first_name = student.get("first_name")
+            middle_name = student.get("middle_name")
+            last_name = student.get("last_name")
+            section = student.get("section")
+
+            students_to_save.append(
+                Student(
+                    lrn=lrn,
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    last_name=last_name,
+                    section=section,
+                    user_id=None
+                )
+            )
+        # save the students in a single transaction
+        with transaction.atomic():
+            Student.objects.bulk_create(students_to_save)
+
+    except Exception as e:
+        if isinstance(e, (ValidationError, DRFValidationError)):
+            raise e
+        raise ValidationError(str(e))
 

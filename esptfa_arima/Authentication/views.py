@@ -1,7 +1,7 @@
 # Create your views here.
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
-
+from .permissions import IsAdminUser
 from django.http import HttpResponse
 from django.contrib.auth import logout
 from django.shortcuts import render, redirect
@@ -149,6 +149,7 @@ class StudentViewSet(ModelViewSet):
 
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
 
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -159,7 +160,7 @@ class StudentViewSet(ModelViewSet):
         return Response(serializer.data)
 
     # for csv convenience importing
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
     def bulk_import_csv(self, request):
         # get the file from the request
         file = request.FILES['student_import_file']
@@ -173,11 +174,26 @@ class StudentViewSet(ModelViewSet):
             return Response({"Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": "Students imported successfully"}, status=status.HTTP_200_OK)
 
+    # for manual importing
+    # accepts array of students
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    def manual_import(self, request):
+        # get the students from the request
+        students = request.data.get('students', [])
+
+        # pass into services
+        try:
+            process_manual_import(students)
+        except DRFValidationError as e:
+            return Response({"Validation Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Students imported successfully"}, status=status.HTTP_200_OK)
+
+
 
 
 
         
 
     # define the permissions
-
-    permission_classes = [permissions.IsAuthenticated]
