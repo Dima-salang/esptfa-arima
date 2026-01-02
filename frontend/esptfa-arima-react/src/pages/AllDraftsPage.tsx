@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
     getTestDrafts,
+    deleteTestDraft,
     getSubjects,
     getQuarters,
     getSections,
@@ -37,6 +38,21 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
     Search,
     Calendar,
     MoreHorizontal,
@@ -47,13 +63,10 @@ import {
     ChevronRight,
     Edit3,
     History,
+    AlertCircle,
+    Trash2,
+    Loader2
 } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function AllDraftsPage() {
     const [drafts, setDrafts] = useState<TestDraft[]>([]);
@@ -64,6 +77,8 @@ export default function AllDraftsPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
+    const [deleteId, setDeleteId] = useState<number | string | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const [filters, setFilters] = useState({
         search: "",
@@ -128,6 +143,22 @@ export default function AllDraftsPage() {
             status: "all"
         });
         setCurrentPage(1);
+    };
+
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setDeleting(true);
+        try {
+            await deleteTestDraft(deleteId as number);
+            toast.success("Draft deleted successfully.");
+            setDeleteId(null);
+            fetchDrafts();
+        } catch (error) {
+            console.error("Error deleting draft:", error);
+            toast.error("Failed to delete draft. Please try again.");
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const getStatusBadge = (status: string) => {
@@ -300,10 +331,9 @@ export default function AllDraftsPage() {
                                                                 <Edit3 className="h-4 w-4" /> Edit Draft
                                                             </DropdownMenuItem>
                                                         </Link>
-                                                        <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">Duplicate</DropdownMenuItem>
-                                                        <div className="h-px bg-slate-100 my-1" />
                                                         <DropdownMenuItem
                                                             className="font-bold cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 rounded-lg"
+                                                            onClick={() => setDeleteId(draft.test_draft_id)}
                                                         >
                                                             Delete Draft
                                                         </DropdownMenuItem>
@@ -369,6 +399,46 @@ export default function AllDraftsPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
+                    <DialogHeader className="p-8 pb-4 bg-slate-50">
+                        <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center mb-4">
+                            <AlertCircle className="h-6 w-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Delete Draft?</DialogTitle>
+                        <DialogDescription className="font-medium text-slate-500 mt-2">
+                            This draft and all its progress will be permanently removed. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="p-8 pt-4 bg-slate-50 border-t border-slate-100 gap-3">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteId(null)}
+                            disabled={deleting}
+                            className="rounded-xl font-bold h-12 px-6"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="rounded-xl font-black h-12 px-8 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-100 transition-all active:scale-95 border-none"
+                        >
+                            {deleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Draft
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

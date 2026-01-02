@@ -361,7 +361,6 @@ export default function AllAnalysisPage() {
                                                         }>
                                                             <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">View Analysis</DropdownMenuItem>
                                                         </Link>
-                                                        <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">Download Report</DropdownMenuItem>
                                                         {!isStudent && (
                                                             <>
                                                                 <div className="h-px bg-slate-100 my-1" />
@@ -441,8 +440,8 @@ export default function AllAnalysisPage() {
             <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
                 <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
                     <DialogHeader className="p-8 pb-4 bg-slate-50">
-                        <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
-                            <AlertCircle className="h-6 w-6 text-red-600" />
+                        <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center mb-4">
+                            <AlertCircle className="h-6 w-6 text-rose-600" />
                         </div>
                         <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Delete Analysis Archive?</DialogTitle>
                         <DialogDescription className="font-medium text-slate-500 mt-2">
@@ -462,7 +461,7 @@ export default function AllAnalysisPage() {
                             variant="destructive"
                             onClick={handleDelete}
                             disabled={deleting}
-                            className="rounded-xl font-black h-12 px-8 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100"
+                            className="rounded-xl font-black h-12 px-8 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-100 transition-all active:scale-95 border-none"
                         >
                             {deleting ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -103,6 +103,11 @@ export const deleteAnalysisDocument = async (id: number) => {
     return response.data;
 };
 
+export const deleteTestDraft = async (id: number | string) => {
+    const response = await api.delete(`/test-draft/${id}/`);
+    return response.data;
+};
+
 export const createTestDraft = async (data: Partial<TestDraft>, idempotencyKey: string) => {
     const response = await api.post("/test-draft/", data, {
         headers: {
