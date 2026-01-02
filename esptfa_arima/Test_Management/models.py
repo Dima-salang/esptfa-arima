@@ -223,4 +223,15 @@ class StudentScoresStatistic(models.Model):
     performance_comparison_chart = models.FileField(upload_to='performance_comparisons/', null=True)
 
     def __str__(self):
-        return f"{self.analysis_document.analysis_doc_title} - {self.student.student_id} Statistics"
+        return f"{self.analysis_document.analysis_doc_title} - {self.student.lrn} Statistics"
+
+
+class ActualPostTest(models.Model):
+    actual_post_test_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, related_name='actual_post_tests')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    score = models.FloatField()
+    max_score = models.FloatField()
+
+    def __str__(self):
+        return f"{self.student.full_name} - Actual Post Test: {self.score}/{self.max_score} - {self.analysis_document.analysis_doc_title}"
