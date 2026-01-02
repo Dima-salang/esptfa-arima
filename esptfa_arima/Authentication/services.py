@@ -96,6 +96,8 @@ def process_csv_import(file: File) -> None:
 
             try:
                 lrn = str(row["lrn"]).strip()
+                if len(lrn) != 11:
+                    raise DRFValidationError(f"Row {index+1}:LRN '{lrn}' is not 11 characters long")
                 first_name = str(row["first_name"]).strip()
                 middle_name = str(row["middle_name"]).strip() if pd.notna(row["middle_name"]) else ""
                 last_name = str(row["last_name"]).strip()
@@ -158,6 +160,8 @@ def process_manual_import(students: list[dict]) -> None:
         # loop through the students and prepare them
         for index, student in enumerate(students):
             lrn = str(student.get("lrn")).strip()
+            if len(lrn) != 11:
+                raise DRFValidationError(f"Row {index+1}:LRN '{lrn}' is not 11 characters long")
             first_name = str(student.get("first_name")).strip()
             middle_name = str(student.get("middle_name", "") or "").strip()
             last_name = str(student.get("last_name")).strip()
