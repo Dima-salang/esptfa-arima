@@ -218,6 +218,8 @@ class StudentScoresStatistic(models.Model):
     mode = models.FloatField(null=True)
     passing_rate = models.FloatField()
     failing_rate = models.FloatField()
+    sum_scores = models.FloatField(null=True)
+    max_possible_score = models.FloatField(null=True)
     lineplot = models.FileField(upload_to='lineplots/', null=True)
     heatmap = models.FileField(upload_to='heatmaps/', null=True)
     performance_comparison_chart = models.FileField(upload_to='performance_comparisons/', null=True)

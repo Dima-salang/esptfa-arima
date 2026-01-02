@@ -168,7 +168,9 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                     "actual_score": actual.score if actual else None,
                     "actual_max": actual.max_score if actual else None,
                     "intervention": self.get_intervention(pred) if pred else "No data",
-                    "scores": scores_by_student.get(ss.student.lrn, {})
+                    "scores": scores_by_student.get(ss.student.lrn, {}),
+                    "sum_scores": ss.sum_scores,
+                    "max_possible_score": ss.max_possible_score
                 })
 
             # 5. Insights
