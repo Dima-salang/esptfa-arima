@@ -16,7 +16,7 @@ def login_user(username, password):
 
 # registers a user and determines whether they are a teacher or not
 # uses lrn=None as a default value if the user is not a student
-def register_user(username, password, first_name, last_name, email, acc_type, lrn=None, section_id=None):
+def register_user(username, password, first_name, middle_name, last_name, email, acc_type, lrn=None, section_id=None):
     user = User.objects.create_user(
         username=username, 
         email=email, 
@@ -54,6 +54,7 @@ def register_user(username, password, first_name, last_name, email, acc_type, lr
                 # Link the existing unlinked student record to this user
                 student_obj.user_id = user
                 student_obj.first_name = first_name
+                student_obj.middle_name = middle_name
                 student_obj.last_name = last_name
                 student_obj.save()
             else:
@@ -150,14 +151,26 @@ def get_sections_dict() -> dict:
 # accepts an array of students to be created
 def process_manual_import(students: list[dict]) -> None:
     try:
+        sections = Section.objects.all()
+        sections_dict = {section.section_id: section for section in sections}
+
         students_to_save = [] 
-        # loop through the students and create them
-        for student in students:
-            lrn = student.get("lrn")
-            first_name = student.get("first_name")
-            middle_name = student.get("middle_name")
-            last_name = student.get("last_name")
-            section = student.get("section")
+        # loop through the students and prepare them
+        for index, student in enumerate(students):
+            lrn = str(student.get("lrn")).strip()
+            first_name = str(student.get("first_name")).strip()
+            middle_name = str(student.get("middle_name", "") or "").strip()
+            last_name = str(student.get("last_name")).strip()
+            section_input = student.get("section")
+
+            # Determine the section object
+            section = sections_dict.get(section_input)
+            if not section:
+                raise DRFValidationError(f"Row {index + 1}: Section '{section_input}' does not exist")
+
+            # Check for existing student
+            if Student.objects.filter(lrn=lrn, section=section).exists():
+                raise DRFValidationError(f"Row {index + 1}: Student with LRN '{lrn}' already exists in section '{section.section_name}'")
 
             students_to_save.append(
                 Student(
@@ -169,6 +182,7 @@ def process_manual_import(students: list[dict]) -> None:
                     user_id=None
                 )
             )
+        
         # save the students in a single transaction
         with transaction.atomic():
             Student.objects.bulk_create(students_to_save)
