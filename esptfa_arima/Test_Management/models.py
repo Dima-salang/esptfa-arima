@@ -235,3 +235,7 @@ class ActualPostTest(models.Model):
 
     def __str__(self):
         return f"{self.student.full_name} - Actual Post Test: {self.score}/{self.max_score} - {self.analysis_document.analysis_doc_title}"
+
+    # enforce unique constraint on analysis_document and student
+    class Meta:
+        unique_together = ('analysis_document', 'student')
