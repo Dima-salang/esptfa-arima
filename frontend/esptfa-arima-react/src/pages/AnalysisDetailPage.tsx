@@ -72,6 +72,7 @@ import {
     LineChart as LucideLineChart,
     Grid3X3,
     BarChart3,
+    ArrowUpDown,
 } from "lucide-react";
 import ActualPostTestUploadModal from "@/components/ActualPostTestUploadModal";
 
@@ -132,6 +133,44 @@ interface AnalysisDetails {
     student_performance: StudentPerformance[];
 }
 
+const getTruePercentage = (s: StudentPerformance) => {
+    if (s.max_possible_score && s.max_possible_score > 0) {
+        const sum = s.sum_scores || 0;
+        return (sum / s.max_possible_score) * 100;
+    }
+    return s.mean || 0;
+};
+
+const getScoreColor = (score: number, maxScore: number) => {
+    const percent = maxScore > 0 ? (score / maxScore) * 100 : 0;
+    if (percent >= 90) return "bg-emerald-500";
+    if (percent >= 75) return "bg-amber-400";
+    return "bg-red-500";
+};
+
+const getInterventionColor = (score: number | null, max: number = 60) => {
+    if (!score) return "bg-slate-100 text-slate-700 border-slate-200";
+    const percent = (score / max) * 100;
+    if (percent < 75) return "bg-red-50 text-red-700 border-red-100";
+    if (percent < 90) return "bg-amber-50 text-amber-700 border-amber-100";
+    return "bg-emerald-50 text-emerald-700 border-emerald-100";
+};
+
+const InfoTooltip = ({ content }: { content: string }) => (
+    <TooltipProvider>
+        <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+                <div className="inline-flex items-center justify-center p-1 rounded-md hover:bg-slate-100 transition-colors cursor-help">
+                    <Info className="h-4 w-4 text-slate-400 hover:text-indigo-600" />
+                </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="bg-slate-900 border-none text-white text-[11px] p-3 rounded-xl shadow-2xl max-w-xs animate-in fade-in zoom-in duration-200 font-medium leading-relaxed">
+                {content}
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
+);
+
 export default function AnalysisDetailPage() {
     const { docId } = useParams<{ docId: string }>();
     const [data, setData] = useState<AnalysisDetails | null>(null);
@@ -141,6 +180,8 @@ export default function AnalysisDetailPage() {
     const [matrixSearch, setMatrixSearch] = useState("");
     const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
     const [processing, setProcessing] = useState(false);
+    const [sortField, setSortField] = useState<keyof StudentPerformance>("name");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -163,19 +204,49 @@ export default function AnalysisDetailPage() {
         fetchDetails();
     }, [docId]);
 
-    const filteredStudents = data?.student_performance.filter(s => {
-        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.lrn.includes(searchTerm);
-        const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
-        return matchesSearch && matchesStatus;
-    }) || [];
+    const handleSort = (field: keyof StudentPerformance) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortDirection("asc");
+        }
+    };
 
-    const validPredictions = data?.student_performance.filter(s => s.predicted_score !== null) || [];
-    const avgPredictedPoints = validPredictions.length > 0
-        ? validPredictions.reduce((acc, s) => acc + (s.predicted_score || 0), 0) / validPredictions.length
-        : 0;
-    const maxPossiblePoints = data?.document.post_test_max_score || 60;
-    const predictedMeanPercentage = (avgPredictedPoints / maxPossiblePoints) * 100;
+    const sortStudents = (students: StudentPerformance[]) => {
+        return [...students].sort((a, b) => {
+            let aVal: any = a[sortField];
+            let bVal: any = b[sortField];
+            if (sortField === "mean") {
+                aVal = getTruePercentage(a);
+                bVal = getTruePercentage(b);
+            }
+            if (aVal === null || aVal === undefined) return 1;
+            if (bVal === null || bVal === undefined) return -1;
+            if (typeof aVal === 'string') {
+                const comp = aVal.localeCompare(bVal);
+                return sortDirection === "asc" ? comp : -comp;
+            }
+            return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+        });
+    };
+
+    const filteredStudents = sortStudents(
+        (data?.student_performance || []).filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.lrn.includes(searchTerm);
+            const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
+            return matchesSearch && matchesStatus;
+        })
+    );
+    const matrixFilteredStudents = sortStudents(
+        (data?.student_performance || []).filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
+            const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
+            return matchesSearch && matchesStatus;
+        })
+    );
+
 
     if (loading) {
         return (
@@ -239,42 +310,16 @@ export default function AnalysisDetailPage() {
         topic: fa.fa_topic_name || `FA${fa.formative_assessment_number}`,
         passing_rate: (fa.passing_rate || 0).toFixed(1),
         failing_rate: (fa.failing_rate || 0).toFixed(1),
+        mean: Number(fa.mean.toFixed(1)),
     }));
+    const validPredictions = data.student_performance.filter(s => s.predicted_score !== null);
+    const avgPredictedPoints = validPredictions.length > 0
+        ? validPredictions.reduce((acc, s) => acc + (s.predicted_score || 0), 0) / validPredictions.length
+        : 0;
+    const maxPossiblePoints = data.document.post_test_max_score || 60;
+    const predictedMeanPercentage = (avgPredictedPoints / maxPossiblePoints) * 100;
 
-    const getInterventionColor = (score: number | null, max: number = 60) => {
-        if (!score) return "bg-slate-100 text-slate-700 border-slate-200";
-        const percent = (score / max) * 100;
-        if (percent < 75) return "bg-red-50 text-red-700 border-red-100";
-        if (percent < 90) return "bg-amber-50 text-amber-700 border-amber-100";
-        return "bg-emerald-50 text-emerald-700 border-emerald-100";
-    };
 
-    const getScoreColor = (score: number, maxScore: number) => {
-        const percent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-        if (percent >= 90) return "bg-emerald-500";
-        if (percent >= 75) return "bg-amber-400";
-        return "bg-red-500";
-    };
-
-    const getTruePercentage = (s: StudentPerformance) => {
-        if (s.max_possible_score && s.max_possible_score > 0) {
-            return (s.sum_scores / s.max_possible_score) * 100;
-        }
-        return s.mean;
-    };
-
-    const InfoTooltip = ({ content }: { content: string }) => (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-[250px] p-3 rounded-xl bg-slate-900 text-white border-none shadow-xl">
-                    <p className="text-xs leading-relaxed">{content}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
 
     return (
         <DashboardLayout>
@@ -498,7 +543,15 @@ export default function AnalysisDetailPage() {
                                             <table className="w-full text-xs text-left">
                                                 <thead className="bg-slate-50/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-20">
                                                     <tr>
-                                                        <th className="px-6 py-4 font-bold text-slate-700 uppercase tracking-tighter w-48 bg-slate-50 border-r border-slate-100 sticky left-0 z-30">Student Name</th>
+                                                        <th
+                                                            className="px-6 py-4 font-bold text-slate-700 uppercase tracking-tighter w-48 bg-slate-50 border-r border-slate-100 sticky left-0 z-30 cursor-pointer hover:text-indigo-600 transition-colors"
+                                                            onClick={() => handleSort("name")}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                Student Name
+                                                                <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                            </div>
+                                                        </th>
                                                         {data.formative_assessments.map(fa => (
                                                             <th key={fa.formative_assessment_number} className="px-2 py-4 font-bold text-slate-700 text-center uppercase tracking-tighter border-r border-slate-100/50">
                                                                 {fa.fa_topic_name || `FA${fa.formative_assessment_number}`}
@@ -508,12 +561,7 @@ export default function AnalysisDetailPage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-50">
-                                                    {data.student_performance
-                                                        .filter(s => {
-                                                            const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
-                                                            const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
-                                                            return matchesSearch && matchesStatus;
-                                                        })
+                                                    {matrixFilteredStudents
                                                         .map((student) => (
                                                             <tr key={student.lrn} className="group hover:bg-slate-50/80 transition-colors">
                                                                 <td className="px-6 py-3 font-bold text-slate-800 bg-white group-hover:bg-slate-50/80 border-r border-slate-100 sticky left-0 z-10 transition-colors">
@@ -708,21 +756,53 @@ export default function AnalysisDetailPage() {
                                 <Table>
                                     <TableHeader className="bg-slate-50/50">
                                         <TableRow className="hover:bg-transparent border-slate-100 h-14">
-                                            <TableHead className="w-[300px] font-black text-slate-700 pl-8 uppercase text-[11px] tracking-widest">Student Information</TableHead>
-                                            <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest">Avg. Historical</TableHead>
-                                            <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest">
+                                            <TableHead
+                                                className="w-[300px] font-black text-slate-700 pl-8 uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                onClick={() => handleSort("name")}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    Student Information
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                onClick={() => handleSort("mean")}
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Avg. Historical
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                onClick={() => handleSort("predicted_score")}
+                                            >
                                                 <div className="flex items-center justify-center gap-2">
                                                     ARIMA Prediction
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                     <InfoTooltip content="Score predicted by the ARIMA-XGBoost hybrid model for the upcoming evaluation." />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest">
+                                            <TableHead
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                onClick={() => handleSort("actual_score")}
+                                            >
                                                 <div className="flex items-center justify-center gap-2">
                                                     Actual Result
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                     <InfoTooltip content="The actual score achieved by the student in the post-test (if uploaded)." />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center">Status</TableHead>
+                                            <TableHead
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors"
+                                                onClick={() => handleSort("predicted_status")}
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Status
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
                                             <TableHead className="font-black text-slate-700 w-[400px] uppercase text-[11px] tracking-widest pr-8">Intervention Strategy</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -745,7 +825,7 @@ export default function AnalysisDetailPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <span className="px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-slate-700 text-sm">
-                                                            {getTruePercentage(student).toFixed(1)}%
+                                                            {student.mean.toFixed(1)}
                                                         </span>
                                                     </TableCell>
                                                     <TableCell className="text-center">
@@ -810,6 +890,7 @@ export default function AnalysisDetailPage() {
                                         </div>
                                         <TabsList className="bg-slate-100/80 p-1 h-9 rounded-xl">
                                             <TabsTrigger value="bar" className="rounded-lg text-xs font-bold px-3">Success Rate</TabsTrigger>
+                                            <TabsTrigger value="ave" className="rounded-lg text-xs font-bold px-3">Average Score</TabsTrigger>
                                             <TabsTrigger value="radar" className="rounded-lg text-xs font-bold px-3">Competency Map</TabsTrigger>
                                         </TabsList>
                                     </CardHeader>
@@ -835,6 +916,46 @@ export default function AnalysisDetailPage() {
                                                     <Legend verticalAlign="top" align="right" height={40} iconType="circle" wrapperStyle={{ fontWeight: "bold", fontSize: "12px" }} />
                                                     <Bar dataKey="passing_rate" name="Pass Rate %" stackId="a" fill="#10b981" barSize={32} radius={[0, 0, 0, 0]} />
                                                     <Bar dataKey="failing_rate" name="Fail Rate %" stackId="a" fill="#ef4444" barSize={32} radius={[0, 8, 8, 0]} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </TabsContent>
+
+                                        <TabsContent value="ave" className="h-full mt-0 animate-in fade-in duration-500">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={topicData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                    <XAxis
+                                                        dataKey="topic"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: "#475569", fontSize: 10, fontWeight: 700 }}
+                                                        angle={-45}
+                                                        textAnchor="end"
+                                                        interval={0}
+                                                    />
+                                                    <YAxis
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
+                                                        domain={[0, 100]}
+                                                    />
+                                                    <RechartsTooltip
+                                                        cursor={{ fill: 'transparent' }}
+                                                        contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+                                                    />
+                                                    <Bar
+                                                        dataKey="mean"
+                                                        name="Average Score %"
+                                                        radius={[8, 8, 0, 0]}
+                                                        barSize={40}
+                                                    >
+                                                        {topicData.map((entry, index) => (
+                                                            <Cell
+                                                                key={`cell-${index}`}
+                                                                fill={entry.mean >= 90 ? '#10b981' : entry.mean >= 75 ? '#6366f1' : '#ef4444'}
+                                                            />
+                                                        ))}
+                                                    </Bar>
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </TabsContent>
