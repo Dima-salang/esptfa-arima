@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import {
     getAnalysisDocuments,
     getTestDrafts,
+    deleteAnalysisDocument,
 } from "@/lib/api-teacher";
 import type {
     AnalysisDocument,
@@ -40,33 +41,59 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 
 export default function TeacherDashboard() {
     const [documents, setDocuments] = useState<AnalysisDocument[]>([]);
     const [drafts, setDrafts] = useState<TestDraft[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        try {
+            const docsData = await getAnalysisDocuments();
+            const draftsData = await getTestDrafts();
+
+            setDocuments(Array.isArray(docsData) ? docsData : docsData.results || []);
+            setDrafts(Array.isArray(draftsData) ? draftsData : draftsData.results || []);
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const docsData = await getAnalysisDocuments();
-                const draftsData = await getTestDrafts();
-
-                // Handle paginated responses (extracting the results array)
-                setDocuments(Array.isArray(docsData) ? docsData : docsData.results || []);
-                setDrafts(Array.isArray(draftsData) ? draftsData : draftsData.results || []);
-            } catch (error) {
-                console.error("Error fetching dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
+        fetchDashboardData();
     }, []);
 
-
-
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setDeleting(true);
+        try {
+            await deleteAnalysisDocument(deleteId);
+            toast.success("Analysis document deleted successfully");
+            setDeleteId(null);
+            fetchDashboardData();
+        } catch (error) {
+            console.error("Error deleting document:", error);
+            toast.error("Failed to delete the document. Please try again.");
+        } finally {
+            setDeleting(false);
+        }
+    };
     const getStatusBadge = (status: boolean) => {
         if (status) {
             return (
@@ -178,7 +205,12 @@ export default function TeacherDashboard() {
                                                                 <DropdownMenuItem className="font-medium cursor-pointer">View Analysis</DropdownMenuItem>
                                                             </Link>
                                                             <DropdownMenuItem className="font-medium cursor-pointer">Download Report</DropdownMenuItem>
-                                                            <DropdownMenuItem className="font-medium cursor-pointer text-red-600">Delete</DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                className="font-medium cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                                                                onClick={() => setDeleteId(doc.analysis_document_id)}
+                                                            >
+                                                                Delete Document
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
@@ -244,6 +276,46 @@ export default function TeacherDashboard() {
                     </Card>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
+                    <DialogHeader className="p-8 pb-4 bg-slate-50">
+                        <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
+                            <AlertCircle className="h-6 w-6 text-red-600" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-slate-900">Delete Analysis?</DialogTitle>
+                        <DialogDescription className="font-medium text-slate-500 mt-2">
+                            This action is permanent and cannot be undone. All associated statistics, predictions, and student records for this assessment will be removed.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="p-8 pt-4 bg-slate-50 border-t border-slate-100 gap-3">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteId(null)}
+                            disabled={deleting}
+                            className="rounded-xl font-bold h-12 px-6"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="rounded-xl font-black h-12 px-8 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100"
+                        >
+                            {deleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Document
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
