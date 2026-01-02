@@ -9,6 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
     acc_type = serializers.CharField(required=False)
     lrn = serializers.CharField(write_only=True, required=False, allow_null=True)
     section = serializers.CharField(write_only=True, required=False, allow_null=True)
+    middle_name = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = User
