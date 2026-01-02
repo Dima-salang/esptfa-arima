@@ -103,9 +103,9 @@ def process_csv_import(file: File) -> None:
                 last_name = str(row["last_name"]).strip()
 
                 # see if student already exists
-                student_obj = Student.objects.filter(lrn=lrn, section=section).first()
+                student_obj = Student.objects.filter(lrn=lrn).first()
                 if student_obj:
-                    raise DRFValidationError(f"Row {index+1}:LRN '{lrn}' already exists in section '{section_name}'")
+                    raise DRFValidationError(f"Row {index+1}:LRN '{lrn}' already exists")
 
 
                 students_to_save.append(
@@ -173,8 +173,8 @@ def process_manual_import(students: list[dict]) -> None:
                 raise DRFValidationError(f"Row {index + 1}: Section '{section_input}' does not exist")
 
             # Check for existing student
-            if Student.objects.filter(lrn=lrn, section=section).exists():
-                raise DRFValidationError(f"Row {index + 1}: Student with LRN '{lrn}' already exists in section '{section.section_name}'")
+            if Student.objects.filter(lrn=lrn).exists():
+                raise DRFValidationError(f"Row {index + 1}: Student with LRN '{lrn}' already exists")
 
             students_to_save.append(
                 Student(
