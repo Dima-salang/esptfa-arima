@@ -39,6 +39,7 @@ import {
     ArrowLeft,
     HelpCircle,
     Target,
+    CheckCircle2,
 } from "lucide-react";
 
 interface StudentDetailData {
@@ -57,6 +58,10 @@ interface StudentDetailData {
         max_score: number;
     } | null;
     intervention: string;
+    actual_post_test: {
+        score: number;
+        max_score: number;
+    } | null;
     scores: Array<{
         formative_assessment_number: string;
         score: number;
@@ -222,6 +227,27 @@ export default function StudentAnalysisPage() {
                                             </div>
                                             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-tight">Predicted Post-Test Points</p>
                                         </div>
+                                    </div>
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ACTUAL POST-TEST</p>
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                        </div>
+                                        {data.actual_post_test ? (
+                                            <div className="bg-emerald-50 p-4 rounded-2xl ring-1 ring-emerald-100">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-2xl font-black text-emerald-700 tracking-tighter">
+                                                        {data.actual_post_test.score.toFixed(1)}
+                                                    </span>
+                                                    <Badge className="bg-emerald-500">Completed</Badge>
+                                                </div>
+                                                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-tight">Out of {data.actual_post_test.max_score} points</p>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 border-dashed border-2">
+                                                <p className="text-slate-400 font-bold text-xs italic">Awaiting Results...</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="p-6">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">PEDAGOGICAL STRATEGY</p>

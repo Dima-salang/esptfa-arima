@@ -25,8 +25,11 @@ export interface User {
 
 export interface Student {
     lrn: string;
+    first_name: string;
+    middle_name: string;
+    last_name: string;
     user_id: User;
-    section: number;
+    section: number | Section;
 }
 
 export interface AnalysisDocument {
@@ -139,6 +142,14 @@ export const getPredictedScores = async (analysisDocumentId: string | number) =>
 export const getStudentAnalysisDetail = async (docId: string | number, lrn: string) => {
     const response = await api.get(`/analysis-document/${docId}/student_analysis_detail/`, {
         params: { lrn }
+    });
+    return response.data;
+};
+
+export const bulkUploadActualScores = async (analysisDocumentId: number, scores: any[]) => {
+    const response = await api.post("/actual-post-test/bulk_upload/", {
+        analysis_document_id: analysisDocumentId,
+        scores
     });
     return response.data;
 };
