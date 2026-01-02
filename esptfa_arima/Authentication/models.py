@@ -19,6 +19,11 @@ class Student(models.Model):
     user_id = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     section = models.ForeignKey('Test_Management.Section', on_delete=models.CASCADE)
     
+    @property
+    def full_name(self):
+        name_parts = [self.first_name, self.middle_name, self.last_name]
+        return " ".join([part for part in name_parts if part]).strip().replace("  ", " ")
+
     def __str__(self):
-        return self.user_id.get_full_name() if self.user_id else self.lrn
+        return self.full_name or self.lrn
 
