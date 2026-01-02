@@ -45,6 +45,7 @@ import {
     Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 
 export default function CreateAnalysisPage() {
@@ -140,9 +141,11 @@ export default function CreateAnalysisPage() {
 
             const draft = await createTestDraft(draftData, idempotencyKey);
             setCreatedDraft(draft);
+            toast.success("Draft created! Setting up topics...");
             setCurrentTab("topics");
         } catch (error) {
             console.error("Error creating draft", error);
+            toast.error("Failed to create draft. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -190,10 +193,12 @@ export default function CreateAnalysisPage() {
             };
 
             await updateTestDraft(createdDraft.test_draft_id, draftData);
+            toast.success("Assessment initialized! Redirecting to editor...");
             // Redirect to editor placeholder
             navigate(`/dashboard/editor/${createdDraft.test_draft_id}`);
         } catch (error) {
             console.error("Error updating draft", error);
+            toast.error("Failed to initialize assessment.");
         } finally {
             setIsLoading(false);
         }

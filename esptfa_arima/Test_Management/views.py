@@ -72,8 +72,13 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
 
     
 
-    # define the permissions
-    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    def get_permissions(self):
+        # Actions allowed for both teachers and students
+        if self.action in ['list', 'retrieve', 'student_analysis_detail']:
+            return [permissions.IsAuthenticated()]
+        # Actions restricted to teachers (create, full_details, etc.)
+        return [permissions.IsAuthenticated(), IsTeacher()]
+
 
     # define the create method
     def create(self, request, *args, **kwargs):
@@ -189,6 +194,12 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             lrn = request.query_params.get('lrn')
             if not lrn:
                 return Response({"error": "LRN is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Security: If the user is a student, they can ONLY access their own LRN
+            if hasattr(request.user, 'student'):
+                if request.user.student.lrn != lrn:
+                    return Response({"error": "You do not have permission to view other students' statistics."}, 
+                                    status=status.HTTP_403_FORBIDDEN)
                 
             student = get_object_or_404(Student, lrn=lrn)
             
@@ -256,10 +267,18 @@ class PredictedScoreViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        user = self.request.user
+        queryset = PredictedScore.objects.all()
+        
         analysis_document_id = self.request.query_params.get('analysis_document_id', None)
         if analysis_document_id:
-            return PredictedScore.objects.filter(analysis_document_id=analysis_document_id)
-        return PredictedScore.objects.all()
+            queryset = queryset.filter(analysis_document_id=analysis_document_id)
+            
+        if hasattr(user, 'student'):
+            return queryset.filter(student_id=user.student)
+        elif not user.is_superuser:
+            return queryset.filter(analysis_document__teacher=user)
+        return queryset
 
 
 class TestDraftViewSet(viewsets.ModelViewSet):
@@ -380,11 +399,13 @@ class SectionViewSet(viewsets.ModelViewSet):
         if self.request.user.is_superuser:
             return Section.objects.all()
         
-        if self.request.user.is_authenticated and self.request.user.teacher is not None :
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'teacher'):
             # filter by teacher assignment
             teacher_assignments = TeacherAssignment.objects.filter(teacher=self.request.user)
             return Section.objects.filter(pk__in=teacher_assignments.values_list('section_id', flat=True))
-        # else we return to allow selecting any section in the registration
+        
+        # Return all sections for students or anonymous users
+        return Section.objects.all()
 
 
 
@@ -393,7 +414,7 @@ class QuarterViewSet(viewsets.ModelViewSet):
     serializer_class = QuarterSerializer
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class TeacherAssignmentViewSet(viewsets.ModelViewSet):
@@ -443,9 +464,18 @@ class StudentScoresStatisticViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # get the analysis document id from the request
+        user = self.request.user
+        queryset = StudentScoresStatistic.objects.all()
+        
         analysis_document_id = self.request.query_params.get('analysis_document_id', None)
-        return StudentScoresStatistic.objects.filter(analysis_document_id=analysis_document_id)
+        if analysis_document_id:
+            queryset = queryset.filter(analysis_document_id=analysis_document_id)
+            
+        if hasattr(user, 'student'):
+            return queryset.filter(student=user.student)
+        elif not user.is_superuser:
+            return queryset.filter(analysis_document__teacher=user)
+        return queryset
 
 
 class ActualPostTestViewSet(viewsets.ModelViewSet):
@@ -1179,7 +1209,7 @@ def delete_document(request, document_pk):
     document = get_object_or_404(AnalysisDocument, analysis_document_id=document_pk)
     
     # Security check: only the owner can delete their document
-    if document.teacher_id.user_id != request.user:
+    if document.teacher != request.user:
         messages.error(request, "You don't have permission to delete this document.")
         return redirect("formative_assessment_dashboard")
     
@@ -1207,7 +1237,7 @@ def delete_document_ajax(request, document_pk):
         document = get_object_or_404(AnalysisDocument, analysis_document_id=document_pk)
         
         # Security check: only the owner can delete their document
-        if document.teacher_id.user_id != request.user:
+        if document.teacher != request.user:
             return JsonResponse({"status": "error", "message": "You don't have permission to delete this document."}, status=403)
         
         document_title = document.analysis_doc_title

@@ -20,5 +20,6 @@ router.register(r'analysis-document-statistic', AnalysisDocumentStatisticViewSet
 router.register(r'formative-assessment-statistic', FormativeAssessmentStatisticViewSet, basename='formative-assessment-statistic')
 router.register(r'student-scores-statistic', StudentScoresStatisticViewSet, basename='student-scores-statistic')
 router.register(r'predicted-score', PredictedScoreViewSet, basename='predicted-score')
+router.register(r'actual-post-test', ActualPostTestViewSet, basename='actual-post-test')
 urlpatterns += router.urls
 

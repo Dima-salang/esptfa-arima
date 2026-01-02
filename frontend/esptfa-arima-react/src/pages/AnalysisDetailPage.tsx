@@ -66,6 +66,7 @@ import {
     Grid3X3,
     BarChart3,
 } from "lucide-react";
+import ActualPostTestUploadModal from "@/components/ActualPostTestUploadModal";
 
 interface AnalysisDocument {
     analysis_document_id: number;
@@ -109,6 +110,8 @@ interface StudentPerformance {
     predicted_score: number | null;
     predicted_status: string;
     intervention: string;
+    actual_score: number | null;
+    actual_max: number | null;
     scores: Record<string, number>;
 }
 
@@ -273,6 +276,14 @@ export default function AnalysisDetailPage() {
                                 {data.document.subject?.subject_name} • {data.document.quarter?.quarter_name} • {data.document.section_id?.section_name}
                             </p>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <ActualPostTestUploadModal
+                            analysisDocumentId={Number(docId)}
+                            students={data.student_performance}
+                            maxScore={data.document.post_test_max_score || 60}
+                            onSuccess={() => globalThis.location.reload()}
+                        />
                     </div>
                 </div>
 
@@ -642,6 +653,12 @@ export default function AnalysisDetailPage() {
                                                     <InfoTooltip content="Score predicted by the ARIMA-XGBoost hybrid model for the upcoming evaluation." />
                                                 </div>
                                             </TableHead>
+                                            <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Actual Result
+                                                    <InfoTooltip content="The actual score achieved by the student in the post-test (if uploaded)." />
+                                                </div>
+                                            </TableHead>
                                             <TableHead className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center">Status</TableHead>
                                             <TableHead className="font-black text-slate-700 w-[400px] uppercase text-[11px] tracking-widest pr-8">Intervention Strategy</TableHead>
                                         </TableRow>
@@ -675,6 +692,18 @@ export default function AnalysisDetailPage() {
                                                             </span>
                                                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
                                                         </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {student.actual_score !== null ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-emerald-600 text-xl tracking-tighter">
+                                                                    {student.actual_score}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Actual / {student.actual_max}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.predicted_status === 'Pass'

@@ -135,3 +135,11 @@ class StudentScoresStatisticSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentScoresStatistic
         fields = '__all__'
+
+
+class ActualPostTestSerializer(serializers.ModelSerializer):
+    student_name = serializers.ReadOnlyField(source='student.full_name')
+
+    class Meta:
+        model = ActualPostTest
+        fields = '__all__'

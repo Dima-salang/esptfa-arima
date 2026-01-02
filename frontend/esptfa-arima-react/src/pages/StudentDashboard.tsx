@@ -18,6 +18,7 @@ import {
     School,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export default function StudentDashboard() {
     const { user } = useUserStore();
@@ -78,43 +79,59 @@ export default function StudentDashboard() {
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y divide-slate-50 border-t border-slate-50">
-                                {loading ? (
+                                {loading && (
                                     <div className="p-12 space-y-4">
-                                        {new Array(3).fill(0).map((_, i) => (
-                                            <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={`skeleton-${i}`} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />
                                         ))}
                                     </div>
-                                ) : docs.length === 0 ? (
+                                )}
+
+                                {!loading && docs.length === 0 && (
                                     <div className="p-16 text-center italic text-slate-400 font-medium">
                                         No reports have been published for your section yet.
                                     </div>
-                                ) : (
-                                    docs.map((doc) => (
-                                        <Link
-                                            key={doc.analysis_document_id}
-                                            to={`/dashboard/student-analysis/${doc.analysis_document_id}/${studentProfile?.lrn}`}
-                                            className="group flex items-center justify-between p-6 hover:bg-indigo-50/30 transition-all"
-                                        >
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-12 h-12 bg-white ring-1 ring-slate-200 rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:ring-indigo-100 transition-all">
-                                                    <FileText className="h-6 w-6 text-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
-                                                        {doc.analysis_doc_title}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 text-[11px] text-slate-400 font-bold">
-                                                        <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {typeof doc.subject === 'object' ? doc.subject.subject_name : "Subject"}</span>
-                                                        <span>•</span>
-                                                        <span>Uploaded {new Date(doc.upload_date).toLocaleDateString()}</span>
+                                )}
+
+                                {!loading && docs.length > 0 && studentProfile && (
+                                    <>
+                                        {docs.slice(0, 5).map((doc) => (
+                                            <Link
+                                                key={doc.analysis_document_id}
+                                                to={`/dashboard/student-analysis/${doc.analysis_document_id}/${studentProfile?.lrn}`}
+                                                className="group flex items-center justify-between p-6 hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0"
+                                            >
+                                                <div className="flex items-center gap-5">
+                                                    <div className="w-12 h-12 bg-white ring-1 ring-slate-200 rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:ring-indigo-100 transition-all">
+                                                        <FileText className="h-6 w-6 text-indigo-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
+                                                            {doc.analysis_doc_title}
+                                                        </p>
+                                                        <div className="flex items-center gap-3 text-[11px] text-slate-400 font-bold">
+                                                            <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {typeof doc.subject === 'object' ? doc.subject.subject_name : "Subject"}</span>
+                                                            <span>•</span>
+                                                            <span>Uploaded {new Date(doc.upload_date).toLocaleDateString()}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 transition-all">
+                                                    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-white" />
+                                                </div>
+                                            </Link>
+                                        ))}
+
+                                        {docs.length > 5 && (
+                                            <div className="p-6 bg-slate-50/50 flex justify-center border-t border-slate-50">
+                                                <Link to="/dashboard/analysis">
+                                                    <Button variant="ghost" className="text-indigo-600 font-black text-xs uppercase tracking-widest gap-2 hover:bg-indigo-50 rounded-xl px-6 h-10 transition-all active:scale-95">
+                                                        View More Archive <ChevronRight className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
                                             </div>
-                                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 transition-all">
-                                                <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-white" />
-                                            </div>
-                                        </Link>
-                                    ))
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </CardContent>

@@ -1,10 +1,10 @@
 
 
 January 2, 2026
-- implement csv convenience for importing students and sections for admin
-    - importing logic
-    - csv template
-    - bulk import view
+- implement csv convenience for importing students and sections for admin - DONE
+    - importing logic - DONE
+    - csv template - DONE
+    - bulk import view - DONE
 - implement student view of actual post test scores and analysis
     - ActualPostTest model
     - ActualPostTest view

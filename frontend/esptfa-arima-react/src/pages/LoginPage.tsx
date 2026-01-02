@@ -15,11 +15,13 @@ import {
 } from "@/components/ui/card";
 import api from "@/lib/api";
 import { AlertCircle, Loader2, Lock, User } from "lucide-react";
+import { useUserStore } from "@/store/useUserStore";
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const successMessage = location.state?.message;
+    const fetchProfile = useUserStore((state) => state.fetchProfile);
 
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -37,10 +39,6 @@ export default function LoginPage() {
             setIsLoading(true);
             setError(null);
             try {
-                // Assuming SimpleJWT or standard DRF JWT endpoint at /api/token/ 
-                // Or whatever the user sets up. For now, I'll hit /auth/login/ 
-                // as per the earlier look at urls.py, but update for JWT.
-
                 const response = await api.post("/login/", {
                     username: values.username,
                     password: values.password,
@@ -52,10 +50,10 @@ export default function LoginPage() {
                     if (response.data.refresh) {
                         localStorage.setItem("refresh", response.data.refresh);
                     }
+                    // Fetch profile immediately after login to populate store
+                    await fetchProfile();
                     navigate("/dashboard");
                 } else {
-                    // If standard LoginView was used, it might not return JSON token
-                    // We'll need to check the backend. For now, assume JWT.
                     setError("Invalid server response. Token not found.");
                 }
             } catch (err: any) {

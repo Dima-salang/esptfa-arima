@@ -62,6 +62,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
+import { toast } from "sonner";
 
 
 interface ScoreData {
@@ -208,6 +209,7 @@ export default function AssessmentEditorPage() {
             setLastSaved(new Date());
         } catch (err) {
             console.error("Failed to auto-save", err);
+            toast.error("Auto-save failed. Check your connection.");
         } finally {
             setIsSaving(false);
         }
@@ -318,8 +320,10 @@ export default function AssessmentEditorPage() {
             // If section changed, re-fetch students
             const studentList = await getStudents(headerFields.section_id);
             setStudents(studentList.results || studentList);
+            toast.success("Assessment details updated.");
         } catch (err) {
             console.error("Failed to update header", err);
+            toast.error("Failed to update assessment details.");
             setError("Failed to update assessment details.");
         } finally {
             setIsSaving(false);
@@ -360,9 +364,11 @@ export default function AssessmentEditorPage() {
             await createAnalysisDocument(draftId);
 
             setIsFinalizeDialogOpen(false);
+            toast.success("Assessment finalized and analysis generated!");
             navigate("/dashboard");
         } catch (err) {
             console.error("Failed to finalize", err);
+            toast.error("Failed to finalize assessment. Please try again.");
             setError("Failed to finalize assessment. Please try again.");
         } finally {
             setIsFinalizing(false);

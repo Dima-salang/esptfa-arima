@@ -14,6 +14,7 @@ import type {
     Subject,
     Section
 } from "@/lib/api-admin";
+import { toast } from "sonner";
 import {
 
     Card,
@@ -87,24 +88,25 @@ export default function TeacherAssignmentsPage() {
 
     const handleCreateAssignment = async () => {
         if (!selectedTeacher || !selectedSubject || !selectedSection) {
-            alert("Please select all fields");
+            toast.error("Please select all fields");
             return;
         }
 
         setSubmitting(true);
         try {
             await createTeacherAssignment({
-                teacher: parseInt(selectedTeacher),
-                subject: parseInt(selectedSubject),
-                section: parseInt(selectedSection)
+                teacher: Number.parseInt(selectedTeacher),
+                subject: Number.parseInt(selectedSubject),
+                section: Number.parseInt(selectedSection)
             });
             setSelectedTeacher("");
             setSelectedSubject("");
             setSelectedSection("");
+            toast.success("Assignment created successfully");
             await fetchData();
         } catch (error) {
             console.error("Error creating assignment:", error);
-            alert("Failed to create assignment. Ensure it doesn't already exist.");
+            toast.error("Failed to create assignment. Ensure it doesn't already exist.");
         } finally {
             setSubmitting(false);
         }
@@ -116,9 +118,10 @@ export default function TeacherAssignmentsPage() {
         try {
             await deleteTeacherAssignment(id);
             setAssignments(assignments.filter(a => a.id !== id));
+            toast.success("Assignment deleted successfully");
         } catch (error) {
             console.error("Error deleting assignment:", error);
-            alert("Failed to delete assignment.");
+            toast.error("Failed to delete assignment.");
         }
     };
 
@@ -148,9 +151,9 @@ export default function TeacherAssignmentsPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Teacher</label>
+                                <label htmlFor="teacher-select" className="text-sm font-bold text-slate-700">Teacher</label>
                                 <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-                                    <SelectTrigger className="w-full rounded-xl border-slate-200 focus:ring-indigo-500/20">
+                                    <SelectTrigger id="teacher-select" className="w-full rounded-xl border-slate-200 focus:ring-indigo-500/20">
                                         <SelectValue placeholder="Select Teacher" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -164,9 +167,9 @@ export default function TeacherAssignmentsPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Subject</label>
+                                <label htmlFor="subject-select" className="text-sm font-bold text-slate-700">Subject</label>
                                 <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                                    <SelectTrigger className="w-full rounded-xl border-slate-200 focus:ring-indigo-500/20">
+                                    <SelectTrigger id="subject-select" className="w-full rounded-xl border-slate-200 focus:ring-indigo-500/20">
                                         <SelectValue placeholder="Select Subject" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -180,9 +183,9 @@ export default function TeacherAssignmentsPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Section</label>
+                                <label htmlFor="section-select" className="text-sm font-bold text-slate-700">Section</label>
                                 <Select value={selectedSection} onValueChange={setSelectedSection}>
-                                    <SelectTrigger className="w-full rounded-xl border-slate-200 focus:ring-indigo-500/20">
+                                    <SelectTrigger id="section-select" className="w-full rounded-xl border-slate-200 focus:ring-indigo-500/20">
                                         <SelectValue placeholder="Select Section" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -232,55 +235,55 @@ export default function TeacherAssignmentsPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {loading ? (
-                                            new Array(5).fill(0).map((_, i) => (
-                                                <TableRow key={`skeleton-${i}`} className="animate-pulse border-slate-50">
+                                        {loading && (
+                                            ["sk1", "sk2", "sk3", "sk4", "sk5"].map((sk) => (
+                                                <TableRow key={sk} className="animate-pulse border-slate-50">
                                                     <TableCell><div className="h-4 bg-slate-100 rounded w-32"></div></TableCell>
                                                     <TableCell><div className="h-4 bg-slate-100 rounded w-24"></div></TableCell>
                                                     <TableCell><div className="h-4 bg-slate-100 rounded w-20"></div></TableCell>
                                                     <TableCell><div className="h-8 bg-slate-100 rounded-full w-8 ml-auto"></div></TableCell>
                                                 </TableRow>
                                             ))
-                                        ) : assignments.length === 0 ? (
+                                        )}
+                                        {!loading && assignments.length === 0 && (
                                             <TableRow>
                                                 <TableCell colSpan={4} className="h-32 text-center text-slate-500 font-medium italic">
                                                     No assignments found. Add one on the left to get started.
                                                 </TableCell>
                                             </TableRow>
-                                        ) : (
-                                            assignments.map((assignment) => (
-                                                <TableRow key={assignment.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
-                                                    <TableCell className="font-bold text-slate-900">
-                                                        <div className="flex items-center gap-2">
-                                                            <Users className="h-4 w-4 text-slate-400" />
-                                                            {assignment.teacher_details?.name || "Unknown Teacher"}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-slate-600 font-medium">
-                                                        <div className="flex items-center gap-2">
-                                                            <BookOpen className="h-3.5 w-3.5 text-slate-400" />
-                                                            {assignment.subject_details?.subject_name}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-slate-600 font-medium">
-                                                        <div className="flex items-center gap-2">
-                                                            <School className="h-3.5 w-3.5 text-slate-400" />
-                                                            {assignment.section_details?.section_name}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                                                            onClick={() => handleDeleteAssignment(assignment.id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
                                         )}
+                                        {!loading && assignments.length > 0 && assignments.map((assignment) => (
+                                            <TableRow key={assignment.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
+                                                <TableCell className="font-bold text-slate-900">
+                                                    <div className="flex items-center gap-2">
+                                                        <Users className="h-4 w-4 text-slate-400" />
+                                                        {assignment.teacher_details?.name || "Unknown Teacher"}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-slate-600 font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <BookOpen className="h-3.5 w-3.5 text-slate-400" />
+                                                        {assignment.subject_details?.subject_name}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-slate-600 font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <School className="h-3.5 w-3.5 text-slate-400" />
+                                                        {assignment.section_details?.section_name}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                                        onClick={() => handleDeleteAssignment(assignment.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
                                     </TableBody>
                                 </Table>
                             </div>

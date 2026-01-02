@@ -77,9 +77,11 @@ export default function DashboardLayout({
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
     ];
 
-    if (!isStudent && !isSuperuser) {
+    menuItems.push(
+        { icon: FileText, label: isStudent ? "Analysis Archive" : "Analysis Documents", href: "/dashboard/analysis" }
+    );
+    if (!isStudent) {
         menuItems.push(
-            { icon: FileText, label: "Analysis Documents", href: "/dashboard/analysis" },
             { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" }
         );
     }
