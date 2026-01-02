@@ -59,6 +59,7 @@ export default function RegisterPage() {
             username: "",
             email: "",
             first_name: "",
+            middle_name: "",
             last_name: "",
             password: "",
             confirmPassword: "",
@@ -70,6 +71,7 @@ export default function RegisterPage() {
             username: Yup.string().min(3, "Too short").required("Required"),
             email: Yup.string().email("Invalid email").required("Required"),
             first_name: Yup.string().required("Required"),
+            middle_name: Yup.string().optional(),
             last_name: Yup.string().required("Required"),
             password: Yup.string().min(6, "Password must be at least 6 characters").required("Required"),
             confirmPassword: Yup.string()
@@ -95,6 +97,7 @@ export default function RegisterPage() {
                     username: values.username,
                     email: values.email,
                     first_name: values.first_name,
+                    middle_name: values.middle_name,
                     last_name: values.last_name,
                     password: values.password,
                     acc_type: values.acc_type,
@@ -120,11 +123,16 @@ export default function RegisterPage() {
                         } else {
                             // Extract first error from field errors
                             const fieldErrors = Object.entries(data).map(([field, msgs]) => {
+                                // non_field_errors often contains the specific service-level errors
+                                if (field === "non_field_errors") return Array.isArray(msgs) ? msgs.join(" ") : msgs;
+                                if (field === "detail") return msgs;
+
                                 const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace("_", " ");
                                 const errorMsg = Array.isArray(msgs) ? msgs[0] : msgs;
                                 return `${fieldName}: ${errorMsg}`;
                             });
                             setError(fieldErrors.join(" | "));
+
 
                             // Also optionally set formik field errors
                             const errors: any = {};
@@ -204,6 +212,17 @@ export default function RegisterPage() {
                                 {formik.touched.first_name && formik.errors.first_name && (
                                     <p className="text-xs text-red-500">{formik.errors.first_name}</p>
                                 )}
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-1.5">
+                                    <Label htmlFor="middle_name">Middle Name</Label>
+                                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Optional</span>
+                                </div>
+                                <Input
+                                    id="middle_name"
+                                    placeholder="Quincy"
+                                    {...formik.getFieldProps("middle_name")}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="last_name">Last Name</Label>

@@ -11,9 +11,33 @@ import StudentAnalysisPage from "./pages/StudentAnalysisPage";
 import AllAnalysisPage from "./pages/AllAnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
 import TeacherAssignmentsPage from "./pages/TeacherAssignmentsPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
+import StudentImportPage from "./pages/StudentImportPage";
 import { useUserStore } from "./store/useUserStore";
 import "./App.css";
 
+
+// Dispatcher to handle landing on /dashboard
+const DashboardDispatcher = () => {
+  const { user, loading } = useUserStore();
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+
+  if (user?.acc_type === "ADMIN") {
+    return <AdminDashboard />;
+  }
+
+  if (user?.acc_type === "STUDENT") {
+    return <StudentDashboard />;
+  }
+
+  return <TeacherDashboard />;
+};
 
 // Basic Private Route wrapper
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -39,10 +63,19 @@ function App() {
           path="/dashboard"
           element={
             <PrivateRoute>
-              <TeacherDashboard />
+              <DashboardDispatcher />
             </PrivateRoute>
           }
         />
+        <Route
+          path="/dashboard/student-analysis/:docId/:lrn"
+          element={
+            <PrivateRoute>
+              <StudentAnalysisPage />
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/dashboard/create-analysis"
           element={
@@ -104,6 +137,14 @@ function App() {
           element={
             <PrivateRoute>
               <TeacherAssignmentsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/import-students"
+          element={
+            <PrivateRoute>
+              <StudentImportPage />
             </PrivateRoute>
           }
         />

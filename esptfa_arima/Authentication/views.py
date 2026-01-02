@@ -1,5 +1,7 @@
-
 # Create your views here.
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.core.exceptions import ValidationError
+from .permissions import IsAdminUser
 from django.http import HttpResponse
 from django.contrib.auth import logout
 from django.shortcuts import render, redirect
@@ -11,10 +13,13 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.decorators import action
 from django.contrib.auth.models import User
 from .models import Teacher, Student
+from Test_Management.models import Section, Subject, AnalysisDocument
 from .serializers import UserSerializer, TeacherSerializer, StudentSerializer
-from .services import register_user, login_user
+from .services import register_user, login_user, process_manual_import, process_csv_import
+import pandas as pd
 
 
 def register(request):
@@ -70,23 +75,37 @@ class RegisterViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # register the user
-        register_user(
-            serializer.validated_data.get("username"),
-            serializer.validated_data.get("password"),
-            serializer.validated_data.get("first_name"),
-            serializer.validated_data.get("last_name"),
-            serializer.validated_data.get("email"),
-            serializer.validated_data.get("acc_type"),
-            serializer.validated_data.get("lrn"),
-            serializer.validated_data.get("section")
-        )
+        try:
+            # register the user
+            register_user(
+                serializer.validated_data.get("username"),
+                serializer.validated_data.get("password"),
+                serializer.validated_data.get("first_name"),
+                serializer.validated_data.get("middle_name"),
+                serializer.validated_data.get("last_name"),
+                serializer.validated_data.get("email"),
+                serializer.validated_data.get("acc_type"),
+                serializer.validated_data.get("lrn"),
+                serializer.validated_data.get("section")
+            )
+        except ValidationError as e:
+            # Propagate Django validation errors as DRF validation errors
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError(detail=e.messages)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"message": "Your account has been created successfully. Please wait for approval from the administrator."}, status=status.HTTP_201_CREATED)
+
 
 class TeacherViewSet(viewsets.ModelViewSet):
     queryset = Teacher.objects.all()
@@ -115,9 +134,67 @@ class LogoutViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class SystemStatsViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def list(self, request):
+        return Response({
+            "total_students": Student.objects.count(),
+            "total_teachers": Teacher.objects.count(),
+            "total_sections": Section.objects.count(),
+            "total_subjects": Subject.objects.count(),
+            "total_documents": AnalysisDocument.objects.count(),
+        })
+
 class StudentViewSet(ModelViewSet):
+
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        student = Student.objects.filter(user_id=request.user).first()
+        if not student:
+            return Response({"detail": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(student)
+        return Response(serializer.data)
+
+    # for csv convenience importing
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    def bulk_import_csv(self, request):
+        # get the file from the request
+        file = request.FILES['student_import_file']
+
+        # pass into services
+        try:
+            process_csv_import(file)
+        except DRFValidationError as e:
+            return Response({"Validation Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Students imported successfully"}, status=status.HTTP_200_OK)
+
+    # for manual importing
+    # accepts array of students
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    def manual_import(self, request):
+        # get the students from the request
+        students = request.data.get('students', [])
+
+        # pass into services
+        try:
+            process_manual_import(students)
+        except DRFValidationError as e:
+            return Response({"Validation Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Students imported successfully"}, status=status.HTTP_200_OK)
+
+
+
+
+
+        
 
     # define the permissions
-    permission_classes = [permissions.IsAuthenticated]

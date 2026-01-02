@@ -11,6 +11,7 @@ import {
     Bell,
     Search,
     ChevronRight,
+    UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -65,30 +66,38 @@ export default function DashboardLayout({
     defaultCollapsed?: boolean
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(!defaultCollapsed);
-    const { profile, loading } = useUserStore();
+    const { user, loading } = useUserStore();
     const location = useLocation();
+
+    const accType = user?.acc_type || "Educator";
+    const isSuperuser = accType === "ADMIN";
+    const isStudent = accType === "STUDENT";
 
     const menuItems = [
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-        { icon: FileText, label: "Analysis Documents", href: "/dashboard/analysis" },
-        { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" },
     ];
 
-    const { user_id: user } = profile || {};
-    const fullName = user ? `${user.first_name} ${user.last_name}` : "System User";
-    const initials = user ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}` : "??";
-    const accType = user?.acc_type || "Educator";
-    const isSuperuser = user?.acc_type === "ADMIN";
-
-    // Add Admin only items
+    if (!isStudent && !isSuperuser) {
+        menuItems.push(
+            { icon: FileText, label: "Analysis Documents", href: "/dashboard/analysis" },
+            { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" }
+        );
+    }
     if (isSuperuser) {
-        menuItems.push({ icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" });
+        menuItems.push(
+            { icon: FileText, label: "Repository", href: "/dashboard/analysis" },
+            { icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" },
+            { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" }
+        );
     }
 
-
+    const fullName = user ? `${user.first_name} ${user.last_name}` : "System User";
+    const initials = user ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}` : "??";
 
     return (
+
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
+
             {/* Sidebar */}
             <aside
                 className={cn(

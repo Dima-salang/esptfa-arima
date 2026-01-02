@@ -20,9 +20,9 @@ import { Separator } from "@/components/ui/separator";
 import { useUserStore } from "@/store/useUserStore";
 
 export default function SettingsPage() {
-    const { profile, loading } = useUserStore();
+    const { user, loading } = useUserStore();
 
-    if (loading && !profile) {
+    if (loading && !user) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-[60vh]">
@@ -32,9 +32,9 @@ export default function SettingsPage() {
         );
     }
 
-    const { user_id: user } = profile || {};
     const initials = user ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}` : "??";
     const fullName = user ? `${user.first_name} ${user.last_name}` : "System User";
+
 
     return (
         <DashboardLayout>

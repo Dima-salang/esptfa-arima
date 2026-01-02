@@ -10,8 +10,10 @@ from .views import (
     LoginViewSet, 
     TeacherViewSet, 
     StudentViewSet,
-    LogoutViewSet
+    LogoutViewSet,
+    SystemStatsViewSet
 )
+
 
 urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
@@ -26,4 +28,6 @@ router.register(r'register', RegisterViewSet, basename='register')
 router.register(r'teacher', TeacherViewSet, basename='teacher')
 router.register(r'student', StudentViewSet, basename='student')
 router.register(r'logout', LogoutViewSet, basename='logout')
+router.register(r'system-stats', SystemStatsViewSet, basename='system-stats')
+
 urlpatterns += router.urls

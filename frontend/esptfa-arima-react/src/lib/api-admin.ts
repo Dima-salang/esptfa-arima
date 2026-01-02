@@ -45,6 +45,14 @@ export interface Section {
     section_name: string;
 }
 
+export interface Student {
+    lrn: string;
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    section: number;
+}
+
 export const getTeacherAssignments = async () => {
     const response = await api.get("/teacher-assignment/");
     return response.data;
@@ -78,4 +86,26 @@ export const getAllSections = async () => {
     const response = await api.get("/section/");
     return response.data;
 };
+
+export const getSystemStats = async () => {
+    const response = await api.get("/system-stats/");
+    return response.data;
+};
+
+export const bulkImportCSV = async (file: File) => {
+    const formData = new FormData();
+    formData.append("student_import_file", file);
+    const response = await api.post("/student/bulk_import_csv/", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+    return response.data;
+};
+
+export const manualImportStudents = async (students: Student[]) => {
+    const response = await api.post("/student/manual_import/", { students });
+    return response.data;
+};
+
 

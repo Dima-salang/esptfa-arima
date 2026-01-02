@@ -2,16 +2,26 @@
 from rest_framework import serializers
 from .models import Teacher, Student
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     acc_type = serializers.CharField(required=False)
     lrn = serializers.CharField(write_only=True, required=False, allow_null=True)
     section = serializers.CharField(write_only=True, required=False, allow_null=True)
+    middle_name = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password', 'acc_type', 'lrn', 'section']
+        fields = ['id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'password', 'acc_type', 'lrn', 'section']
+    
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except Exception as e:
+            raise serializers.ValidationError(list(e.messages) if hasattr(e, 'messages') else str(e))
+        return value
+
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

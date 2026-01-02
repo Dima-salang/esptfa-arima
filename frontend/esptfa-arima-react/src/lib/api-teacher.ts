@@ -148,6 +148,18 @@ export const getTeacherProfile = async () => {
     return response.data;
 };
 
+export const getCurrentUser = async () => {
+    const response = await api.get("/register/me/");
+    return response.data;
+};
+
+export const getStudentProfile = async () => {
+    const response = await api.get("/student/me/");
+    return response.data;
+};
+
+
+
 export const logoutUser = async () => {
     try {
         const refresh = localStorage.getItem("refresh");

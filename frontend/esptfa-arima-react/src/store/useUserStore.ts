@@ -1,21 +1,19 @@
 import { create } from 'zustand';
-import { getTeacherProfile } from '@/lib/api-teacher';
+import { getCurrentUser } from '@/lib/api-teacher';
 
-interface TeacherProfile {
-    teacher_id: number;
-    user_id: {
-        id: number;
-        username: string;
-        first_name: string;
-        last_name: string;
-        email: string;
-        acc_type: string;
-    };
-    expertise?: string;
+interface UserProfile {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    acc_type: string;
+    lrn?: string;
+    section?: string;
 }
 
 interface UserState {
-    profile: TeacherProfile | null;
+    user: UserProfile | null;
     loading: boolean;
     error: string | null;
     fetchProfile: () => Promise<void>;
@@ -23,30 +21,31 @@ interface UserState {
 }
 
 export const useUserStore = create<UserState>((set) => ({
-    profile: null,
+    user: null,
     loading: false,
     error: null,
 
     fetchProfile: async () => {
         const token = localStorage.getItem("access");
         if (!token) {
-            set({ profile: null, loading: false });
+            set({ user: null, loading: false });
             return;
         }
 
         set({ loading: true, error: null });
         try {
-            const data = await getTeacherProfile();
-            set({ profile: data, loading: false });
+            const data = await getCurrentUser();
+            set({ user: data, loading: false });
         } catch (err: any) {
-            console.error("Failed to fetch teacher profile:", err);
+            console.error("Failed to fetch user profile:", err);
             set({
                 error: err.message || "Failed to load profile",
                 loading: false,
-                profile: null
+                user: null
             });
         }
     },
 
-    clearProfile: () => set({ profile: null, loading: false, error: null }),
+    clearProfile: () => set({ user: null, loading: false, error: null }),
 }));
+
