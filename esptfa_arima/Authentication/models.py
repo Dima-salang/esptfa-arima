@@ -12,9 +12,9 @@ class Teacher(models.Model):
 
 
 class Student(models.Model):
-    first_name = models.CharField(max_length=50, null=True)
-    middle_name = models.CharField(max_length=50, null=True)
-    last_name = models.CharField(max_length=50, null=True)
+    first_name = models.CharField(max_length=50, blank=True)
+    middle_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
     lrn = models.CharField(unique=True, primary_key=True, max_length=11)
     user_id = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     section = models.ForeignKey('Test_Management.Section', on_delete=models.CASCADE)
