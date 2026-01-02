@@ -15,6 +15,7 @@ class RegisterUserTestCase(TestCase):
         username = "teacher1"
         password = "password123"
         first_name = "Teacher"
+        middle_name = "M"
         last_name = "User"
         email = "teacher@example.com"
         
@@ -22,6 +23,7 @@ class RegisterUserTestCase(TestCase):
             username=username,
             password=password,
             first_name=first_name,
+            middle_name=middle_name, 
             last_name=last_name,
             email=email,
             acc_type=ACC_TYPE.TEACHER
@@ -44,6 +46,7 @@ class RegisterUserTestCase(TestCase):
         username = "student1"
         password = "password123"
         first_name = "Student"
+        middle_name = "M"
         last_name = "User"
         email = "student@example.com"
         lrn = "12345678901"
@@ -52,6 +55,7 @@ class RegisterUserTestCase(TestCase):
             username=username,
             password=password,
             first_name=first_name,
+            middle_name=middle_name,
             last_name=last_name,
             email=email,
             acc_type=ACC_TYPE.STUDENT,
@@ -78,6 +82,7 @@ class RegisterUserTestCase(TestCase):
             username=username,
             password="password123",
             first_name="First",
+            middle_name="M",
             last_name="Last",
             email="test1@example.com",
             acc_type=ACC_TYPE.TEACHER
