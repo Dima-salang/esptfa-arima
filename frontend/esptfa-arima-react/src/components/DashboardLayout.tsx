@@ -8,8 +8,6 @@ import {
     Settings,
     LogOut,
     Menu,
-    Bell,
-    Search,
     ChevronRight,
     UserPlus,
 } from "lucide-react";
@@ -23,7 +21,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -202,21 +199,8 @@ export default function DashboardLayout({
                         >
                             <Menu className="h-5 w-5" />
                         </Button>
-                        <div className="relative max-w-md w-full hidden md:block">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                            <Input
-                                placeholder="Search everything..."
-                                className="pl-10 h-10 bg-slate-50 border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500/20 transition-all w-full rounded-xl"
-                            />
-                        </div>
                     </div>
-
                     <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" className="relative text-slate-500 rounded-full hover:bg-slate-100">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-2 right-2.5 w-2 h-2 bg-indigo-600 rounded-full border-2 border-white" />
-                        </Button>
-
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">

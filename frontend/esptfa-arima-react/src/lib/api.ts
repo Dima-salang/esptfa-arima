@@ -23,38 +23,64 @@ api.interceptors.request.use(
     }
 );
 
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+    refreshSubscribers.push(cb);
+};
+
+const onRefreshed = (token: string) => {
+    refreshSubscribers.forEach((cb) => cb(token));
+    refreshSubscribers = [];
+};
+
 // Response interceptor to handle token expiration
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // If the error is 401 and we haven't retried this specific request yet
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise((resolve) => {
+                    subscribeTokenRefresh((token: string) => {
+                        originalRequest.headers["Authorization"] = `Bearer ${token}`;
+                        resolve(api(originalRequest));
+                    });
+                });
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
+
+            const refreshToken = localStorage.getItem("refresh");
+            if (!refreshToken) {
+                isRefreshing = false;
+                localStorage.removeItem("access");
+                globalThis.location.href = "/login";
+                throw error;
+            }
 
             try {
-                const refreshToken = localStorage.getItem("refresh");
-
-                // Attempt to get a new access token
                 const response = await axios.post(`${API_URL}/token/refresh/`, {
                     refresh: refreshToken,
                 });
 
                 const { access, refresh: newRefresh } = response.data;
 
-                // Update storage and headers
                 localStorage.setItem("access", access);
                 if (newRefresh) {
                     localStorage.setItem("refresh", newRefresh);
                 }
-                api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-                originalRequest.headers["Authorization"] = `Bearer ${access}`;
 
-                // Retry the original request with the new token
+                api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+                onRefreshed(access);
+                isRefreshing = false;
+
                 return api(originalRequest);
             } catch (refreshError) {
-                // If refresh fails, the refresh token is likely expired too
+                isRefreshing = false;
                 localStorage.removeItem("access");
                 localStorage.removeItem("refresh");
                 globalThis.location.href = "/login";
