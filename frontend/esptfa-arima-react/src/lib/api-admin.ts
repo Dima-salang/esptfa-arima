@@ -84,4 +84,20 @@ export const getSystemStats = async () => {
     return response.data;
 };
 
+export const bulkImportCSV = async (file: File) => {
+    const formData = new FormData();
+    formData.append("student_import_file", file);
+    const response = await api.post("/student/bulk_import_csv/", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+    return response.data;
+};
+
+export const manualImportStudents = async (students: any[]) => {
+    const response = await api.post("/student/manual_import/", { students });
+    return response.data;
+};
+
 
