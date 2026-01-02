@@ -23,6 +23,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,6 +119,8 @@ interface StudentPerformance {
     intervention: string;
     actual_score: number | null;
     actual_max: number | null;
+    sum_scores: number;
+    max_possible_score: number;
     scores: Record<string, number>;
 }
 
@@ -128,7 +137,9 @@ export default function AnalysisDetailPage() {
     const [data, setData] = useState<AnalysisDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [matrixSearch, setMatrixSearch] = useState("");
+    const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -152,10 +163,12 @@ export default function AnalysisDetailPage() {
         fetchDetails();
     }, [docId]);
 
-    const filteredStudents = data?.student_performance.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.lrn.includes(searchTerm)
-    ) || [];
+    const filteredStudents = data?.student_performance.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.lrn.includes(searchTerm);
+        const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
+        return matchesSearch && matchesStatus;
+    }) || [];
 
     const validPredictions = data?.student_performance.filter(s => s.predicted_score !== null) || [];
     const avgPredictedPoints = validPredictions.length > 0
@@ -241,6 +254,13 @@ export default function AnalysisDetailPage() {
         if (percent >= 90) return "bg-emerald-500";
         if (percent >= 75) return "bg-amber-400";
         return "bg-red-500";
+    };
+
+    const getTruePercentage = (s: StudentPerformance) => {
+        if (s.max_possible_score && s.max_possible_score > 0) {
+            return (s.sum_scores / s.max_possible_score) * 100;
+        }
+        return s.mean;
     };
 
     const InfoTooltip = ({ content }: { content: string }) => (
@@ -439,15 +459,27 @@ export default function AnalysisDetailPage() {
                                     </TabsContent>
 
                                     <TabsContent value="heatmap" className="mt-0 animate-in fade-in duration-500 overflow-visible">
-                                        <div className="mb-6 flex items-center justify-between gap-4">
-                                            <div className="relative w-72">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                                                <Input
-                                                    placeholder="Find student in matrix..."
-                                                    value={matrixSearch}
-                                                    onChange={(e) => setMatrixSearch(e.target.value)}
-                                                    className="pl-9 h-9 rounded-xl border-slate-200 text-sm focus-visible:ring-indigo-600"
-                                                />
+                                        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative w-64">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                                    <Input
+                                                        placeholder="Find student..."
+                                                        value={matrixSearch}
+                                                        onChange={(e) => setMatrixSearch(e.target.value)}
+                                                        className="pl-9 h-10 rounded-xl border-slate-200 text-sm focus-visible:ring-indigo-600"
+                                                    />
+                                                </div>
+                                                <Select value={matrixStatusFilter} onValueChange={setMatrixStatusFilter}>
+                                                    <SelectTrigger className="w-36 h-10 rounded-xl border-slate-200 font-bold text-xs bg-white text-slate-700">
+                                                        <SelectValue placeholder="Status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                                        <SelectItem value="all" className="font-bold text-xs">All Students</SelectItem>
+                                                        <SelectItem value="pass" className="font-bold text-xs text-emerald-600">Predicted Pass</SelectItem>
+                                                        <SelectItem value="fail" className="font-bold text-xs text-red-600">Predicted Fail</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
                                             <div className="flex gap-4">
                                                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
@@ -477,7 +509,11 @@ export default function AnalysisDetailPage() {
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-50">
                                                     {data.student_performance
-                                                        .filter(s => s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch))
+                                                        .filter(s => {
+                                                            const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
+                                                            const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
+                                                            return matchesSearch && matchesStatus;
+                                                        })
                                                         .map((student) => (
                                                             <tr key={student.lrn} className="group hover:bg-slate-50/80 transition-colors">
                                                                 <td className="px-6 py-3 font-bold text-slate-800 bg-white group-hover:bg-slate-50/80 border-r border-slate-100 sticky left-0 z-10 transition-colors">
@@ -540,9 +576,24 @@ export default function AnalysisDetailPage() {
                                                         <PieChart>
                                                             <Pie
                                                                 data={[
-                                                                    { name: 'Mastery', value: data.student_performance.filter(s => s.mean >= 90).length, color: '#10b981' },
-                                                                    { name: 'Passing', value: data.student_performance.filter(s => s.mean >= 75 && s.mean < 90).length, color: '#fbbf24' },
-                                                                    { name: 'At Risk', value: data.student_performance.filter(s => s.mean < 75).length, color: '#ef4444' }
+                                                                    {
+                                                                        name: 'Mastery',
+                                                                        value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length,
+                                                                        color: '#10b981'
+                                                                    },
+                                                                    {
+                                                                        name: 'Passing',
+                                                                        value: data.student_performance.filter(s => {
+                                                                            const p = getTruePercentage(s);
+                                                                            return p >= 75 && p < 90;
+                                                                        }).length,
+                                                                        color: '#fbbf24'
+                                                                    },
+                                                                    {
+                                                                        name: 'At Risk',
+                                                                        value: data.student_performance.filter(s => getTruePercentage(s) < 75).length,
+                                                                        color: '#ef4444'
+                                                                    }
                                                                 ].filter(d => d.value > 0)}
                                                                 innerRadius={60}
                                                                 outerRadius={80}
@@ -631,14 +682,26 @@ export default function AnalysisDetailPage() {
                                     </CardTitle>
                                     <CardDescription>Advanced predictions and pedagogical intervention guide</CardDescription>
                                 </div>
-                                <div className="relative w-full md:w-80">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input
-                                        placeholder="Search by learner name or LRN..."
-                                        className="pl-12 pr-4 rounded-2xl h-12 border-none ring-1 ring-slate-200 bg-white/80 focus-visible:ring-indigo-600 shadow-sm"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                    <div className="relative w-full md:w-80">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            placeholder="Search by learner name or LRN..."
+                                            className="pl-12 pr-4 rounded-2xl h-12 border-none ring-1 ring-slate-200 bg-white/80 focus-visible:ring-indigo-600 shadow-sm w-full"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                        <SelectTrigger className="w-full sm:w-44 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <SelectValue placeholder="All Statuses" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Students</SelectItem>
+                                            <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Predicted Pass</SelectItem>
+                                            <SelectItem value="fail" className="font-bold rounded-xl h-10 text-red-600">Predicted Fail</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-0">
@@ -682,7 +745,7 @@ export default function AnalysisDetailPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <span className="px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-slate-700 text-sm">
-                                                            {student.mean.toFixed(1)}%
+                                                            {getTruePercentage(student).toFixed(1)}%
                                                         </span>
                                                     </TableCell>
                                                     <TableCell className="text-center">

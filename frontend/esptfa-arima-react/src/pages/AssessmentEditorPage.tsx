@@ -58,7 +58,8 @@ import {
     Settings2,
     Check,
     Edit3,
-    X
+    X,
+    Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
@@ -91,6 +92,8 @@ export default function AssessmentEditorPage() {
     const [error, setError] = useState<string | null>(null);
     const [isFinalizing, setIsFinalizing] = useState(false);
     const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
 
     // Header Editing State
     const [isEditingHeader, setIsEditingHeader] = useState(false);
@@ -375,6 +378,42 @@ export default function AssessmentEditorPage() {
         }
     };
 
+    const filteredStudents = students.filter(student => {
+        // Search Filter
+        const matchesSearch =
+            student.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.lrn.includes(searchTerm);
+
+        if (!matchesSearch) return false;
+
+        // Status Filter
+        if (statusFilter === "all") return true;
+
+        const studentScores = scores[student.lrn] || {};
+        const scoredCount = Object.keys(studentScores).length;
+        const totalTopics = topics.length;
+
+        if (statusFilter === "complete") return scoredCount === totalTopics;
+        if (statusFilter === "incomplete") return scoredCount < totalTopics;
+
+        if (statusFilter === "at-risk") {
+            if (scoredCount === 0) return false;
+            let totalPossible = 0;
+            let totalObtained = 0;
+            topics.forEach(t => {
+                if (studentScores[t.id]) {
+                    totalObtained += studentScores[t.id].score;
+                    totalPossible += t.max_score;
+                }
+            });
+            const percent = (totalObtained / totalPossible) * 100;
+            return percent < 75;
+        }
+
+        return true;
+    });
+
     if (isLoading) {
         return (
             <DashboardLayout defaultCollapsed={true}>
@@ -554,6 +593,35 @@ export default function AssessmentEditorPage() {
                     </div>
                 </div>
 
+                {/* Editor Header Info & Filters */}
+                <div className="flex flex-col md:flex-row items-end justify-between gap-4 px-6 mb-2">
+                    <div className="flex flex-col gap-1">
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                        <div className="relative w-full md:w-72">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Search students..."
+                                className="pl-12 pr-4 rounded-2xl h-12 border-slate-200 bg-white/50 focus-visible:ring-indigo-600 shadow-sm transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-full sm:w-44 h-12 rounded-2xl border-slate-200 bg-white/50 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                <SelectValue placeholder="All Students" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
+                                <SelectItem value="all" className="font-bold rounded-xl h-10">All Students</SelectItem>
+                                <SelectItem value="complete" className="font-bold rounded-xl h-10 text-emerald-600">Fully Scored</SelectItem>
+                                <SelectItem value="incomplete" className="font-bold rounded-xl h-10 text-amber-600">Missing Scores</SelectItem>
+                                <SelectItem value="at-risk" className="font-bold rounded-xl h-10 text-red-600">At Risk ({"<"}75%)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
                 {/* Main Spreadsheet Grid */}
                 <div className="px-4">
                     <Card className="border-none shadow-2xl ring-1 ring-slate-200 rounded-[2.5rem] overflow-hidden bg-white">
@@ -618,7 +686,7 @@ export default function AssessmentEditorPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {students.map((student, sIdx) => (
+                                    {filteredStudents.map((student, sIdx) => (
                                         <TableRow key={student.lrn} className={cn(
                                             "group border-b border-slate-50 transition-colors",
                                             sIdx % 2 === 0 ? "bg-white" : "bg-slate-50/20"
@@ -674,7 +742,7 @@ export default function AssessmentEditorPage() {
                                             <TableCell className="bg-slate-50/10" />
                                         </TableRow>
                                     ))}
-                                    {students.length === 0 && (
+                                    {filteredStudents.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={topics.length + 2} className="h-64 text-center">
                                                 <div className="flex flex-col items-center gap-2 text-slate-400">
