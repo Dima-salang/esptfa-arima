@@ -88,12 +88,12 @@ export default function AdminDashboard() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {loading ? (
-                        new Array(4).fill(0).map((_, i) => (
-                            <div key={`skeleton-stat-${i}`} className="h-32 bg-slate-100 animate-pulse rounded-3xl" />
+                        ["s1", "s2", "s3", "s4"].map((id) => (
+                            <div key={id} className="h-32 bg-slate-100 animate-pulse rounded-3xl" />
                         ))
                     ) : (
-                        statCards.map((stat, i) => (
-                            <Card key={i} className="border-none shadow-sm ring-1 ring-slate-200 rounded-3xl overflow-hidden hover:shadow-md transition-shadow">
+                        statCards.map((stat) => (
+                            <Card key={stat.title} className="border-none shadow-sm ring-1 ring-slate-200 rounded-3xl overflow-hidden hover:shadow-md transition-shadow">
                                 <CardContent className="p-6 flex items-center justify-between">
                                     <div>
                                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{stat.title}</p>
@@ -124,61 +124,43 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y divide-slate-50">
-                                {loading ? (
+                                {loading && (
                                     <div className="p-8 text-center text-slate-400">Loading documents...</div>
-                                ) : recentDocs.length === 0 ? (
-                                    <div className="p-12 text-center italic text-slate-400 font-medium">No analysis documents found in the system.</div>
-                                ) : (
-                                    recentDocs.map((doc) => (
-                                        <Link
-                                            key={doc.analysis_document_id}
-                                            to={`/dashboard/analysis/${doc.analysis_document_id}`}
-                                            className="group flex items-center justify-between p-6 hover:bg-slate-50 transition-all"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-white ring-1 ring-slate-200 rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
-                                                    <FileText className="h-6 w-6 text-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
-                                                        {doc.analysis_doc_title}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 text-xs text-slate-400 font-bold">
-                                                        <span>{typeof doc.subject === 'object' ? doc.subject.subject_name : "Subject ID: " + doc.subject}</span>
-                                                        <span>•</span>
-                                                        <span>{new Date(doc.upload_date).toLocaleDateString()}</span>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
-                                                <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-indigo-600" />
-                                            </div>
-                                        </Link>
-                                    ))
                                 )}
+                                {!loading && recentDocs.length === 0 && (
+                                    <div className="p-12 text-center italic text-slate-400 font-medium">No analysis documents found in the system.</div>
+                                )}
+                                {!loading && recentDocs.length > 0 && recentDocs.map((doc) => (
+                                    <Link
+                                        key={doc.analysis_document_id}
+                                        to={`/dashboard/analysis/${doc.analysis_document_id}`}
+                                        className="group flex items-center justify-between p-6 hover:bg-slate-50 transition-all"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-white ring-1 ring-slate-200 rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                                <FileText className="h-6 w-6 text-indigo-500" />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
+                                                    {doc.analysis_doc_title}
+                                                </p>
+                                                <div className="flex items-center gap-3 text-xs text-slate-400 font-bold">
+                                                    <span>{typeof doc.subject === 'object' ? doc.subject.subject_name : "Subject ID: " + doc.subject}</span>
+                                                    <span>•</span>
+                                                    <span>{new Date(doc.upload_date).toLocaleDateString()}</span>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
+                                            <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-indigo-600" />
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Quick Access */}
-                    <div className="space-y-6">
-                        <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-[2rem] overflow-hidden bg-indigo-600 text-white">
-                            <CardHeader className="p-8">
-                                <CardTitle className="text-xl font-bold">System Status</CardTitle>
-                                <CardDescription className="text-indigo-100 italic">Core engine performance</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-8 pt-0 space-y-4">
-                                <div className="p-4 bg-white/10 rounded-2xl border border-white/10">
-                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">ARIMA Processing</p>
-                                    <p className="text-xl font-black italic">OPTIMAL</p>
-                                </div>
-                                <p className="text-xs leading-relaxed opacity-80">
-                                    All prediction models are currently functioning within normal parameters. Real-time insights are being generated for all active analysis documents.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
                 </div>
             </div>
         </DashboardLayout>
