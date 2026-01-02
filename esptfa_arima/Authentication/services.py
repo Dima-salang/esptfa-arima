@@ -68,11 +68,16 @@ def register_user(username, password, first_name, last_name, email, acc_type, lr
     return user
 
 
+from django.db import transaction
+
 # processing csv for bulk import
 def process_csv_import(file: File) -> None:
     try:
         # read the csv file
         students_csv = pd.read_csv(file)
+        
+        # Normalize column names to lowercase and strip whitespace
+        students_csv.columns = students_csv.columns.str.strip().str.lower()
         validated_csv = validate_csv(students_csv)
 
         # get the sections dictionary
@@ -80,18 +85,25 @@ def process_csv_import(file: File) -> None:
 
         students_to_save = []
 
-        # loop through the csv file and create the students
+        # loop through the csv file and prepare the students
         for index, row in validated_csv.iterrows():
-            try:
-                section = sections_dict[row["section"]]
-            except KeyError:
-                raise DRFValidationError("Section does not exist")
+            section_name = str(row["section"]).strip()
+            section = sections_dict.get(section_name)
+            
+            if not section:
+                raise DRFValidationError(f"Section '{section_name}' does not exist")
 
             try:
-                lrn = row["lrn"]
-                first_name = row["first_name"]
-                middle_name = row["middle_name"]
-                last_name = row["last_name"]
+                lrn = str(row["lrn"]).strip()
+                first_name = str(row["first_name"]).strip()
+                middle_name = str(row["middle_name"]).strip() if pd.notna(row["middle_name"]) else ""
+                last_name = str(row["last_name"]).strip()
+
+                # see if student already exists
+                student_obj = Student.objects.filter(lrn=lrn, section=section).first()
+                if student_obj:
+                    raise DRFValidationError(f"Row {index+1}:LRN '{lrn}' already exists in section '{section_name}'")
+
 
                 students_to_save.append(
                     Student(
@@ -99,31 +111,28 @@ def process_csv_import(file: File) -> None:
                         section=section,
                         first_name=first_name,
                         middle_name=middle_name,
-                        last_name=last_name
+                        last_name=last_name,
+                        user_id=None
                     )
                 )
             except Exception as e:
-                raise DRFValidationError(str(e))
+                raise DRFValidationError(f"Row {index + 1}: {str(e)}")
 
-        # save the students
-        Student.objects.bulk_create(students_to_save)
+        # save the students in a single transaction
+        with transaction.atomic():
+            Student.objects.bulk_create(students_to_save)
 
-
-
-
-        # parse
     except Exception as e:
+        if isinstance(e, (ValidationError, DRFValidationError)):
+            raise e
         raise ValidationError(str(e))
 
 def validate_csv(df: pd.DataFrame) -> pd.DataFrame:
-    try:
-        # check if the csv file has the correct columns
-        if not all(col.lower() in df.columns for col in ["lrn", "first_name", "middle_name", "last_name", "section"]):
-            raise DRFValidationError("CSV file must have the following columns: lrn, first_name, middle_name, last_name, section")
-        
-        return df
-    except Exception as e:
-        raise ValidationError(str(e))
+    required_columns = ["lrn", "first_name", "middle_name", "last_name", "section"]
+    if not all(col in df.columns for col in required_columns):
+        raise DRFValidationError(f"CSV file must have the following columns: {', '.join(required_columns)}")
+    
+    return df
 
 
 # return the dict which contains {section_name: section_object}

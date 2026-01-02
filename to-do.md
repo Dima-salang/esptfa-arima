@@ -11,3 +11,4 @@ January 2, 2026
     - ActualPostTest serializer
     - interface for teachers to upload actual post test scores
     - student dashboard for viewing their analysis, predictions, and raw scores, and actual post test scores
+- modify the analysis view to display the students details and not the user details
