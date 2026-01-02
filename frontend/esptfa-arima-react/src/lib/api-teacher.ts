@@ -129,7 +129,7 @@ export const createAnalysisDocument = async (testDraftId: string) => {
 
 export const getStudents = async (sectionId?: string) => {
     const params = sectionId ? { section: sectionId } : {};
-    const response = await api.get("/student/", { params });
+    const response = await api.get("/student/students_for_section/", { params });
     return response.data.results || response.data;
 };
 
