@@ -18,6 +18,7 @@ import {
     TrendingUp,
     ChevronRight,
     LayoutGrid,
+    UserPlus,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -70,11 +71,18 @@ export default function AdminDashboard() {
                         <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">System Administration</h1>
                         <p className="text-slate-500 font-medium italic">Global overview and resource management dashboard</p>
                     </div>
-                    <Link to="/dashboard/assignments">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-200 rounded-2xl h-12 px-6">
-                            <LayoutGrid className="mr-2 h-4 w-4" /> Manage Assignments
-                        </Button>
-                    </Link>
+                    <div className="flex gap-3">
+                        <Link to="/dashboard/import-students">
+                            <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 shadow-sm rounded-2xl h-12 px-6">
+                                <UserPlus className="mr-2 h-4 w-4" /> Import Students
+                            </Button>
+                        </Link>
+                        <Link to="/dashboard/assignments">
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-200 rounded-2xl h-12 px-6">
+                                <LayoutGrid className="mr-2 h-4 w-4" /> Manage Assignments
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Stats Grid */}

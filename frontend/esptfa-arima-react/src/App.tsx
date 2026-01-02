@@ -13,6 +13,7 @@ import SettingsPage from "./pages/SettingsPage";
 import TeacherAssignmentsPage from "./pages/TeacherAssignmentsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentImportPage from "./pages/StudentImportPage";
 import { useUserStore } from "./store/useUserStore";
 import "./App.css";
 
@@ -136,6 +137,14 @@ function App() {
           element={
             <PrivateRoute>
               <TeacherAssignmentsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/import-students"
+          element={
+            <PrivateRoute>
+              <StudentImportPage />
             </PrivateRoute>
           }
         />

@@ -11,6 +11,7 @@ import {
     Bell,
     Search,
     ChevronRight,
+    UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -85,7 +86,8 @@ export default function DashboardLayout({
     if (isSuperuser) {
         menuItems.push(
             { icon: FileText, label: "Repository", href: "/dashboard/analysis" },
-            { icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" }
+            { icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" },
+            { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" }
         );
     }
 
