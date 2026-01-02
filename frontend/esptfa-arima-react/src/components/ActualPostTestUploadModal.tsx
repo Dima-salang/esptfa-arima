@@ -33,7 +33,6 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [scores, setScores] = useState<StudentScore[]>([]);
-    const [inputMaxScore, setInputMaxScore] = useState<string>(maxScore.toString());
 
     useEffect(() => {
         if (open) {
@@ -42,9 +41,8 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
                 name: s.name,
                 score: s.actual_score !== undefined && s.actual_score !== null ? s.actual_score.toString() : ""
             })));
-            setInputMaxScore(maxScore.toString());
         }
-    }, [open, students, maxScore]);
+    }, [open, students]);
 
     const handleScoreChange = (lrn: string, value: string) => {
         // Enforce strictly decimal numeric input (numbers and potentially one dot)
@@ -53,11 +51,6 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
         setScores(prev => prev.map(s => s.lrn === lrn ? { ...s, score: value } : s));
     };
 
-    const handleMaxScoreChange = (value: string) => {
-        // Enforce strictly decimal numeric input
-        if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
-        setInputMaxScore(value);
-    };
 
     const handleSave = async () => {
         const payload = scores
@@ -65,7 +58,7 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
             .map(s => ({
                 lrn: s.lrn,
                 score: Number.parseFloat(s.score),
-                max_score: Number.parseFloat(inputMaxScore)
+                max_score: maxScore
             }));
 
         if (payload.length === 0) {
@@ -108,14 +101,11 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
                                 Enter the actual scores achieved by students in their post-test.
                             </DialogDescription>
                         </div>
-                        <div className="flex items-center gap-3 bg-white p-3 rounded-2xl ring-1 ring-slate-200">
+                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl ring-1 ring-slate-200 shadow-sm">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Max Score</span>
-                            <Input
-                                value={inputMaxScore}
-                                onChange={(e) => handleMaxScoreChange(e.target.value)}
-                                inputMode="decimal"
-                                className="w-20 h-8 font-black text-center border-none bg-slate-50 rounded-lg focus-visible:ring-indigo-600"
-                            />
+                            <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
+                                {maxScore}
+                            </span>
                         </div>
                     </div>
                 </DialogHeader>
@@ -144,7 +134,7 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
                                                 className="w-24 h-10 text-right font-black border-slate-200 rounded-xl focus:ring-indigo-600"
                                             />
                                             <span className="text-slate-300 font-bold">/</span>
-                                            <span className="text-slate-400 font-bold text-sm w-10 text-left">{inputMaxScore}</span>
+                                            <span className="text-slate-400 font-bold text-sm min-w-[2rem] text-left">{maxScore}</span>
                                         </div>
                                     </TableCell>
                                 </TableRow>
