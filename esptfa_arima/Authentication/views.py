@@ -1,4 +1,5 @@
 # Create your views here.
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
 
 from django.http import HttpResponse
@@ -18,7 +19,7 @@ from .models import Teacher, Student
 from Test_Management.models import Section, Subject, AnalysisDocument
 from .serializers import UserSerializer, TeacherSerializer, StudentSerializer
 from .services import register_user, login_user
-
+import pandas as pd
 
 
 def register(request):
@@ -156,6 +157,26 @@ class StudentViewSet(ModelViewSet):
             return Response({"detail": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(student)
         return Response(serializer.data)
+
+    # for csv convenience importing
+    @action(detail=False, methods=['post'])
+    def bulk_import_csv(self, request):
+        # get the file from the request
+        file = request.FILES['student_import_file']
+
+        # pass into services
+        try:
+            process_csv_import(file)
+        except DRFValidationError as e:
+            return Response({"Validation Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Students imported successfully"}, status=status.HTTP_200_OK)
+
+
+
+
+        
 
     # define the permissions
 
