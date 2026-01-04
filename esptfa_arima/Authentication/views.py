@@ -156,6 +156,17 @@ class StudentViewSet(ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsTeacher])
     def students_for_section(self, request):
         section = request.query_params.get('section')
+        # validate the section
+        # check whether the section parameter has been provided
+        if not section:
+            return Response({"detail": "Section is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # check whether the section exists in the database
+        try:
+            section = Section.objects.get(pk=section)
+        except Section.DoesNotExist:
+            return Response({"detail": "Section does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
         students = Student.objects.filter(section=section)
         serializer = StudentSerializer(students, many=True)
         return Response(serializer.data)

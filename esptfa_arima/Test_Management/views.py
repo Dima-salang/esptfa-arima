@@ -510,7 +510,6 @@ class ActualPostTestViewSet(viewsets.ModelViewSet):
                 for score_item in scores:
                     lrn = score_item.get('lrn')
                     score = score_item.get('score')
-                    # Fallback to document's post_test_max_score if not provided in individual item
                     max_score = document.post_test_max_score
                     
                     student = Student.objects.get(lrn=lrn)
