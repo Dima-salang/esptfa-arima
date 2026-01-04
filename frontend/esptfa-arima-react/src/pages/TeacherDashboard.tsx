@@ -204,7 +204,6 @@ export default function TeacherDashboard() {
                                                             <Link to={`/dashboard/analysis/${doc.analysis_document_id}`}>
                                                                 <DropdownMenuItem className="font-medium cursor-pointer">View Analysis</DropdownMenuItem>
                                                             </Link>
-                                                            <DropdownMenuItem className="font-medium cursor-pointer">Download Report</DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 className="font-medium cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
                                                                 onClick={() => setDeleteId(doc.analysis_document_id)}
