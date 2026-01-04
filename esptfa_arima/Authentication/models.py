@@ -10,6 +10,9 @@ class Teacher(models.Model):
     def __str__(self):
         return self.user_id.get_full_name() or self.user_id.username
 
+    class Meta:
+        ordering = ['-id']
+
 
 class Student(models.Model):
     first_name = models.CharField(max_length=50, blank=True)
@@ -26,4 +29,3 @@ class Student(models.Model):
 
     def __str__(self):
         return self.full_name or self.lrn
-

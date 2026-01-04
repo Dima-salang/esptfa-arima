@@ -14,6 +14,9 @@ class IdempotencyKey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
 
 class Subject(models.Model):
     subject_id = models.AutoField(unique=True, primary_key=True)
@@ -22,6 +25,9 @@ class Subject(models.Model):
     def __str__(self):
         return self.subject_name
 
+    class Meta:
+        ordering = ['-subject_id']
+
 class Quarter(models.Model):
     quarter_id = models.AutoField(unique=True, primary_key=True)
     quarter_name = models.CharField(max_length=20)
@@ -29,12 +35,18 @@ class Quarter(models.Model):
     def __str__(self):
         return self.quarter_name
 
+    class Meta:
+        ordering = ['-quarter_id']
+
 class Section(models.Model):
     section_id = models.AutoField(unique=True, primary_key=True)
     section_name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.section_name
+
+    class Meta:
+        ordering = ['-section_id']
 
 
 # pairs the teacher for a specific subject and section
@@ -47,6 +59,9 @@ class TeacherAssignment(models.Model):
 
     def __str__(self):
         return f"{self.teacher} - {self.section} - {self.subject}"
+
+    class Meta:
+        ordering = ['-created_at']
 
 # draft version of the analysis document
 class TestDraft(models.Model):
@@ -63,6 +78,9 @@ class TestDraft(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.test_draft_id}"
+
+    class Meta:
+        ordering = ['-created_at']
 
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
@@ -84,6 +102,9 @@ class AnalysisDocument(models.Model):
     def __str__(self):
         return self.analysis_doc_title
 
+    class Meta:
+        ordering = ['-upload_date']
+
 class TestTopic(models.Model):
     topic_id = models.AutoField(unique=True, primary_key=True)
     topic_name = models.CharField(max_length=100)
@@ -94,6 +115,9 @@ class TestTopic(models.Model):
 
     def __str__(self):
         return self.topic_name
+
+    class Meta:
+        ordering = ['-topic_id']
 
     @classmethod
     def get_or_create_topic(cls, topic_name):
@@ -115,6 +139,9 @@ class TestTopicMapping(models.Model):
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - Test {self.topic.test_number}: {self.topic}"
 
+    class Meta:
+        ordering = ['-mapping_id']
+
 
 class FormativeAssessmentScore(models.Model):
     formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
@@ -128,6 +155,9 @@ class FormativeAssessmentScore(models.Model):
 
     def __str__(self):
         return f"{self.student_id} - {self.test_number}: {self.score}"
+
+    class Meta:
+        ordering = ['-date', '-formative_assessment_score_id']
 
 
 class PredictedScore(models.Model):
@@ -144,6 +174,9 @@ class PredictedScore(models.Model):
 
     def __str__(self):
         return f"{self.student_id} - {self.test_number}: {self.score}"
+
+    class Meta:
+        ordering = ['-date', '-predicted_score_id']
 
 
 
@@ -166,6 +199,9 @@ class AnalysisDocumentStatistic(models.Model):
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Statistics"
 
+    class Meta:
+        ordering = ['-analysis_document_statistic_id']
+
 class AnalysisDocumentInsights(models.Model):
     analysis_document_insights_id = models.AutoField(
         unique=True, primary_key=True)
@@ -176,6 +212,9 @@ class AnalysisDocumentInsights(models.Model):
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Insights"
+
+    class Meta:
+        ordering = ['-analysis_document_insights_id']
 
 class FormativeAssessmentStatistic(models.Model):
     formative_assessment_statistic_id = models.AutoField(
@@ -203,6 +242,9 @@ class FormativeAssessmentStatistic(models.Model):
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
 
+    class Meta:
+        ordering = ['-formative_assessment_statistic_id']
+
 
 class StudentScoresStatistic(models.Model):
     student_scores_statistic_id = models.AutoField(
@@ -227,6 +269,9 @@ class StudentScoresStatistic(models.Model):
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - {self.student.lrn} Statistics"
 
+    class Meta:
+        ordering = ['-student_scores_statistic_id']
+
 
 class ActualPostTest(models.Model):
     actual_post_test_id = models.AutoField(unique=True, primary_key=True)
@@ -241,3 +286,4 @@ class ActualPostTest(models.Model):
     # enforce unique constraint on analysis_document and student
     class Meta:
         unique_together = ('analysis_document', 'student')
+        ordering = ['-actual_post_test_id']
