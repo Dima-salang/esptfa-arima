@@ -35,7 +35,7 @@ def preprocess_data(analysis_document):
     fa_scores = FormativeAssessmentScore.objects.filter(
         analysis_document=analysis_document
     ).select_related(
-        "student_id__user_id",
+        "student_id",
         "student_id__section",
         "topic_mapping__topic"
     )
@@ -51,8 +51,8 @@ def preprocess_data(analysis_document):
         
         data.append({
             "student_id": student.lrn,
-            "first_name": student.user_id.first_name,
-            "last_name": student.user_id.last_name,
+            "first_name": student.first_name,
+            "last_name": student.last_name,
             "section": student.section.section_name if student.section else "N/A",
             "test_number": int(score.test_number),
             "score": score.score,

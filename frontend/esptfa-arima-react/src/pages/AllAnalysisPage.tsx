@@ -57,6 +57,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 
 export default function AllAnalysisPage() {
     const [documents, setDocuments] = useState<AnalysisDocument[]>([]);
@@ -78,6 +87,9 @@ export default function AllAnalysisPage() {
         section: "all",
         status: "all"
     });
+
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -141,16 +153,19 @@ export default function AllAnalysisPage() {
         setCurrentPage(1);
     };
 
-    const handleDelete = async (id: number) => {
-        if (confirm("Are you sure you want to delete this analysis document?")) {
-            try {
-                await deleteAnalysisDocument(id);
-                toast.success("Analysis document deleted.");
-                fetchDocuments();
-            } catch (error) {
-                console.error("Error deleting document:", error);
-                toast.error("Failed to delete document.");
-            }
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setDeleting(true);
+        try {
+            await deleteAnalysisDocument(deleteId);
+            toast.success("Analysis document deleted successfully.");
+            setDeleteId(null);
+            fetchDocuments();
+        } catch (error) {
+            console.error("Error deleting document:", error);
+            toast.error("Failed to delete document. Please try again.");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -182,7 +197,7 @@ export default function AllAnalysisPage() {
                         </p>
                     </div>
                     {!isStudent && (
-                        <Link to="/dashboard/test-drafts">
+                        <Link to="/dashboard/create-analysis">
                             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
                                 <Plus className="h-5 w-5" /> New Analysis
                             </Button>
@@ -346,13 +361,12 @@ export default function AllAnalysisPage() {
                                                         }>
                                                             <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">View Analysis</DropdownMenuItem>
                                                         </Link>
-                                                        <DropdownMenuItem className="font-bold cursor-pointer rounded-lg">Download Report</DropdownMenuItem>
                                                         {!isStudent && (
                                                             <>
                                                                 <div className="h-px bg-slate-100 my-1" />
                                                                 <DropdownMenuItem
                                                                     className="font-bold cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 rounded-lg"
-                                                                    onClick={() => handleDelete(doc.analysis_document_id)}
+                                                                    onClick={() => setDeleteId(doc.analysis_document_id)}
                                                                 >
                                                                     Delete Document
                                                                 </DropdownMenuItem>
@@ -421,6 +435,46 @@ export default function AllAnalysisPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
+                    <DialogHeader className="p-8 pb-4 bg-slate-50">
+                        <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center mb-4">
+                            <AlertCircle className="h-6 w-6 text-rose-600" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Delete Analysis Archive?</DialogTitle>
+                        <DialogDescription className="font-medium text-slate-500 mt-2">
+                            This action is permanent and will remove all student scores, topic performance maps, and ARIMA-generated predictions associated with this document.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="p-8 pt-4 bg-slate-50 border-t border-slate-100 gap-3">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteId(null)}
+                            disabled={deleting}
+                            className="rounded-xl font-bold h-12 px-6"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="rounded-xl font-black h-12 px-8 bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-100 transition-all active:scale-95 border-none"
+                        >
+                            {deleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Archive
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
