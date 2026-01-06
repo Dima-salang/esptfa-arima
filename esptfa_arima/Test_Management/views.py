@@ -177,7 +177,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                     "prediction_score_percent": prediction_score_percent,
                     "actual_score": actual.score if actual else None,
                     "actual_max": actual.max_score if actual else None,
-                    "intervention": self.get_intervention(prediction_score_percent, "analysis_document") if pred else "No data",
+                    "intervention": self.get_intervention(prediction_score_percent, "analysis_document") if pred else {InterventionEnum.NA.value: "No data"},
                     "scores": scores_by_student.get(ss.student.lrn, {}),
                     "sum_scores": ss.sum_scores,
                     "max_possible_score": ss.max_possible_score
@@ -261,31 +261,31 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error in student_analysis_detail: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def get_intervention(self, prediction_score_percent, type: str) -> (InterventionEnum, str):
-        if not prediction:
-            return InterventionEnum.NA, "N/A"
-        
+    def get_intervention(self, prediction_score_percent, type: str):
+        if prediction_score_percent is None:
+            return {InterventionEnum.NA.value: "N/A"}
         
         # based on type, return different intervention
         if type == "analysis_document":
             if prediction_score_percent < 75:
-                return InterventionEnum.REMEDIAL, "Intensive Intervention Required: Immediate one-on-one session and remedial materials."
+                return {InterventionEnum.REMEDIAL.value: "Intensive Intervention Required: Immediate one-on-one session and remedial materials."}
             elif prediction_score_percent <= 79:
-                return InterventionEnum.RE_TEACHING, "Targeted Support: Peer tutoring and additional practice exercises on weak topics."
-            elif score_percent <= 89:
-                return InterventionEnum.PRACTICE_ACTIVITY, "Regular Monitoring: Continue standard instruction with occasional check-ins."
+                return {InterventionEnum.RE_TEACHING.value: "Targeted Support: Peer tutoring and additional practice exercises on weak topics."}
+            elif prediction_score_percent <= 89:
+                return {InterventionEnum.PRACTICE_ACTIVITY.value: "Regular Monitoring: Continue standard instruction with occasional check-ins."}
             else:
-                return InterventionEnum.TUTORIAL, "Enrichment Activities: Provide advanced materials to further challenge the student."
+                return {InterventionEnum.TUTORIAL.value: "Enrichment Activities: Provide advanced materials to further challenge the student."}
         # if type is student
         elif type == "student":
-            if score_percent < 75:
-                return InterventionEnum.REMEDIAL, "You need additional support to understand the lesson. Please review the basics."
-            elif score_percent <= 79:
-                return InterventionEnum.RE_TEACHING, "You need further clarification of some lesson parts."
-            elif score_percent <= 89:
-                return InterventionEnum.PRACTICE_ACTIVITY, "You are doing well. More practice will help you improve further."
+            if prediction_score_percent < 75:
+                return {InterventionEnum.REMEDIAL.value: "You need additional support to understand the lesson. Please review the basics."}
+            elif prediction_score_percent <= 79:
+                return {InterventionEnum.RE_TEACHING.value: "You need further clarification of some lesson parts."}
+            elif prediction_score_percent <= 89:
+                return {InterventionEnum.PRACTICE_ACTIVITY.value: "You are doing well. More practice will help you improve further."}
             else:
-                return InterventionEnum.TUTORIAL, "You are performing very well. Try guided or enrichment activities to challenge you further."
+                return {InterventionEnum.TUTORIAL.value: "You are performing very well. Try guided or enrichment activities to challenge you further."}
+        return {InterventionEnum.NA.value: "N/A"}
 
 
 class PredictedScoreViewSet(viewsets.ModelViewSet):
