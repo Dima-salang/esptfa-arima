@@ -62,13 +62,11 @@ import {
 import {
     ArrowLeft,
     TrendingUp,
-    Users,
     AlertCircle,
     CheckCircle2,
     Search,
     BrainCircuit,
     Info,
-    HelpCircle,
     LineChart as LucideLineChart,
     Grid3X3,
     BarChart3,
@@ -171,6 +169,142 @@ const InfoTooltip = ({ content }: { content: string }) => (
         </Tooltip>
     </TooltipProvider>
 );
+
+const InterpretationsCard = ({ data }: { data: AnalysisDetails }) => {
+    const interpretations: {
+        title: string,
+        content: string,
+        type: 'info' | 'success' | 'warning' | 'error',
+        icon: any
+    }[] = [];
+
+    // 1. Trend Analysis
+    const assessments = data.formative_assessments || [];
+    if (assessments.length >= 2) {
+        const firstHalf = assessments.slice(0, Math.ceil(assessments.length / 2));
+        const secondHalf = assessments.slice(Math.ceil(assessments.length / 2));
+
+        const firstAvg = firstHalf.reduce((acc, curr) => acc + (curr.mean / curr.max_score), 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((acc, curr) => acc + (curr.mean / curr.max_score), 0) / secondHalf.length;
+
+        const trend = secondAvg - firstAvg;
+
+        if (trend > 0.1) {
+            interpretations.push({
+                title: "Strong Performance Growth",
+                content: "The class is showing significant improvement in mastery across recent topics.",
+                type: 'success',
+                icon: TrendingUp
+            });
+        } else if (trend < -0.1) {
+            interpretations.push({
+                title: "Concerning Performance Decline",
+                content: "Average scores have noticeably dropped. Recent topics may require immediate review.",
+                type: 'error',
+                icon: AlertCircle
+            });
+        }
+    }
+
+    // 2. Class Standing & Passing Rate
+    const passingCount = data.student_performance.filter(s => (s.passing_rate || 0) >= 75).length;
+    const passingPercent = (passingCount / data.student_performance.length) * 100;
+
+    if (passingPercent < 50) {
+        interpretations.push({
+            title: "Critical Passing Rate",
+            content: "Less than half of the class is meeting the 75% passing threshold. Strategic intervention is needed.",
+            type: 'error',
+            icon: AlertCircle
+        });
+    } else if (passingPercent > 85) {
+        interpretations.push({
+            title: "Excellent Class Standing",
+            content: "The vast majority of students are performing well above target levels.",
+            type: 'success',
+            icon: CheckCircle2
+        });
+    }
+
+    // 3. Toughest Topic
+    if (assessments.length > 0) {
+        const toughest = [...assessments].sort((a, b) => (a.mean / a.max_score) - (b.mean / b.max_score))[0];
+        if (toughest && (toughest.mean / toughest.max_score) < 0.75) {
+            interpretations.push({
+                title: "Challenging Topic Identified",
+                content: `${toughest.fa_topic_name || `Assessment ${toughest.formative_assessment_number}`} has the lowest mastery rate. Consider a recap session.`,
+                type: 'warning',
+                icon: Info
+            });
+        }
+    }
+
+    // 4. Prediction Insight
+    const avgPredictedPoints = data.student_performance.reduce((acc, s) => acc + (s.predicted_score || 0), 0) / data.student_performance.length;
+    const postTestMax = data.document.post_test_max_score || 60;
+    const predictedPercent = (avgPredictedPoints / postTestMax) * 100;
+
+    if (predictedPercent < 75) {
+        interpretations.push({
+            title: "Action Required: Post-Test Outlook",
+            content: "Predicted scores suggest the class average may fall below the passing target for the final assessment.",
+            type: 'warning',
+            icon: BrainCircuit
+        });
+    } else {
+        interpretations.push({
+            title: "Positive Post-Test Outlook",
+            content: "The class is on track to achieve a strong average performing well on the upcoming Post-Test.",
+            type: 'info',
+            icon: BrainCircuit
+        });
+    }
+
+    if (interpretations.length === 0) return null;
+
+    return (
+        <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/30">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle className="text-xl font-black flex items-center gap-2">
+                            <BrainCircuit className="h-5 w-5 text-indigo-600" />
+                            Automated Interpretations
+                        </CardTitle>
+                        <CardDescription className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">AI-Powered Performance Insights</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {interpretations.map((item, idx) => (
+                        <div key={idx} className={`flex items-start gap-4 p-4 rounded-2xl border transition-all hover:shadow-sm ${item.type === 'success' ? 'bg-emerald-50/50 border-emerald-100' :
+                            item.type === 'warning' ? 'bg-amber-50/50 border-amber-100' :
+                                item.type === 'error' ? 'bg-red-50/50 border-red-100' :
+                                    'bg-indigo-50/50 border-indigo-100'
+                            }`}>
+                            <div className={`p-2 rounded-xl shrink-0 ${item.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
+                                item.type === 'warning' ? 'bg-amber-100 text-amber-600' :
+                                    item.type === 'error' ? 'bg-red-100 text-red-600' :
+                                        'bg-indigo-100 text-indigo-600'
+                                }`}>
+                                <item.icon className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h4 className={`text-sm font-black mb-1 ${item.type === 'success' ? 'text-emerald-900' :
+                                    item.type === 'warning' ? 'text-amber-900' :
+                                        item.type === 'error' ? 'text-red-900' :
+                                            'text-indigo-900'
+                                    }`}>{item.title}</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">{item.content}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function AnalysisDetailPage() {
     const { docId } = useParams<{ docId: string }>();
@@ -630,36 +764,22 @@ export default function AnalysisDetailPage() {
                                                         <PieChart>
                                                             <Pie
                                                                 data={[
-                                                                    {
-                                                                        name: 'Mastery',
-                                                                        value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length,
-                                                                        color: '#10b981'
-                                                                    },
-                                                                    {
-                                                                        name: 'Passing',
-                                                                        value: data.student_performance.filter(s => {
-                                                                            const p = getTruePercentage(s);
-                                                                            return p >= 75 && p < 90;
-                                                                        }).length,
-                                                                        color: '#fbbf24'
-                                                                    },
-                                                                    {
-                                                                        name: 'At Risk',
-                                                                        value: data.student_performance.filter(s => getTruePercentage(s) < 75).length,
-                                                                        color: '#ef4444'
-                                                                    }
+                                                                    { name: 'Mastery', color: '#10b981', value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length },
+                                                                    { name: 'Proficient', color: '#6c6ec1ff', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p >= 80 && p <= 89; }).length },
+                                                                    { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
+                                                                    { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
                                                                 ].filter(d => d.value > 0)}
                                                                 innerRadius={60}
                                                                 outerRadius={80}
                                                                 paddingAngle={5}
                                                                 dataKey="value"
                                                             >
-                                                                {([
-                                                                    { name: 'Mastery', color: '#10b981' },
-                                                                    { name: 'Proficient', color: '#6366f1' },
-                                                                    { name: 'Developing', color: '#f59e0b' },
-                                                                    { name: 'Remedial', color: '#ef4444' }
-                                                                ]).map((entry, index) => (
+                                                                {[
+                                                                    { name: 'Mastery', color: '#10b981', value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length },
+                                                                    { name: 'Proficient', color: '#6c6ec1ff', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p >= 80 && p <= 89; }).length },
+                                                                    { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
+                                                                    { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
+                                                                ].filter(d => d.value > 0).map((entry, index) => (
                                                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                                                 ))}
                                                             </Pie>
@@ -1047,7 +1167,7 @@ export default function AnalysisDetailPage() {
                                         {[...data.formative_assessments]
                                             .sort((a, b) => b.passing_rate - a.passing_rate)
                                             .slice(0, 2)
-                                            .map((fa, i) => (
+                                            .map((fa) => (
                                                 <div key={fa.id} className="flex items-center justify-between p-5 rounded-2xl bg-white/80 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-xl">
