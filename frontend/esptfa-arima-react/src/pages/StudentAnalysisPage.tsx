@@ -57,7 +57,8 @@ interface StudentDetailData {
         predicted_status: string;
         max_score: number;
     } | null;
-    intervention: string;
+    intervention: Record<string, string>;
+    prediction_score_percent: number;
     actual_post_test: {
         score: number;
         max_score: number;
@@ -218,6 +219,11 @@ export default function StudentAnalysisPage() {
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-2xl font-black text-indigo-700 tracking-tighter">
                                                     {data.prediction?.score.toFixed(1) || "N/A"}
+                                                    {data.prediction && (
+                                                        <span className="text-xs font-bold text-indigo-400 ml-1">
+                                                            ({data.prediction_score_percent.toFixed(1)}%)
+                                                        </span>
+                                                    )}
                                                 </span>
                                                 {data.prediction && (
                                                     <Badge className={data.prediction.predicted_status === 'Pass' ? 'bg-emerald-500' : 'bg-red-500'}>
@@ -251,8 +257,17 @@ export default function StudentAnalysisPage() {
                                     </div>
                                     <div className="p-6">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">PEDAGOGICAL STRATEGY</p>
-                                        <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/50 text-xs font-semibold text-amber-900 leading-relaxed italic">
-                                            "{data.intervention}"
+                                        <div className="space-y-3">
+                                            {Object.entries(data.intervention).map(([label, action]) => (
+                                                <div key={label} className="space-y-2">
+                                                    <Badge className="bg-amber-100 text-amber-700 border-none font-bold">
+                                                        {label}
+                                                    </Badge>
+                                                    <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/50 text-xs font-semibold text-amber-900 leading-relaxed italic">
+                                                        "{action}"
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
