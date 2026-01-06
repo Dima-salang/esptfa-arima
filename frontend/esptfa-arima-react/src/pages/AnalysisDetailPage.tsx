@@ -117,7 +117,8 @@ interface StudentPerformance {
     failing_rate: number;
     predicted_score: number | null;
     predicted_status: string;
-    intervention: string;
+    intervention: Record<string, string>;
+    prediction_score_percent: number;
     actual_score: number | null;
     actual_max: number | null;
     sum_scores: number;
@@ -420,7 +421,7 @@ export default function AnalysisDetailPage() {
                                                         <p className="text-[10px] opacity-70 mb-2">LRN: {student.lrn}</p>
                                                         <div className="h-px bg-white/10 my-2" />
                                                         <p className="text-[10px] text-red-400 font-bold mb-1">PREDICTION: {student.predicted_score?.toFixed(1)}</p>
-                                                        <p className="text-[9px] italic leading-tight">{student.intervention.split('.')[0]}.</p>
+                                                        <p className="text-[9px] italic leading-tight">{Object.values(student.intervention)[0]?.split('.')[0]}.</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
@@ -602,6 +603,11 @@ export default function AnalysisDetailPage() {
                                                                 <td className="px-6 py-3 bg-indigo-50/20 text-center">
                                                                     <Badge className={`font-black rounded-lg px-3 py-1 shadow-sm ${student.predicted_status === 'Pass' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
                                                                         {student.predicted_score?.toFixed(1) || "N/A"}
+                                                                        {student.predicted_score !== null && (
+                                                                            <span className="text-[9px] opacity-70 ml-1">
+                                                                                ({student.prediction_score_percent.toFixed(0)}%)
+                                                                            </span>
+                                                                        )}
                                                                     </Badge>
                                                                 </td>
                                                             </tr>
@@ -861,7 +867,14 @@ export default function AnalysisDetailPage() {
                                                             <div className="mt-0.5">
                                                                 <Info className="h-3.5 w-3.5 opacity-60" />
                                                             </div>
-                                                            {student.intervention}
+                                                            <div className="flex flex-col gap-2">
+                                                                {Object.entries(student.intervention).map(([label, action]) => (
+                                                                    <div key={label} className="space-y-1">
+                                                                        <span className="font-black uppercase text-[10px] tracking-widest block opacity-70 border-b border-current/20 pb-0.5 mb-1">{label}</span>
+                                                                        <span className="block">{action}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>

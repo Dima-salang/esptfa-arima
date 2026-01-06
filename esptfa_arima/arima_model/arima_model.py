@@ -225,6 +225,8 @@ def make_predictions(features_df, analysis_document):
     # add the predictions to the features_df (one row per student)
     # convert to raw scores for saving to DB
     features_df["predictions"] = normalized_predictions * post_test_max_score
+    # ensure that the predictions is between 0 and max score
+    features_df["predictions"] = features_df["predictions"].clip(lower=0, upper=post_test_max_score)
     features_df["post_test_max_score"] = post_test_max_score
 
     # assign the predicted status
