@@ -177,7 +177,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                     "prediction_score_percent": prediction_score_percent,
                     "actual_score": actual.score if actual else None,
                     "actual_max": actual.max_score if actual else None,
-                    "intervention": self.get_intervention(pred, "analysis_document") if pred else "No data",
+                    "intervention": self.get_intervention(prediction_score_percent, "analysis_document") if pred else "No data",
                     "scores": scores_by_student.get(ss.student.lrn, {}),
                     "sum_scores": ss.sum_scores,
                     "max_possible_score": ss.max_possible_score
@@ -252,7 +252,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                 "prediction": PredictedScoreSerializer(prediction).data if prediction else None,
                 "prediction_score_percent": prediction_score_percent,
                 "actual_post_test": ActualPostTestSerializer(actual).data if actual else None,
-                "intervention": self.get_intervention(prediction, "student") if prediction else "No intervention data available.",
+                "intervention": self.get_intervention(prediction_score_percent, "student") if prediction else "No intervention data available.",
                 "scores": scores_data,
                 "class_averages": FormativeAssessmentStatisticSerializer(fa_stats, many=True).data,
                 "document": AnalysisDocumentSerializer(document).data
@@ -261,17 +261,16 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error in student_analysis_detail: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def get_intervention(self, prediction, type: str) -> (InterventionEnum, str):
+    def get_intervention(self, prediction_score_percent, type: str) -> (InterventionEnum, str):
         if not prediction:
             return InterventionEnum.NA, "N/A"
         
-        score_percent = (prediction.score / prediction.max_score) * 100 if prediction.max_score else 0
         
         # based on type, return different intervention
         if type == "analysis_document":
-            if score_percent < 75:
+            if prediction_score_percent < 75:
                 return InterventionEnum.REMEDIAL, "Intensive Intervention Required: Immediate one-on-one session and remedial materials."
-            elif score_percent <= 79:
+            elif prediction_score_percent <= 79:
                 return InterventionEnum.RE_TEACHING, "Targeted Support: Peer tutoring and additional practice exercises on weak topics."
             elif score_percent <= 89:
                 return InterventionEnum.PRACTICE_ACTIVITY, "Regular Monitoring: Continue standard instruction with occasional check-ins."
