@@ -40,6 +40,8 @@ import {
     HelpCircle,
     Target,
     CheckCircle2,
+    AlertCircle,
+    Info,
 } from "lucide-react";
 
 interface StudentDetailData {
@@ -80,8 +82,154 @@ interface StudentDetailData {
         subject: { subject_name: string };
         quarter: { quarter_name: string };
         section: { section_name: string };
+        post_test_max_score?: number;
     };
 }
+
+const getStatusBadge = (score: number, max: number) => {
+    const percent = max > 0 ? (score / max) * 100 : 0;
+    if (percent >= 90) return <Badge className="bg-emerald-500 text-white border-none font-black shadow-sm px-3">MASTERY</Badge>;
+    if (percent >= 75) return <Badge className="bg-amber-400 text-white border-none font-black shadow-sm px-3">PASSING</Badge>;
+    return <Badge className="bg-red-500 text-white border-none font-black shadow-sm px-3">AT RISK</Badge>;
+};
+
+const getScoreColor = (percent: number) => {
+    if (percent >= 90) return "text-emerald-600";
+    if (percent >= 75) return "text-amber-500";
+    return "text-red-600";
+};
+
+const InfoTooltip = ({ content }: { content: string }) => (
+    <TooltipProvider>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[250px] p-3 rounded-xl bg-slate-900 text-white border-none shadow-xl">
+                <p className="text-xs leading-relaxed">{content}</p>
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
+);
+
+const StudentInterpretationsCard = ({ data }: { data: StudentDetailData }) => {
+    const interpretations: { title: string, content: string, type: 'info' | 'success' | 'warning' | 'error' }[] = [];
+
+    // 1. Trend Analysis
+    const studentScores = data.scores.map(s => s.score / s.max_score);
+    if (studentScores.length >= 2) {
+        let totalChange = 0;
+        let changeCount = 0;
+        for (let i = 1; i < studentScores.length; i++) {
+            if (studentScores[i - 1] > 0) {
+                totalChange += (studentScores[i] - studentScores[i - 1]) / studentScores[i - 1];
+                changeCount++;
+            }
+        }
+        const avgChange = (totalChange / (changeCount || 1)) * 100;
+
+        if (Math.abs(avgChange) < 2) {
+            interpretations.push({
+                title: "Consistent Performance",
+                content: `${data.student.name.split(' ')[0]} is maintaining a stable performance level across assessments.`,
+                type: 'info'
+            });
+        } else if (avgChange > 5) {
+            interpretations.push({
+                title: "Significant Improvement",
+                content: `Great progress! ${data.student.name.split(' ')[0]}'s scores are showing a strong upward trend.`,
+                type: 'success'
+            });
+        } else if (avgChange > 0) {
+            interpretations.push({
+                title: "Gradual Progress",
+                content: "The student is showing steady improvement in their recent work.",
+                type: 'success'
+            });
+        } else if (avgChange < -10) {
+            interpretations.push({
+                title: "Sharp Decline",
+                content: `Warning: ${data.student.name.split(' ')[0]}'s performance has dropped significantly. A check-in is recommended.`,
+                type: 'error'
+            });
+        } else {
+            interpretations.push({
+                title: "Performance Dip",
+                content: "There's a slight downward trend in recent scores.",
+                type: 'warning'
+            });
+        }
+    }
+
+    // 2. Comparison with Class
+    const aboveAvgCount = data.scores.filter(s => {
+        const classAvg = data.class_averages.find(ca => ca.formative_assessment_number === s.formative_assessment_number);
+        return classAvg ? s.score > classAvg.mean : false;
+    }).length;
+
+    if (aboveAvgCount === data.scores.length && data.scores.length > 0) {
+        interpretations.push({
+            title: "Class Leader",
+            content: "Consistent top performer. This student has scored above the class average in every assessment.",
+            type: 'success'
+        });
+    } else if (aboveAvgCount > data.scores.length / 2) {
+        interpretations.push({
+            title: "Strong Class Standing",
+            content: `Performing well. The student is scoring above average in ${aboveAvgCount} out of ${data.scores.length} assessments.`,
+            type: 'success'
+        });
+    } else if (aboveAvgCount < data.scores.length / 4 && data.scores.length > 2) {
+        interpretations.push({
+            title: "Below Class Average",
+            content: "The student is frequently scoring below the class average. Additional focus on core concepts may be needed.",
+            type: 'warning'
+        });
+    }
+
+    const getTypeStyles = (type: string) => {
+        switch (type) {
+            case 'success': return "bg-emerald-50 border-emerald-100 text-emerald-800";
+            case 'warning': return "bg-amber-50 border-amber-100 text-amber-800";
+            case 'error': return "bg-red-50 border-red-100 text-red-800";
+            default: return "bg-blue-50 border-blue-100 text-blue-800";
+        }
+    };
+
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'success': return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+            case 'warning': return <AlertCircle className="h-4 w-4 text-amber-600" />;
+            case 'error': return <AlertCircle className="h-4 w-4 text-red-600" />;
+            default: return <Info className="h-4 w-4 text-blue-600" />;
+        }
+    };
+
+    return (
+        <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-black flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-600" />
+                    Automated Analysis
+                </CardTitle>
+                <CardDescription>Synthesized insights from {data.student.name.split(' ')[0]}'s assessment history.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {interpretations.map((item, idx) => (
+                    <div key={idx} className={`p-4 rounded-2xl border flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300 delay-${idx * 100} ${getTypeStyles(item.type)}`}>
+                        <div className="mt-0.5 shrink-0">
+                            {getTypeIcon(item.type)}
+                        </div>
+                        <div className="space-y-1">
+                            <h4 className="font-black text-[10px] uppercase tracking-wider">{item.title}</h4>
+                            <p className="text-xs font-medium leading-relaxed opacity-90">{item.content}</p>
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function StudentAnalysisPage() {
     const { docId, lrn } = useParams<{ docId: string; lrn: string }>();
@@ -137,32 +285,6 @@ export default function StudentAnalysisPage() {
             class: Number(avg.mean.toFixed(2))
         };
     });
-
-    const getStatusBadge = (score: number, max: number) => {
-        const percent = max > 0 ? (score / max) * 100 : 0;
-        if (percent >= 90) return <Badge className="bg-emerald-500 text-white border-none font-black shadow-sm px-3">MASTERY</Badge>;
-        if (percent >= 75) return <Badge className="bg-amber-400 text-white border-none font-black shadow-sm px-3">PASSING</Badge>;
-        return <Badge className="bg-red-500 text-white border-none font-black shadow-sm px-3">AT RISK</Badge>;
-    };
-
-    const getScoreColor = (percent: number) => {
-        if (percent >= 90) return "text-emerald-600";
-        if (percent >= 75) return "text-amber-500";
-        return "text-red-600";
-    };
-
-    const InfoTooltip = ({ content }: { content: string }) => (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-[250px] p-3 rounded-xl bg-slate-900 text-white border-none shadow-xl">
-                    <p className="text-xs leading-relaxed">{content}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
 
     return (
         <DashboardLayout>
@@ -236,27 +358,8 @@ export default function StudentAnalysisPage() {
                                     </div>
                                     <div className="p-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ACTUAL POST-TEST</p>
-                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PEDAGOGICAL STRATEGY</p>
                                         </div>
-                                        {data.actual_post_test ? (
-                                            <div className="bg-emerald-50 p-4 rounded-2xl ring-1 ring-emerald-100">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-2xl font-black text-emerald-700 tracking-tighter">
-                                                        {data.actual_post_test.score.toFixed(1)}
-                                                    </span>
-                                                    <Badge className="bg-emerald-500">Completed</Badge>
-                                                </div>
-                                                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-tight">Out of {data.actual_post_test.max_score} points</p>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 border-dashed border-2">
-                                                <p className="text-slate-400 font-bold text-xs italic">Awaiting Results...</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-6">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">PEDAGOGICAL STRATEGY</p>
                                         <div className="space-y-3">
                                             {Object.entries(data.intervention).map(([label, action]) => (
                                                 <div key={label} className="space-y-2">
@@ -274,7 +377,7 @@ export default function StudentAnalysisPage() {
                             </CardContent>
                         </Card>
 
-
+                        <StudentInterpretationsCard data={data} />
                     </div>
 
                     {/* Main Analysis Sections */}
