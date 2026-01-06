@@ -29,9 +29,17 @@ from .models import *
 from .services.analysis_doc_service import create_analysis_document, create_topic_mappings, create_topics, get_or_create_draft, start_arima_model
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from enum import Enum
 
-"""
-"""
+
+# enum for intervention
+class InterventionEnum(Enum):
+    REMEDIAL = "Remedial"
+    RE_TEACHING = "Re-teaching"
+    PRACTICE_ACTIVITY = "Practice Activity"
+    TUTORIAL = "Tutorial"
+    NA = "N/A"
+
 
 
 class AnalysisDocumentViewSet(viewsets.ModelViewSet):
@@ -156,6 +164,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             student_performance = []
             for ss in student_stats:
                 pred = pred_lookup.get(ss.student.lrn)
+                prediction_score_percent = (pred.score / pred.max_score) * 100 if pred.max_score else 0
                 actual = actual_lookup.get(ss.student.lrn)
                 student_performance.append({
                     "lrn": ss.student.lrn,
@@ -165,9 +174,10 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                     "failing_rate": ss.failing_rate,
                     "predicted_score": pred.score if pred else None,
                     "predicted_status": pred.predicted_status if pred else "N/A",
+                    "prediction_score_percent": prediction_score_percent,
                     "actual_score": actual.score if actual else None,
                     "actual_max": actual.max_score if actual else None,
-                    "intervention": self.get_intervention(pred) if pred else "No data",
+                    "intervention": self.get_intervention(pred, "analysis_document") if pred else "No data",
                     "scores": scores_by_student.get(ss.student.lrn, {}),
                     "sum_scores": ss.sum_scores,
                     "max_possible_score": ss.max_possible_score
@@ -220,6 +230,9 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # Class FA stats for comparison
             # We use the serializer we just updated for fa_topic_name
             fa_stats = FormativeAssessmentStatistic.objects.filter(analysis_document=document).order_by('formative_assessment_number')
+
+            # prediction score percent
+            prediction_score_percent = (prediction.score / prediction.max_score) * 100 if prediction.max_score else 0
             
             # Format scores to include topic name
             scores_data = []
@@ -237,8 +250,9 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                 },
                 "student_stats": StudentScoresStatisticSerializer(ss_stats).data if ss_stats else None,
                 "prediction": PredictedScoreSerializer(prediction).data if prediction else None,
+                "prediction_score_percent": prediction_score_percent,
                 "actual_post_test": ActualPostTestSerializer(actual).data if actual else None,
-                "intervention": self.get_intervention(prediction) if prediction else "No intervention data available.",
+                "intervention": self.get_intervention(prediction, "student") if prediction else "No intervention data available.",
                 "scores": scores_data,
                 "class_averages": FormativeAssessmentStatisticSerializer(fa_stats, many=True).data,
                 "document": AnalysisDocumentSerializer(document).data
@@ -247,20 +261,32 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error in student_analysis_detail: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def get_intervention(self, prediction):
+    def get_intervention(self, prediction, type: str) -> (InterventionEnum, str):
         if not prediction:
-            return "N/A"
+            return InterventionEnum.NA, "N/A"
         
         score_percent = (prediction.score / prediction.max_score) * 100 if prediction.max_score else 0
         
-        if score_percent < 50:
-            return "Intensive Intervention Required: Immediate one-on-one session and remedial materials."
-        elif score_percent < 75:
-            return "Targeted Support: Peer tutoring and additional practice exercises on weak topics."
-        elif score_percent < 85:
-            return "Regular Monitoring: Continue standard instruction with occasional check-ins."
-        else:
-            return "Enrichment Activities: Provide advanced materials to further challenge the student."
+        # based on type, return different intervention
+        if type == "analysis_document":
+            if score_percent < 75:
+                return InterventionEnum.REMEDIAL, "Intensive Intervention Required: Immediate one-on-one session and remedial materials."
+            elif score_percent <= 79:
+                return InterventionEnum.RE_TEACHING, "Targeted Support: Peer tutoring and additional practice exercises on weak topics."
+            elif score_percent <= 89:
+                return InterventionEnum.PRACTICE_ACTIVITY, "Regular Monitoring: Continue standard instruction with occasional check-ins."
+            else:
+                return InterventionEnum.TUTORIAL, "Enrichment Activities: Provide advanced materials to further challenge the student."
+        # if type is student
+        elif type == "student":
+            if score_percent < 75:
+                return InterventionEnum.REMEDIAL, "You need additional support to understand the lesson. Please review the basics."
+            elif score_percent <= 79:
+                return InterventionEnum.RE_TEACHING, "You need further clarification of some lesson parts."
+            elif score_percent <= 89:
+                return InterventionEnum.PRACTICE_ACTIVITY, "You are doing well. More practice will help you improve further."
+            else:
+                return InterventionEnum.TUTORIAL, "You are performing very well. Try guided or enrichment activities to challenge you further."
 
 
 class PredictedScoreViewSet(viewsets.ModelViewSet):
