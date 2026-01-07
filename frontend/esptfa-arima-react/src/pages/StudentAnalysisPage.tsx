@@ -101,6 +101,29 @@ const getScoreColor = (percent: number) => {
     return "text-red-600";
 };
 
+const getInterventionTheme = (percent: number | null) => {
+    if (percent === null || percent === undefined) return {
+        badge: "bg-slate-100 text-slate-700 border-slate-200",
+        container: "bg-slate-50/50 border-slate-100/50 text-slate-900"
+    };
+    if (percent < 75) return {
+        badge: "bg-rose-100 text-rose-700 border-rose-200/50",
+        container: "bg-rose-50/50 border-rose-100/40 text-rose-900"
+    };
+    if (percent < 80) return {
+        badge: "bg-orange-100 text-orange-700 border-orange-200/50",
+        container: "bg-orange-50/50 border-orange-100/40 text-orange-900"
+    };
+    if (percent < 90) return {
+        badge: "bg-indigo-100 text-indigo-700 border-indigo-200/50",
+        container: "bg-indigo-50/50 border-indigo-100/40 text-indigo-900"
+    };
+    return {
+        badge: "bg-emerald-100 text-emerald-700 border-emerald-200/50",
+        container: "bg-emerald-50/50 border-emerald-100/40 text-emerald-900"
+    };
+};
+
 const InfoTooltip = ({ content }: { content: string }) => (
     <TooltipProvider>
         <Tooltip>
@@ -371,16 +394,19 @@ export default function StudentAnalysisPage() {
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PEDAGOGICAL STRATEGY</p>
                                         </div>
                                         <div className="space-y-3">
-                                            {Object.entries(data.intervention).map(([label, action]) => (
-                                                <div key={label} className="space-y-2">
-                                                    <Badge className="bg-amber-100 text-amber-700 border-none font-bold">
-                                                        {label}
-                                                    </Badge>
-                                                    <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/50 text-xs font-semibold text-amber-900 leading-relaxed italic">
-                                                        "{action}"
+                                            {Object.entries(data.intervention).map(([label, action]) => {
+                                                const theme = getInterventionTheme(data.prediction_score_percent);
+                                                return (
+                                                    <div key={label} className="space-y-2">
+                                                        <Badge className={`${theme.badge} border font-bold`}>
+                                                            {label}
+                                                        </Badge>
+                                                        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed italic ${theme.container}`}>
+                                                            "{action}"
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 </div>

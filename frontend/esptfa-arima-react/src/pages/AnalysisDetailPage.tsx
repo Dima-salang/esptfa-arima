@@ -147,12 +147,12 @@ const getScoreColor = (score: number, maxScore: number) => {
     return "bg-red-500";
 };
 
-const getInterventionColor = (score: number | null, max: number = 60) => {
-    if (!score) return "bg-slate-100 text-slate-700 border-slate-200";
-    const percent = (score / max) * 100;
-    if (percent < 75) return "bg-red-50 text-red-700 border-red-100";
-    if (percent < 90) return "bg-amber-50 text-amber-700 border-amber-100";
-    return "bg-emerald-50 text-emerald-700 border-emerald-100";
+const getInterventionTheme = (percent: number | null) => {
+    if (percent === null || percent === undefined) return "bg-slate-50 text-slate-700 border-slate-200/50";
+    if (percent < 75) return "bg-rose-50 text-rose-700 border-rose-200/50";
+    if (percent < 80) return "bg-orange-50 text-orange-700 border-orange-200/50";
+    if (percent < 90) return "bg-indigo-50 text-indigo-700 border-indigo-200/50";
+    return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
 };
 
 const InfoTooltip = ({ content }: { content: string }) => (
@@ -446,6 +446,8 @@ export default function AnalysisDetailPage() {
         passing_rate: (fa.passing_rate || 0).toFixed(1),
         failing_rate: (fa.failing_rate || 0).toFixed(1),
         mean: Number(fa.mean.toFixed(1)),
+        mean_percentage: Number(((fa.mean / fa.max_score) * 100).toFixed(1)),
+        max_score: fa.max_score
     }));
     const validPredictions = data.student_performance.filter(s => s.predicted_score !== null);
     const avgPredictedPoints = validPredictions.length > 0
@@ -769,8 +771,8 @@ export default function AnalysisDetailPage() {
                                                                     { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
                                                                     { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
                                                                 ].filter(d => d.value > 0)}
-                                                                innerRadius={60}
-                                                                outerRadius={80}
+                                                                innerRadius={45}
+                                                                outerRadius={85}
                                                                 paddingAngle={5}
                                                                 dataKey="value"
                                                             >
@@ -907,7 +909,7 @@ export default function AnalysisDetailPage() {
                                                 <div className="flex items-center justify-center gap-2">
                                                     ARIMA Prediction
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                    <InfoTooltip content="Score predicted by the ARIMA-XGBoost hybrid model for the upcoming evaluation." />
+                                                    <InfoTooltip content="Score predicted by the ARIMA model for the upcoming evaluation." />
                                                 </div>
                                             </TableHead>
                                             <TableHead
@@ -983,7 +985,7 @@ export default function AnalysisDetailPage() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="pr-8">
-                                                        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed shadow-sm flex items-start gap-3 ${getInterventionColor(student.predicted_score)}`}>
+                                                        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed shadow-sm flex items-start gap-3 ${getInterventionTheme(student.prediction_score_percent)}`}>
                                                             <div className="mt-0.5">
                                                                 <Info className="h-3.5 w-3.5 opacity-60" />
                                                             </div>
@@ -1071,21 +1073,49 @@ export default function AnalysisDetailPage() {
                                                         tickLine={false}
                                                         tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
                                                         domain={[0, 100]}
+                                                        unit="%"
                                                     />
                                                     <RechartsTooltip
-                                                        cursor={{ fill: 'transparent' }}
-                                                        contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+                                                        cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
+                                                        content={({ active, payload, label }) => {
+                                                            if (active && payload && payload.length) {
+                                                                const d = payload[0].payload;
+                                                                const masteryColorClass = d.mean_percentage >= 90 ? 'text-emerald-400' :
+                                                                    d.mean_percentage >= 75 ? 'text-indigo-400' :
+                                                                        'text-red-400';
+                                                                return (
+                                                                    <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border-none animate-in fade-in zoom-in duration-200">
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+                                                                        <div className="space-y-2">
+                                                                            <div className="flex items-center justify-between gap-8">
+                                                                                <span className="text-[10px] font-bold text-slate-400">MASTERY</span>
+                                                                                <span className={`text-sm font-black ${masteryColorClass}`}>
+                                                                                    {d.mean_percentage}%
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center justify-between gap-8">
+                                                                                <span className="text-[10px] font-bold text-slate-400">AVG SCORE</span>
+                                                                                <span className="text-sm font-black text-white">
+                                                                                    {d.mean} / {d.max_score}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        }}
                                                     />
                                                     <Bar
-                                                        dataKey="mean"
-                                                        name="Average Score %"
+                                                        dataKey="mean_percentage"
+                                                        name="Mastery Level %"
                                                         radius={[8, 8, 0, 0]}
                                                         barSize={40}
                                                     >
                                                         {topicData.map((entry, index) => (
                                                             <Cell
                                                                 key={`cell-${index}`}
-                                                                fill={entry.mean >= 90 ? '#10b981' : entry.mean >= 75 ? '#6366f1' : '#ef4444'}
+                                                                fill={entry.mean_percentage >= 90 ? '#10b981' : entry.mean_percentage >= 75 ? '#6366f1' : '#ef4444'}
                                                             />
                                                         ))}
                                                     </Bar>
