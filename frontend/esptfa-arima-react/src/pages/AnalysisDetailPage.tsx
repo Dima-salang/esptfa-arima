@@ -71,6 +71,8 @@ import {
     Grid3X3,
     BarChart3,
     ArrowUpDown,
+    Filter,
+    Layers,
 } from "lucide-react";
 import ActualPostTestUploadModal from "@/components/ActualPostTestUploadModal";
 
@@ -140,12 +142,6 @@ const getTruePercentage = (s: StudentPerformance) => {
     return s.mean || 0;
 };
 
-const getScoreColor = (score: number, maxScore: number) => {
-    const percent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-    if (percent >= 90) return "bg-emerald-500";
-    if (percent >= 75) return "bg-amber-400";
-    return "bg-red-500";
-};
 
 const getInterventionTheme = (percent: number | null) => {
     if (percent === null || percent === undefined) return "bg-slate-50 text-slate-700 border-slate-200/50";
@@ -170,141 +166,6 @@ const InfoTooltip = ({ content }: { content: string }) => (
     </TooltipProvider>
 );
 
-const InterpretationsCard = ({ data }: { data: AnalysisDetails }) => {
-    const interpretations: {
-        title: string,
-        content: string,
-        type: 'info' | 'success' | 'warning' | 'error',
-        icon: any
-    }[] = [];
-
-    // 1. Trend Analysis
-    const assessments = data.formative_assessments || [];
-    if (assessments.length >= 2) {
-        const firstHalf = assessments.slice(0, Math.ceil(assessments.length / 2));
-        const secondHalf = assessments.slice(Math.ceil(assessments.length / 2));
-
-        const firstAvg = firstHalf.reduce((acc, curr) => acc + (curr.mean / curr.max_score), 0) / firstHalf.length;
-        const secondAvg = secondHalf.reduce((acc, curr) => acc + (curr.mean / curr.max_score), 0) / secondHalf.length;
-
-        const trend = secondAvg - firstAvg;
-
-        if (trend > 0.1) {
-            interpretations.push({
-                title: "Strong Performance Growth",
-                content: "The class is showing significant improvement in mastery across recent topics.",
-                type: 'success',
-                icon: TrendingUp
-            });
-        } else if (trend < -0.1) {
-            interpretations.push({
-                title: "Concerning Performance Decline",
-                content: "Average scores have noticeably dropped. Recent topics may require immediate review.",
-                type: 'error',
-                icon: AlertCircle
-            });
-        }
-    }
-
-    // 2. Class Standing & Passing Rate
-    const passingCount = data.student_performance.filter(s => (s.passing_rate || 0) >= 75).length;
-    const passingPercent = (passingCount / data.student_performance.length) * 100;
-
-    if (passingPercent < 50) {
-        interpretations.push({
-            title: "Critical Passing Rate",
-            content: "Less than half of the class is meeting the 75% passing threshold. Strategic intervention is needed.",
-            type: 'error',
-            icon: AlertCircle
-        });
-    } else if (passingPercent > 85) {
-        interpretations.push({
-            title: "Excellent Class Standing",
-            content: "The vast majority of students are performing well above target levels.",
-            type: 'success',
-            icon: CheckCircle2
-        });
-    }
-
-    // 3. Toughest Topic
-    if (assessments.length > 0) {
-        const toughest = [...assessments].sort((a, b) => (a.mean / a.max_score) - (b.mean / b.max_score))[0];
-        if (toughest && (toughest.mean / toughest.max_score) < 0.75) {
-            interpretations.push({
-                title: "Challenging Topic Identified",
-                content: `${toughest.fa_topic_name || `Assessment ${toughest.formative_assessment_number}`} has the lowest mastery rate. Consider a recap session.`,
-                type: 'warning',
-                icon: Info
-            });
-        }
-    }
-
-    // 4. Prediction Insight
-    const avgPredictedPoints = data.student_performance.reduce((acc, s) => acc + (s.predicted_score || 0), 0) / data.student_performance.length;
-    const postTestMax = data.document.post_test_max_score || 60;
-    const predictedPercent = (avgPredictedPoints / postTestMax) * 100;
-
-    if (predictedPercent < 75) {
-        interpretations.push({
-            title: "Action Required: Post-Test Outlook",
-            content: "Predicted scores suggest the class average may fall below the passing target for the final assessment.",
-            type: 'warning',
-            icon: BrainCircuit
-        });
-    } else {
-        interpretations.push({
-            title: "Positive Post-Test Outlook",
-            content: "The class is on track to achieve a strong average performing well on the upcoming Post-Test.",
-            type: 'info',
-            icon: BrainCircuit
-        });
-    }
-
-    if (interpretations.length === 0) return null;
-
-    return (
-        <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/30">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="text-xl font-black flex items-center gap-2">
-                            <BrainCircuit className="h-5 w-5 text-indigo-600" />
-                            Automated Interpretations
-                        </CardTitle>
-                        <CardDescription className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">AI-Powered Performance Insights</CardDescription>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {interpretations.map((item, idx) => (
-                        <div key={idx} className={`flex items-start gap-4 p-4 rounded-2xl border transition-all hover:shadow-sm ${item.type === 'success' ? 'bg-emerald-50/50 border-emerald-100' :
-                            item.type === 'warning' ? 'bg-amber-50/50 border-amber-100' :
-                                item.type === 'error' ? 'bg-red-50/50 border-red-100' :
-                                    'bg-indigo-50/50 border-indigo-100'
-                            }`}>
-                            <div className={`p-2 rounded-xl shrink-0 ${item.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
-                                item.type === 'warning' ? 'bg-amber-100 text-amber-600' :
-                                    item.type === 'error' ? 'bg-red-100 text-red-600' :
-                                        'bg-indigo-100 text-indigo-600'
-                                }`}>
-                                <item.icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h4 className={`text-sm font-black mb-1 ${item.type === 'success' ? 'text-emerald-900' :
-                                    item.type === 'warning' ? 'text-amber-900' :
-                                        item.type === 'error' ? 'text-red-900' :
-                                            'text-indigo-900'
-                                    }`}>{item.title}</h4>
-                                <p className="text-xs text-slate-600 leading-relaxed">{item.content}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
 
 export default function AnalysisDetailPage() {
     const { docId } = useParams<{ docId: string }>();
@@ -572,6 +433,7 @@ export default function AnalysisDetailPage() {
                             </Card>
                         )}
 
+
                         {/* Visualization Sub-Tabs */}
                         <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
                             <Tabs defaultValue="distribution" className="w-full">
@@ -640,116 +502,193 @@ export default function AnalysisDetailPage() {
                                         </ResponsiveContainer>
                                     </TabsContent>
 
-                                    <TabsContent value="heatmap" className="mt-0 animate-in fade-in duration-500 overflow-visible">
-                                        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-64">
-                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                                                    <Input
-                                                        placeholder="Find student..."
-                                                        value={matrixSearch}
-                                                        onChange={(e) => setMatrixSearch(e.target.value)}
-                                                        className="pl-9 h-10 rounded-xl border-slate-200 text-sm focus-visible:ring-indigo-600"
-                                                    />
+                                    <TabsContent value="heatmap" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-700 overflow-visible">
+                                        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                                            <div className="space-y-4">
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <div className="relative group">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                                        <Input
+                                                            placeholder="Search student LRN or name..."
+                                                            value={matrixSearch}
+                                                            onChange={(e) => setMatrixSearch(e.target.value)}
+                                                            className="pl-10 h-11 w-72 rounded-2xl border-slate-200 bg-white shadow-sm transition-all focus:shadow-md focus:ring-indigo-500/20 text-sm font-medium"
+                                                        />
+                                                    </div>
+                                                    <Select value={matrixStatusFilter} onValueChange={setMatrixStatusFilter}>
+                                                        <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-indigo-300 transition-all">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                                <div className="truncate pr-2">
+                                                                    <SelectValue placeholder="All Students" />
+                                                                </div>
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1">
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Performance Levels</SelectItem>
+                                                            <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Predicted Passing</SelectItem>
+                                                            <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-red-600">Needs Support (Predicted Fail)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
-                                                <Select value={matrixStatusFilter} onValueChange={setMatrixStatusFilter}>
-                                                    <SelectTrigger className="w-36 h-10 rounded-xl border-slate-200 font-bold text-xs bg-white text-slate-700">
-                                                        <SelectValue placeholder="Status" />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                                        <SelectItem value="all" className="font-bold text-xs">All Students</SelectItem>
-                                                        <SelectItem value="pass" className="font-bold text-xs text-emerald-600">Predicted Pass</SelectItem>
-                                                        <SelectItem value="fail" className="font-bold text-xs text-red-600">Predicted Fail</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
                                             </div>
-                                            <div className="flex gap-4">
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-emerald-500" /> Mastery (≥90%)
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-amber-400" /> Passing (≥75%)
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-red-500" /> At Risk ({"<"}75%)
+
+                                            <div className="bg-slate-50/80 backdrop-blur-sm p-4 rounded-3xl border border-slate-200/60 flex items-center gap-6 shadow-sm">
+                                                <div className="space-y-2">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Legend</p>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
+                                                            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" /> Mastery (≥90%)
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
+                                                            <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm shadow-amber-400/40" /> Passing (≥75%)
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/40" /> At Risk ({"<"}75%)
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm max-h-[500px]">
-                                            <table className="w-full text-xs text-left">
-                                                <thead className="bg-slate-50/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-20">
-                                                    <tr>
-                                                        <th
-                                                            className="px-6 py-4 font-bold text-slate-700 uppercase tracking-tighter w-48 bg-slate-50 border-r border-slate-100 sticky left-0 z-30 cursor-pointer hover:text-indigo-600 transition-colors"
-                                                            onClick={() => handleSort("name")}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                Student Name
-                                                                <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                            </div>
-                                                        </th>
-                                                        {data.formative_assessments.map(fa => (
-                                                            <th key={fa.formative_assessment_number} className="px-2 py-4 font-bold text-slate-700 text-center uppercase tracking-tighter border-r border-slate-100/50">
-                                                                {fa.fa_topic_name || `FA${fa.formative_assessment_number}`}
+                                        <div className="relative group/matrix">
+                                            <div className="overflow-x-auto rounded-[2rem] border border-slate-200/60 shadow-xl bg-white max-h-[600px] custom-scrollbar scroll-smooth">
+                                                <table className="w-full text-xs text-left border-collapse">
+                                                    <thead className="sticky top-0 z-40">
+                                                        <tr>
+                                                            <th
+                                                                className="px-8 py-6 font-black text-slate-800 uppercase tracking-widest w-64 bg-slate-50/95 backdrop-blur-xl border-r border-slate-200/60 border-b-2 border-slate-200 sticky left-0 z-50 cursor-pointer hover:bg-slate-100 transition-all group/header shadow-[2px_0_10px_-2px_rgba(0,0,0,0.05)]"
+                                                                onClick={() => handleSort("name")}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <span>Student Directory</span>
+                                                                    <div className={`p-1.5 rounded-lg border transition-all ${sortField === 'name' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white border-slate-200 text-slate-400 opacity-40 group-hover/header:opacity-100'}`}>
+                                                                        <ArrowUpDown className="h-3 w-3" />
+                                                                    </div>
+                                                                </div>
                                                             </th>
-                                                        ))}
-                                                        <th className="px-6 py-4 font-black text-indigo-700 text-center uppercase tracking-tighter bg-indigo-50/50">Predicted</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-50">
-                                                    {matrixFilteredStudents
-                                                        .map((student) => (
-                                                            <tr key={student.lrn} className="group hover:bg-slate-50/80 transition-colors">
-                                                                <td className="px-6 py-3 font-bold text-slate-800 bg-white group-hover:bg-slate-50/80 border-r border-slate-100 sticky left-0 z-10 transition-colors">
-                                                                    <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="hover:text-indigo-600 transition-colors">
-                                                                        {student.name}
-                                                                    </Link>
+                                                            {data.formative_assessments.map(fa => (
+                                                                <th
+                                                                    key={fa.formative_assessment_number}
+                                                                    className="px-3 py-6 font-black text-slate-500 text-center uppercase tracking-[0.2em] bg-slate-50/95 backdrop-blur-xl border-r border-slate-200/40 border-b-2 border-slate-200 min-w-[100px] transition-all"
+                                                                >
+                                                                    <div className="relative inline-block group/topic">
+                                                                        <span className="relative z-10 transition-colors group-hover/topic:text-indigo-600">
+                                                                            {fa.fa_topic_name || `FA${fa.formative_assessment_number}`}
+                                                                        </span>
+                                                                        <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover/topic:w-full" />
+                                                                    </div>
+                                                                </th>
+                                                            ))}
+                                                            <th className="px-8 py-6 font-black text-indigo-700 text-center uppercase tracking-[0.2em] bg-indigo-50/90 backdrop-blur-xl border-b-2 border-indigo-200 sticky right-0 z-30 shadow-[-2px_0_10px_-2px_rgba(79,70,229,0.1)]">
+                                                                Prediction
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100/50">
+                                                        {matrixFilteredStudents.map((student) => (
+                                                            <tr key={student.lrn} className="group hover:bg-indigo-50/30 transition-all duration-300">
+                                                                <td className="px-8 py-4 font-bold text-slate-800 bg-white group-hover:bg-slate-50/95 border-r border-slate-200/60 sticky left-0 z-20 transition-all shadow-[2px_0_10px_-2px_rgba(0,0,0,0.03)] group-hover:shadow-[4px_0_15px_-4px_rgba(0,0,0,0.05)]">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black tracking-tighter shadow-sm transition-transform group-hover:scale-110 ${student.predicted_status === 'Pass' ? 'bg-emerald-100/80 text-emerald-700' : 'bg-rose-100/80 text-rose-700'
+                                                                            }`}>
+                                                                            {student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                                                        </div>
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <Link
+                                                                                to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`}
+                                                                                className="text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors truncate"
+                                                                            >
+                                                                                {student.name}
+                                                                            </Link>
+                                                                            <span className="text-[10px] font-bold text-slate-400/80 tracking-widest">{student.lrn}</span>
+                                                                        </div>
+                                                                    </div>
                                                                 </td>
                                                                 {data.formative_assessments.map(fa => {
                                                                     const score = student.scores?.[fa.formative_assessment_number];
+                                                                    const percent = score !== undefined ? (score / fa.max_score) * 100 : null;
                                                                     return (
-                                                                        <td key={fa.formative_assessment_number} className="p-1 text-center border-r border-slate-50">
+                                                                        <td key={fa.formative_assessment_number} className="p-2 text-center border-r border-slate-100/30 group-hover:border-indigo-100/50 transition-colors">
                                                                             {score !== undefined ? (
                                                                                 <TooltipProvider>
-                                                                                    <Tooltip>
+                                                                                    <Tooltip delayDuration={200}>
                                                                                         <TooltipTrigger asChild>
-                                                                                            <div
-                                                                                                className={`w-9 h-9 rounded-xl mx-auto flex items-center justify-center font-black text-white transition-all hover:scale-110 shadow-sm ${getScoreColor(score, fa.max_score)}`}
-                                                                                            >
-                                                                                                {Math.round(score)}
+                                                                                            <div className="relative flex items-center justify-center">
+                                                                                                <div
+                                                                                                    className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black transition-all cursor-default relative overflow-hidden group/cell hover:-translate-y-1 hover:shadow-lg ${percent! >= 90 ? 'bg-emerald-500 text-white shadow-emerald-500/20' :
+                                                                                                        percent! >= 75 ? 'bg-amber-400 text-white shadow-amber-400/20' :
+                                                                                                            'bg-rose-500 text-white shadow-rose-500/20'
+                                                                                                        }`}
+                                                                                                >
+                                                                                                    <span className="relative z-10 text-xs">{Math.round(score)}</span>
+                                                                                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+                                                                                                </div>
                                                                                             </div>
                                                                                         </TooltipTrigger>
-                                                                                        <TooltipContent side="top" className="bg-slate-900 text-white rounded-xl border-none p-3 shadow-2xl">
-                                                                                            <div className="space-y-1">
-                                                                                                <p className="text-xs font-black">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
-                                                                                                <div className="h-px bg-slate-700 my-1" />
-                                                                                                <p className="text-xs">Score: <span className="font-bold">{score} / {fa.max_score}</span></p>
-                                                                                                <p className="text-[10px] text-slate-400">Status: <span className={score >= fa.passing_threshold ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{score >= fa.passing_threshold ? "PASSING" : "AT RISK"}</span></p>
+                                                                                        <TooltipContent
+                                                                                            side="top"
+                                                                                            className="bg-slate-900 text-white rounded-[1.25rem] border-none p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+                                                                                        >
+                                                                                            <div className="px-4 py-3 bg-white/5 backdrop-blur-md">
+                                                                                                <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">{fa.fa_topic_name || `Topic ${fa.formative_assessment_number}`}</p>
+                                                                                                <div className="flex items-baseline gap-2">
+                                                                                                    <span className="text-xl font-black text-white">{score}</span>
+                                                                                                    <span className="text-[10px] font-bold text-white/40">OF {fa.max_score} POINTS</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="bg-slate-800/50 px-4 py-3 border-t border-white/5">
+                                                                                                <div className="flex items-center justify-between gap-4">
+                                                                                                    <div className="flex items-center gap-2">
+                                                                                                        <div className={`w-2 h-2 rounded-full ${percent! >= 75 ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400 animate-pulse'}`} />
+                                                                                                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                                                                                                            {(() => {
+                                                                                                                if (percent! >= 90) return "Mastery";
+                                                                                                                if (percent! >= 75) return "Proficient";
+                                                                                                                return "Critical";
+                                                                                                            })()}
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                    <span className="text-[10px] font-black font-mono text-white/60">{(percent || 0).toFixed(1)}%</span>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </TooltipContent>
                                                                                     </Tooltip>
                                                                                 </TooltipProvider>
                                                                             ) : (
-                                                                                <div className="w-9 h-9 rounded-xl mx-auto bg-slate-50 border-2 border-dashed border-slate-100" />
+                                                                                <div className="w-11 h-11 rounded-2xl mx-auto bg-slate-50/50 border-2 border-dashed border-slate-200/50 flex items-center justify-center group-hover:border-indigo-200/50 transition-colors">
+                                                                                    <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                                                                </div>
                                                                             )}
                                                                         </td>
                                                                     );
                                                                 })}
-                                                                <td className="px-6 py-3 bg-indigo-50/20 text-center">
-                                                                    <Badge className={`font-black rounded-lg px-3 py-1 shadow-sm ${student.predicted_status === 'Pass' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                                                                        {student.predicted_score?.toFixed(1) || "N/A"}
-                                                                        {student.predicted_score !== null && (
-                                                                            <span className="text-[9px] opacity-70 ml-1">
-                                                                                ({student.prediction_score_percent.toFixed(0)}%)
+                                                                <td className="px-8 py-4 bg-indigo-50/40 group-hover:bg-indigo-100/40 text-center sticky right-0 z-20 transition-all border-l border-indigo-100/30 shadow-[-2px_0_10px_-2px_rgba(79,70,229,0.05)]">
+                                                                    <div className="flex flex-col items-center gap-1 group/badge p-1">
+                                                                        <div className={`px-4 py-1.5 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-2 transition-all group-hover/badge:scale-105 group-hover/badge:shadow-md ${student.predicted_status === 'Pass' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                                                                            }`}>
+                                                                            {student.predicted_score?.toFixed(1) || "N/A"}
+                                                                            <span className="text-[8px] font-bold opacity-60 bg-black/10 px-1.5 py-0.5 rounded-md">
+                                                                                {student.prediction_score_percent.toFixed(0)}%
                                                                             </span>
-                                                                        )}
-                                                                    </Badge>
+                                                                        </div>
+                                                                        <span className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${student.predicted_status === 'Pass' ? 'text-emerald-700/60' : 'text-rose-700/60'
+                                                                            }`}>
+                                                                            {student.predicted_status === 'Pass' ? 'Pass' : 'At Risk'}
+                                                                        </span>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ))}
-                                                </tbody>
-                                            </table>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Modern Tooltip indicator for scrolling */}
+                                            <div className="absolute -bottom-4 right-8 flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-2xl animate-bounce-subtle pointer-events-none opacity-0 group-hover/matrix:opacity-100 transition-opacity">
+                                                <Layers className="h-3 w-3" />
+                                                <span className="text-[10px] font-black tracking-widest uppercase">Scroll Matrix →</span>
+                                            </div>
                                         </div>
                                     </TabsContent>
 
@@ -1080,9 +1019,9 @@ export default function AnalysisDetailPage() {
                                                         content={({ active, payload, label }) => {
                                                             if (active && payload && payload.length) {
                                                                 const d = payload[0].payload;
-                                                                const masteryColorClass = d.mean_percentage >= 90 ? 'text-emerald-400' :
-                                                                    d.mean_percentage >= 75 ? 'text-indigo-400' :
-                                                                        'text-red-400';
+                                                                let masteryColorClass = 'text-red-400';
+                                                                if (d.mean_percentage >= 90) masteryColorClass = 'text-emerald-400';
+                                                                else if (d.mean_percentage >= 75) masteryColorClass = 'text-indigo-400';
                                                                 return (
                                                                     <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border-none animate-in fade-in zoom-in duration-200">
                                                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
@@ -1112,12 +1051,13 @@ export default function AnalysisDetailPage() {
                                                         radius={[8, 8, 0, 0]}
                                                         barSize={40}
                                                     >
-                                                        {topicData.map((entry, index) => (
-                                                            <Cell
-                                                                key={`cell-${index}`}
-                                                                fill={entry.mean_percentage >= 90 ? '#10b981' : entry.mean_percentage >= 75 ? '#6366f1' : '#ef4444'}
-                                                            />
-                                                        ))}
+                                                        {topicData.map((entry, index) => {
+                                                            let barColor = '#ef4444';
+                                                            if (entry.mean_percentage >= 90) barColor = '#10b981';
+                                                            else if (entry.mean_percentage >= 75) barColor = '#6366f1';
+
+                                                            return <Cell key={`cell-${index}`} fill={barColor} />;
+                                                        })}
                                                     </Bar>
                                                 </BarChart>
                                             </ResponsiveContainer>
