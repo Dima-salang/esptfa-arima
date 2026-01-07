@@ -108,4 +108,39 @@ export const manualImportStudents = async (students: Student[]) => {
     return response.data;
 };
 
+export interface User {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    is_active: boolean;
+    is_staff: boolean;
+    is_superuser: boolean;
+    acc_type: string;
+    date_joined: string;
+    last_login: string;
+    teacher_id?: number;
+    student_lrn?: string;
+}
 
+export const getAllUsers = async (params?: any) => {
+    const response = await api.get("/users/", { params });
+    return response.data;
+};
+
+export const getUserById = async (id: number) => {
+    const response = await api.get(`/users/${id}/`);
+    return response.data;
+};
+
+export const updateUser = async (id: number, data: Partial<User> & { password?: string }) => {
+    const response = await api.patch(`/users/${id}/`, data);
+    return response.data;
+};
+
+export const deleteUser = async (id: number) => {
+    const response = await api.delete(`/users/${id}/`);
+    return response.data;
+};

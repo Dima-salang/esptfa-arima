@@ -12,6 +12,7 @@ import AllAnalysisPage from "./pages/AllAnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
 import TeacherAssignmentsPage from "./pages/TeacherAssignmentsPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserManagement from "./pages/UserManagement";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentImportPage from "./pages/StudentImportPage";
 import { useUserStore } from "./store/useUserStore";
@@ -147,6 +148,14 @@ function App() {
           element={
             <PrivateRoute>
               <StudentImportPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/users"
+          element={
+            <PrivateRoute>
+              <UserManagement />
             </PrivateRoute>
           }
         />

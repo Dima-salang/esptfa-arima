@@ -78,6 +78,11 @@ export default function AdminDashboard() {
                                 <ShieldCheck className="mr-2 h-4 w-4" /> Django Admin
                             </Button>
                         </a>
+                        <Link to="/dashboard/users">
+                            <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 shadow-sm rounded-2xl h-12 px-6">
+                                <Users className="mr-2 h-4 w-4" /> Manage Users
+                            </Button>
+                        </Link>
                         <Link to="/dashboard/import-students">
                             <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 shadow-sm rounded-2xl h-12 px-6">
                                 <UserPlus className="mr-2 h-4 w-4" /> Import Students
