@@ -13,15 +13,16 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'password', 'acc_type', 'lrn', 'section']
+        fields = ['id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'password', 'acc_type', 'lrn', 'section', 'is_active', 'is_staff', 'is_superuser']
     
     def validate_password(self, value):
+        if not value: # Optional password on update
+            return value
         try:
             validate_password(value)
         except Exception as e:
             raise serializers.ValidationError(list(e.messages) if hasattr(e, 'messages') else str(e))
         return value
-
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -31,7 +32,25 @@ class UserSerializer(serializers.ModelSerializer):
             ret['acc_type'] = 'STUDENT'
         else:
             ret['acc_type'] = 'ADMIN' if instance.is_superuser else 'USER'
+        
+        # Add basic info about related profiles if they exist
+        if hasattr(instance, 'teacher'):
+            ret['teacher_id'] = instance.teacher.id
+        if hasattr(instance, 'student'):
+            ret['student_lrn'] = instance.student.lrn
+            
         return ret
+
+class AdminUserSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ['date_joined', 'last_login']
+        read_only_fields = ['date_joined', 'last_login']
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+        return super().update(instance, validated_data)
 
 class TeacherSerializer(serializers.ModelSerializer):
     user_id = UserSerializer(read_only=True)
