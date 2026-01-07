@@ -44,7 +44,33 @@ const DashboardDispatcher = () => {
 // Basic Private Route wrapper
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem("access");
+  const { loading } = useUserStore();
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+
   return token ? <>{children}</> : <Navigate to="/login" />;
+};
+
+// Role-based Route wrapper
+const RoleRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
+  const { user, loading } = useUserStore();
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+
+  if (!user || !allowedRoles.includes(user.acc_type)) {
+    // Redirect to their respective default dashboard
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <>{children}</>;
 };
 
 function App() {
@@ -83,7 +109,9 @@ function App() {
           path="/dashboard/create-analysis"
           element={
             <PrivateRoute>
-              <CreateAnalysisPage />
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <CreateAnalysisPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -91,7 +119,9 @@ function App() {
           path="/dashboard/editor/:draftId"
           element={
             <PrivateRoute>
-              <AssessmentEditorPage />
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <AssessmentEditorPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -99,7 +129,9 @@ function App() {
           path="/dashboard/drafts"
           element={
             <PrivateRoute>
-              <AllDraftsPage />
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <AllDraftsPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -107,7 +139,9 @@ function App() {
           path="/dashboard/analysis/:docId"
           element={
             <PrivateRoute>
-              <AnalysisDetailPage />
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <AnalysisDetailPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -115,7 +149,9 @@ function App() {
           path="/dashboard/analysis/:docId/student/:lrn"
           element={
             <PrivateRoute>
-              <StudentAnalysisPage />
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <StudentAnalysisPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -123,7 +159,9 @@ function App() {
           path="/dashboard/analysis"
           element={
             <PrivateRoute>
-              <AllAnalysisPage />
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER", "STUDENT"]}>
+                <AllAnalysisPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -139,7 +177,9 @@ function App() {
           path="/dashboard/assignments"
           element={
             <PrivateRoute>
-              <TeacherAssignmentsPage />
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <TeacherAssignmentsPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -147,7 +187,9 @@ function App() {
           path="/dashboard/import-students"
           element={
             <PrivateRoute>
-              <StudentImportPage />
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <StudentImportPage />
+              </RoleRoute>
             </PrivateRoute>
           }
         />
@@ -155,7 +197,9 @@ function App() {
           path="/dashboard/users"
           element={
             <PrivateRoute>
-              <UserManagement />
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <UserManagement />
+              </RoleRoute>
             </PrivateRoute>
           }
         />

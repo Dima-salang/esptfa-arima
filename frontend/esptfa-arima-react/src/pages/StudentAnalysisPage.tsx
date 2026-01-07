@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { getStudentAnalysisDetail } from "@/lib/api-teacher";
+import { useUserStore } from "@/store/useUserStore";
+import { toast } from "sonner";
 import {
     Card,
     CardContent,
@@ -239,6 +241,14 @@ export default function StudentAnalysisPage() {
     useEffect(() => {
         const fetchDetails = async () => {
             if (!docId || !lrn) return;
+
+            // Security check: Students can only view their own LRN
+            const user = useUserStore.getState().user;
+            if (user?.acc_type === "STUDENT" && user.lrn !== lrn) {
+                toast.error("Access denied. You can only view your own performance data.");
+                return;
+            }
+
             try {
                 const result = await getStudentAnalysisDetail(docId, lrn);
                 setData(result);
