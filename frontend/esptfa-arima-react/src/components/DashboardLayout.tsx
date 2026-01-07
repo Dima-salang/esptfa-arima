@@ -62,7 +62,19 @@ export default function DashboardLayout({
     children: React.ReactNode,
     defaultCollapsed?: boolean
 }) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(!defaultCollapsed);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        const saved = localStorage.getItem("sidebar-collapsed");
+        return saved === null ? !defaultCollapsed : saved === "false";
+    });
+
+    const toggleSidebar = () => {
+        setIsSidebarOpen((prev) => {
+            const newState = !prev;
+            localStorage.setItem("sidebar-collapsed", (!newState).toString());
+            return newState;
+        });
+    };
+
     const { user, loading } = useUserStore();
     const location = useLocation();
 
@@ -187,7 +199,7 @@ export default function DashboardLayout({
                             variant="ghost"
                             size="icon"
                             className="hidden lg:flex rounded-xl"
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            onClick={toggleSidebar}
                         >
                             <Menu className="h-5 w-5" />
                         </Button>
@@ -195,7 +207,7 @@ export default function DashboardLayout({
                             variant="ghost"
                             size="icon"
                             className="lg:hidden"
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            onClick={toggleSidebar}
                         >
                             <Menu className="h-5 w-5" />
                         </Button>
