@@ -184,14 +184,11 @@ export const getStudentProfile = async () => {
 
 export const logoutUser = async () => {
     try {
-        const refresh = localStorage.getItem("refresh");
-        if (refresh) {
-            await api.post("/logout/", { refresh });
-        }
+        await api.post("/logout/");
     } catch (error) {
         console.error("Logout error:", error);
     } finally {
-        localStorage.clear();
+        sessionStorage.clear();
         globalThis.location.href = "/login";
     }
 };

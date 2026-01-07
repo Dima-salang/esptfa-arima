@@ -7,31 +7,18 @@ const api = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
+    withCredentials: true,
 });
 
-// Request interceptor to add JWT token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("access");
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
-
 let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshSubscribers: (() => void)[] = [];
 
-const subscribeTokenRefresh = (cb: (token: string) => void) => {
+const subscribeTokenRefresh = (cb: () => void) => {
     refreshSubscribers.push(cb);
 };
 
-const onRefreshed = (token: string) => {
-    refreshSubscribers.forEach((cb) => cb(token));
+const onRefreshed = () => {
+    refreshSubscribers.forEach((cb) => cb());
     refreshSubscribers = [];
 };
 
@@ -44,8 +31,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 return new Promise((resolve) => {
-                    subscribeTokenRefresh((token: string) => {
-                        originalRequest.headers["Authorization"] = `Bearer ${token}`;
+                    subscribeTokenRefresh(() => {
                         resolve(api(originalRequest));
                     });
                 });
@@ -54,35 +40,17 @@ api.interceptors.response.use(
             originalRequest._retry = true;
             isRefreshing = true;
 
-            const refreshToken = localStorage.getItem("refresh");
-            if (!refreshToken) {
-                isRefreshing = false;
-                localStorage.removeItem("access");
-                globalThis.location.href = "/login";
-                throw error;
-            }
-
             try {
-                const response = await axios.post(`${API_URL}/token/refresh/`, {
-                    refresh: refreshToken,
-                });
+                // The refresh token is sent automatically via cookie
+                await axios.post(`${API_URL}/token/refresh/`, {}, { withCredentials: true });
 
-                const { access, refresh: newRefresh } = response.data;
-
-                localStorage.setItem("access", access);
-                if (newRefresh) {
-                    localStorage.setItem("refresh", newRefresh);
-                }
-
-                api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-                onRefreshed(access);
+                onRefreshed(); // No need to pass token
                 isRefreshing = false;
 
                 return api(originalRequest);
             } catch (refreshError) {
                 isRefreshing = false;
-                localStorage.removeItem("access");
-                localStorage.removeItem("refresh");
+                // If refresh fails, redirect to login
                 globalThis.location.href = "/login";
                 throw refreshError;
             }
