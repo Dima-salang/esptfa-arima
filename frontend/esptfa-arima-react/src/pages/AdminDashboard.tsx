@@ -19,6 +19,7 @@ import {
     ChevronRight,
     LayoutGrid,
     UserPlus,
+    ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,11 @@ export default function AdminDashboard() {
                         <p className="text-slate-500 font-medium italic">Global overview and resource management dashboard</p>
                     </div>
                     <div className="flex gap-3">
+                        <a href="http://localhost:8000/admin" target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm rounded-2xl h-12 px-6">
+                                <ShieldCheck className="mr-2 h-4 w-4" /> Django Admin
+                            </Button>
+                        </a>
                         <Link to="/dashboard/import-students">
                             <Button variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 shadow-sm rounded-2xl h-12 px-6">
                                 <UserPlus className="mr-2 h-4 w-4" /> Import Students
