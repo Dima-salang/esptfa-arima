@@ -15,7 +15,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentImportPage from "./pages/StudentImportPage";
-import AnalysisDetailPageTemp from "./pages/temp";
 import { useUserStore } from "./store/useUserStore";
 import { Toaster } from "@/components/ui/sonner";
 import "./App.css";
@@ -142,16 +141,6 @@ function App() {
             <PrivateRoute>
               <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
                 <AnalysisDetailPage />
-              </RoleRoute>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/dashboard/analysisTemp/:docId"
-          element={
-            <PrivateRoute>
-              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
-                <AnalysisDetailPageTemp />
               </RoleRoute>
             </PrivateRoute>
           }

@@ -49,20 +49,21 @@ export default function LoginPage() {
                     password: values.password,
                 });
 
-                const token = response.data.access || response.data.token;
-                if (token) {
-                    localStorage.setItem("access", token);
-                    if (response.data.refresh) {
-                        localStorage.setItem("refresh", response.data.refresh);
-                    }
+                if (response.status === 200) {
                     await fetchProfile();
                     navigate("/dashboard");
                 } else {
-                    setError("Invalid server response. Token not found.");
+                    setError("Invalid server response.");
                 }
             } catch (err: any) {
                 console.error("Login failed", err);
-                setError("Invalid username or password.");
+                if (err.response?.data?.detail) {
+                    setError(err.response.data.detail);
+                } else if (err.response?.status === 403) {
+                    setError("Access denied. Possibly a security/CORS issue.");
+                } else {
+                    setError("Invalid username or password.");
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -111,8 +112,14 @@ export default function LoginPage() {
             </div>
 
             {/* Right Side: Login Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 bg-slate-50 dark:bg-slate-900/50">
-                <div className="w-full max-w-md">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden">
+                {/* Background Decorations (matching Register page) */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[100px]" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-500/10 rounded-full blur-[100px]" />
+                </div>
+
+                <div className="w-full max-w-md relative z-10">
                     {successMessage && (
                         <div className="mb-8 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -169,12 +176,6 @@ export default function LoginPage() {
                                 <Label htmlFor="password" title="password" className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
                                     Password
                                 </Label>
-                                <Link
-                                    to="/forgot-password"
-                                    className="text-sm font-bold text-indigo-600 hover:text-indigo-500 transition-colors underline-offset-4 hover:underline"
-                                >
-                                    Forgot?
-                                </Link>
                             </div>
                             <div className="group relative">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">

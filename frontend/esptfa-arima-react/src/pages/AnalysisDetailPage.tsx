@@ -151,6 +151,12 @@ const getInterventionTheme = (percent: number | null) => {
     return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
 };
 
+const getScoreColor = (percent: number) => {
+    if (percent >= 90) return "text-emerald-600";
+    if (percent >= 75) return "text-amber-500";
+    return "text-red-600";
+};
+
 const InfoTooltip = ({ content }: { content: string }) => (
     <TooltipProvider>
         <Tooltip delayDuration={300}>
@@ -175,9 +181,15 @@ export default function AnalysisDetailPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [matrixSearch, setMatrixSearch] = useState("");
     const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
+    const [interventionFilter, setInterventionFilter] = useState("all");
+    const [matrixInterventionFilter, setMatrixInterventionFilter] = useState("all");
     const [processing, setProcessing] = useState(false);
     const [sortField, setSortField] = useState<keyof StudentPerformance>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+    const interventionLabels = Array.from(new Set(
+        (data?.student_performance || []).flatMap(s => Object.keys(s.intervention))
+    )).sort((a, b) => a.localeCompare(b));
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -232,14 +244,16 @@ export default function AnalysisDetailPage() {
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.lrn.includes(searchTerm);
             const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
-            return matchesSearch && matchesStatus;
+            const matchesIntervention = interventionFilter === "all" || Object.keys(s.intervention).includes(interventionFilter);
+            return matchesSearch && matchesStatus && matchesIntervention;
         })
     );
     const matrixFilteredStudents = sortStudents(
         (data?.student_performance || []).filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
             const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
-            return matchesSearch && matchesStatus;
+            const matchesIntervention = matrixInterventionFilter === "all" || Object.keys(s.intervention).includes(matrixInterventionFilter);
+            return matchesSearch && matchesStatus && matchesIntervention;
         })
     );
 
@@ -517,7 +531,7 @@ export default function AnalysisDetailPage() {
                                                     </div>
                                                     <Select value={matrixStatusFilter} onValueChange={setMatrixStatusFilter}>
                                                         <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-indigo-300 transition-all">
-                                                            <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="flex items-center gap-2 min-w-0 text-left">
                                                                 <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                                                 <div className="truncate pr-2">
                                                                     <SelectValue placeholder="All Students" />
@@ -528,6 +542,24 @@ export default function AnalysisDetailPage() {
                                                             <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Performance Levels</SelectItem>
                                                             <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Predicted Passing</SelectItem>
                                                             <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-red-600">Needs Support (Predicted Fail)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select value={matrixInterventionFilter} onValueChange={setMatrixInterventionFilter}>
+                                                        <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-indigo-300 transition-all">
+                                                            <div className="flex items-center gap-2 min-w-0 text-left">
+                                                                <BrainCircuit className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                                <div className="truncate pr-2">
+                                                                    <SelectValue placeholder="All Strategies" />
+                                                                </div>
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1 max-h-[300px]">
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Intervention Strategies</SelectItem>
+                                                            {interventionLabels.map(label => (
+                                                                <SelectItem key={label} value={label} className="rounded-xl font-bold text-xs py-2">
+                                                                    {label}
+                                                                </SelectItem>
+                                                            ))}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -738,7 +770,7 @@ export default function AnalysisDetailPage() {
                                                     Highest Performers
                                                     <Badge className="bg-emerald-500 text-white border-none">TOP 5</Badge>
                                                 </h4>
-                                                {[...data.student_performance].sort((a, b) => b.mean - a.mean).slice(0, 3).map((s, i) => (
+                                                {[...data.student_performance].sort((a, b) => getTruePercentage(b) - getTruePercentage(a)).slice(0, 3).map((s, i) => (
                                                     <Link
                                                         key={`top-${s.lrn}`}
                                                         to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
@@ -761,7 +793,7 @@ export default function AnalysisDetailPage() {
                                                     Requires Support
                                                     <Badge className="bg-orange-400 text-white border-none">REMEDIAL</Badge>
                                                 </h4>
-                                                {[...data.student_performance].sort((a, b) => a.mean - b.mean).slice(0, 2).map((s, i) => (
+                                                {[...data.student_performance].sort((a, b) => getTruePercentage(a) - getTruePercentage(b)).slice(0, 2).map((s, i) => (
                                                     <Link
                                                         key={`risk-${s.lrn}`}
                                                         to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
@@ -774,7 +806,7 @@ export default function AnalysisDetailPage() {
                                                             <span className="font-bold text-slate-800 group-hover:text-orange-700 transition-colors">{s.name}</span>
                                                         </div>
                                                         <div className="text-right">
-                                                            <span className="text-lg font-black text-orange-600 font-mono">{s.mean.toFixed(1)}</span>
+                                                            <span className={`text-lg font-black font-mono ${getScoreColor(getTruePercentage(s))}`}>{s.mean.toFixed(1)}</span>
                                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</p>
                                                         </div>
                                                     </Link>
@@ -812,9 +844,25 @@ export default function AnalysisDetailPage() {
                                             <SelectValue placeholder="All Statuses" />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Students</SelectItem>
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Statuses</SelectItem>
                                             <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Predicted Pass</SelectItem>
                                             <SelectItem value="fail" className="font-bold rounded-xl h-10 text-red-600">Predicted Fail</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={interventionFilter} onValueChange={setInterventionFilter}>
+                                        <SelectTrigger className="w-full sm:w-56 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <div className="flex items-center gap-2">
+                                                <BrainCircuit className="h-4 w-4 text-slate-400 shrink-0" />
+                                                <SelectValue placeholder="Intervention Strategy" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Intervention Strategies</SelectItem>
+                                            {interventionLabels.map(label => (
+                                                <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -891,7 +939,7 @@ export default function AnalysisDetailPage() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        <span className="px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-slate-700 text-sm">
+                                                        <span className={`px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-sm ${getScoreColor(getTruePercentage(student))}`}>
                                                             {student.mean.toFixed(1)}
                                                         </span>
                                                     </TableCell>

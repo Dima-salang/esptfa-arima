@@ -22,16 +22,10 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set) => ({
     user: null,
-    loading: typeof globalThis.window !== 'undefined' ? !!localStorage.getItem("access") : false,
+    loading: true, // Start with true to check session
     error: null,
 
     fetchProfile: async () => {
-        const token = localStorage.getItem("access");
-        if (!token) {
-            set({ user: null, loading: false });
-            return;
-        }
-
         set({ loading: true, error: null });
         try {
             const data = await getCurrentUser();

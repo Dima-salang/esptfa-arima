@@ -359,9 +359,16 @@ export default function StudentAnalysisPage() {
                                     <div className="p-6">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">AVERAGE SCORE</p>
                                         <div className="flex items-end gap-2">
-                                            <h3 className={`text-3xl font-black tracking-tight ${getScoreColor(data.student_stats?.mean || 0)}`}>
-                                                {data.student_stats?.mean.toFixed(1)}
-                                            </h3>
+                                            {(() => {
+                                                const totalMax = data.scores.reduce((acc, s) => acc + s.max_score, 0);
+                                                const totalScore = data.scores.reduce((acc, s) => acc + s.score, 0);
+                                                const historyPercent = totalMax > 0 ? (totalScore / totalMax) * 100 : (data.student_stats?.mean || 0);
+                                                return (
+                                                    <h3 className={`text-3xl font-black tracking-tight ${getScoreColor(historyPercent)}`}>
+                                                        {data.student_stats?.mean.toFixed(1)}
+                                                    </h3>
+                                                );
+                                            })()}
                                             <p className="text-sm font-bold text-slate-400 mb-1">in {data.document.subject?.subject_name}</p>
                                         </div>
                                     </div>
@@ -391,7 +398,7 @@ export default function StudentAnalysisPage() {
                                     </div>
                                     <div className="p-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PEDAGOGICAL STRATEGY</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">INTERVENTION STRATEGY</p>
                                         </div>
                                         <div className="space-y-3">
                                             {Object.entries(data.intervention).map(([label, action]) => {
