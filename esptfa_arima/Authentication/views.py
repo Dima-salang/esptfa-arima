@@ -28,7 +28,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from rest_framework import filters
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from .serializers import UserSerializer, TeacherSerializer, StudentSerializer, AdminUserSerializer
+from .authentication import CookieJWTAuthentication
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -59,35 +62,72 @@ def register(request):
 
 
 
+from django.conf import settings
+
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny] # Ensure anyone can try to login
+    permission_classes = [AllowAny]
+    authentication_classes = [] # Disable global authentication (like SessionAuthentication) for this endpoint
 
     def create(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
         
-        # Use Django's built-in authenticate
-        user = authenticate(username=username, password=password)
+        # Use Django's built-in authenticate with request context
+        user = authenticate(request, username=username, password=password)
         
-        if user is not None:
-            if user.is_active:
+        if user is None:
+            # Check if the user exists but is inactive (Django's authenticate often returns None for inactive users)
+            try:
+                temp_user = User.objects.get(username=username)
+                if temp_user.check_password(password):
+                    if not temp_user.is_active:
+                        return Response({"detail": "Your account is pending administrator approval."}, status=status.HTTP_403_FORBIDDEN)
+            except User.DoesNotExist:
+                pass
+            
+            return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        if user.is_active:
+            try:
                 refresh = RefreshToken.for_user(user)
-                # Use your existing serializer for the user data
                 from .serializers import UserSerializer 
                 user_data = UserSerializer(user).data
                 
-                return Response({
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
+                response = Response({
                     "user": user_data
                 }, status=status.HTTP_200_OK)
-            return Response({"detail": "Account disabled"}, status=status.HTTP_403_FORBIDDEN)
+                
+                # Set cookies
+                response.set_cookie(
+                    key=settings.SIMPLE_JWT['AUTH_COOKIE'],
+                    value=str(refresh.access_token),
+                    max_age=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds(),
+                    secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                    httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                    samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                    path='/'
+                )
+                response.set_cookie(
+                    key=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'],
+                    value=str(refresh),
+                    max_age=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds(),
+                    secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                    httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                    samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                    path='/'
+                )
+                return response
+            except Exception as e:
+                return Response({"detail": f"Token creation error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"detail": "Your account is disabled."}, status=status.HTTP_403_FORBIDDEN)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    # Removed class-level authentication_classes override to use global ones
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
@@ -135,15 +175,22 @@ class TeacherViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = [] # Allow calling logout even if token is expired
 
     def create(self, request):
         try:
-            refresh_token = request.data.get("refresh")
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+            refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            
+            response = Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+            response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'], path='/')
+            response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'], path='/')
+            return response
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -230,3 +277,48 @@ class StudentViewSet(ModelViewSet):
         
 
     # define the permissions
+
+
+from rest_framework_simplejwt.views import TokenRefreshView
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CookieTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+        if refresh_token:
+            request.data['refresh'] = refresh_token
+        
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            access_token = response.data.get('access')
+            refresh_token = response.data.get('refresh')
+            
+            response.set_cookie(
+                key=settings.SIMPLE_JWT['AUTH_COOKIE'],
+                value=access_token,
+                max_age=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds(),
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                path='/'
+            )
+            if refresh_token:
+                response.set_cookie(
+                    key=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'],
+                    value=refresh_token,
+                    max_age=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds(),
+                    secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                    httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                    samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                    path='/'
+                )
+            
+            # Remove tokens from response body for security
+            if 'access' in response.data:
+                del response.data['access']
+            if 'refresh' in response.data:
+                del response.data['refresh']
+        print("Refreshed cookie")
+                
+        return response
