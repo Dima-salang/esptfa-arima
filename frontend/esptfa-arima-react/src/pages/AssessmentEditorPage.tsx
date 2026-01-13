@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
 } from "@/components/ui/card";
@@ -460,31 +459,27 @@ export default function AssessmentEditorPage() {
 
     if (isLoading) {
         return (
-            <DashboardLayout defaultCollapsed={true}>
-                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                    <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
-                    <p className="text-slate-500 font-medium animate-pulse">Loading assessment draft...</p>
-                </div>
-            </DashboardLayout>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
+                <p className="text-slate-500 font-medium animate-pulse">Loading assessment draft...</p>
+            </div>
         );
     }
 
     if (error || !draft) {
         return (
-            <DashboardLayout defaultCollapsed={true}>
-                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
-                    <div className="p-4 bg-red-100 text-red-600 rounded-full">
-                        <AlertCircle className="h-10 w-10" />
-                    </div>
-                    <div className="space-y-2">
-                        <h2 className="text-2xl font-bold text-slate-900">Oops! Something went wrong</h2>
-                        <p className="text-slate-500 max-w-md">{error || "Draft not found."}</p>
-                    </div>
-                    <Button onClick={() => navigate("/dashboard")} className="bg-indigo-600">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-                    </Button>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
+                <div className="p-4 bg-red-100 text-red-600 rounded-full">
+                    <AlertCircle className="h-10 w-10" />
                 </div>
-            </DashboardLayout>
+                <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-slate-900">Oops! Something went wrong</h2>
+                    <p className="text-slate-500 max-w-md">{error || "Draft not found."}</p>
+                </div>
+                <Button onClick={() => navigate("/dashboard")} className="bg-indigo-600">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                </Button>
+            </div>
         );
     }
 
@@ -501,7 +496,7 @@ export default function AssessmentEditorPage() {
         : "Quarter";
 
     return (
-        <DashboardLayout defaultCollapsed={true}>
+        <>
             <div className="space-y-8 animate-in fade-in duration-500 pb-32">
                 {/* Editor Header */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 px-4">
@@ -917,6 +912,6 @@ export default function AssessmentEditorPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

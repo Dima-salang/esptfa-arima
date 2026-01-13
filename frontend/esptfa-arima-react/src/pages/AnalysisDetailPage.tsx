@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAnalysisFullDetails } from "@/lib/api-teacher";
 import {
     Card,
@@ -260,20 +260,17 @@ export default function AnalysisDetailPage() {
 
     if (loading) {
         return (
-            <DashboardLayout>
                 <div className="flex items-center justify-center h-[80vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-slate-500 font-medium">Loading analysis dashboard...</p>
                     </div>
                 </div>
-            </DashboardLayout>
         );
     }
 
     if (processing) {
         return (
-            <DashboardLayout>
                 <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-6">
                     <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
                         <BrainCircuit className="w-12 h-12 text-indigo-600" />
@@ -292,18 +289,15 @@ export default function AnalysisDetailPage() {
                         <Button variant="ghost">Back to Dashboard</Button>
                     </Link>
                 </div>
-            </DashboardLayout>
         );
     }
 
     if (!data) {
         return (
-            <DashboardLayout>
                 <div className="text-center py-20">
                     <h2 className="text-xl font-bold">Analysis not found</h2>
                     <Link to="/dashboard" className="text-indigo-600">Go back</Link>
                 </div>
-            </DashboardLayout>
         );
     }
 
@@ -334,7 +328,7 @@ export default function AnalysisDetailPage() {
 
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1209,6 +1203,6 @@ export default function AnalysisDetailPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

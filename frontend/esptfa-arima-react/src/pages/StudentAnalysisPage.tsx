@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import { getStudentAnalysisDetail } from "@/lib/api-teacher";
 import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
@@ -287,25 +286,21 @@ export default function StudentAnalysisPage() {
 
     if (loading) {
         return (
-            <DashboardLayout>
                 <div className="flex items-center justify-center h-[80vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-slate-500 font-medium">Loading student statistics...</p>
                     </div>
                 </div>
-            </DashboardLayout>
         );
     }
 
     if (!data) {
         return (
-            <DashboardLayout>
                 <div className="text-center py-20">
                     <h2 className="text-xl font-bold">Student data not found</h2>
                     <Link to={`/dashboard/analysis/${docId}`} className="text-indigo-600">Go back</Link>
                 </div>
-            </DashboardLayout>
         );
     }
 
@@ -320,7 +315,7 @@ export default function StudentAnalysisPage() {
     });
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -526,6 +521,6 @@ export default function StudentAnalysisPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

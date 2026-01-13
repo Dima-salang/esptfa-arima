@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     getAnalysisDocuments,
     getTestDrafts,
@@ -110,7 +109,7 @@ export default function TeacherDashboard() {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-8 animate-in fade-in duration-500">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -315,6 +314,6 @@ export default function TeacherDashboard() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </DashboardLayout>
+        </>
     );
 }

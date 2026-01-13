@@ -1,4 +1,3 @@
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
     CardContent,
@@ -24,11 +23,9 @@ export default function SettingsPage() {
 
     if (loading && !user) {
         return (
-            <DashboardLayout>
                 <div className="flex items-center justify-center h-[60vh]">
                     <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-            </DashboardLayout>
         );
     }
 
@@ -37,7 +34,6 @@ export default function SettingsPage() {
 
 
     return (
-        <DashboardLayout>
             <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -121,6 +117,5 @@ export default function SettingsPage() {
                     </Card>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

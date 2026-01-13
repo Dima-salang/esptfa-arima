@@ -1,4 +1,5 @@
 import api from "./api";
+import { useUserStore } from "@/store/useUserStore";
 
 export interface Subject {
     subject_id: number;
@@ -183,12 +184,17 @@ export const getStudentProfile = async () => {
 
 
 export const logoutUser = async () => {
+    useUserStore.getState().clearProfile();
+    
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    sessionStorage.clear();
+
     try {
         await api.post("/logout/");
     } catch (error) {
         console.error("Logout error:", error);
     } finally {
-        sessionStorage.clear();
-        globalThis.location.href = "/login";
+        globalThis.location.replace("/login");
     }
 };

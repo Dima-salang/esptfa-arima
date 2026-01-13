@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { getSystemStats } from "@/lib/api-admin";
 import { getAnalysisDocuments } from "@/lib/api-teacher";
 import type { AnalysisDocument } from "@/lib/api-teacher";
@@ -64,7 +63,6 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-500">
                     <div>
@@ -172,6 +170,5 @@ export default function AdminDashboard() {
 
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

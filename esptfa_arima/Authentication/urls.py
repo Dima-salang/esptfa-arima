@@ -18,7 +18,6 @@ from .views import (
 
 
 urlpatterns = [
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path('token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]

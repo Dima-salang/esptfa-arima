@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { getAnalysisDocuments, getStudentProfile } from "@/lib/api-teacher";
 import type { AnalysisDocument, Student } from "@/lib/api-teacher";
 import { useUserStore } from "@/store/useUserStore";
@@ -46,7 +45,6 @@ export default function StudentDashboard() {
     }, []);
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-8 animate-in fade-in duration-500">
                     <div>
@@ -158,7 +156,6 @@ export default function StudentDashboard() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }
 

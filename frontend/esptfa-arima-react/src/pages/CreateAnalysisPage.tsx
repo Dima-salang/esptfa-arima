@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
     CardContent,
@@ -111,7 +110,7 @@ export default function CreateAnalysisPage() {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header Section */}
                 <div className="flex flex-col gap-2">
@@ -244,6 +243,6 @@ export default function CreateAnalysisPage() {
                     </Card>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }
