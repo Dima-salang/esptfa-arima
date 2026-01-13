@@ -57,7 +57,6 @@ import {
     Calendar,
     MoreHorizontal,
     Plus,
-    Filter,
     RotateCcw,
     ChevronLeft,
     ChevronRight,

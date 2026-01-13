@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { getCurrentUser } from '@/lib/api-teacher';
 
+let profileFetchPromise: Promise<any> | null = null;
+let lastFetchTime = 0;
+const FETCH_CACHE_DURATION = 30000;
+
 interface UserProfile {
     id: number;
     username: string;
@@ -26,20 +30,41 @@ export const useUserStore = create<UserState>((set) => ({
     error: null,
 
     fetchProfile: async () => {
-        set({ loading: true, error: null });
-        try {
-            const data = await getCurrentUser();
-            set({ user: data, loading: false });
-        } catch (err: any) {
-            console.error("Failed to fetch user profile:", err);
-            set({
-                error: err.message || "Failed to load profile",
-                loading: false,
-                user: null
-            });
+        const now = Date.now();
+        if (profileFetchPromise && (now - lastFetchTime) < FETCH_CACHE_DURATION) {
+            return profileFetchPromise;
         }
+
+        set({ loading: true, error: null });
+
+        const fetchPromise = (async () => {
+            try {
+                const data = await getCurrentUser();
+                set({ user: data, loading: false });
+                return data;
+            } catch (err: any) {
+                console.error("Failed to fetch user profile:", err);
+                set({
+                    error: err.message || "Failed to load profile",
+                    loading: false,
+                    user: null
+                });
+                throw err;
+            } finally {
+                profileFetchPromise = null;
+            }
+        })();
+
+        profileFetchPromise = fetchPromise;
+        lastFetchTime = now;
+
+        return fetchPromise;
     },
 
-    clearProfile: () => set({ user: null, loading: false, error: null }),
+    clearProfile: () => {
+        profileFetchPromise = null;
+        lastFetchTime = 0;
+        set({ user: null, loading: false, error: null });
+    },
 }));
 

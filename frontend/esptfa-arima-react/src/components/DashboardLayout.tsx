@@ -112,28 +112,26 @@ export default function DashboardLayout({
             {/* Sidebar */}
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 dark:bg-slate-900 dark:border-slate-800",
+                    "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 shadow-premium-md",
                     !isSidebarOpen && "-translate-x-full lg:w-20"
                 )}
             >
                 <div className="flex flex-col h-full">
-                    {/* Sidebar Header */}
-                    <div className="h-20 flex items-center px-6">
+                    <div className="h-20 flex items-center px-6 border-b border-border/50">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
+                            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center shadow-premium-lg hover:shadow-premium-xl transition-all duration-300 hover:scale-105 cursor-pointer">
                                 <FileText className="text-white h-5 w-5" />
                             </div>
                             {isSidebarOpen && (
-                                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
+                                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground animate-in slide-in-from-left-2 duration-300">
                                     ESPTFA-ARIMA
                                 </span>
                             )}
                         </div>
                     </div>
 
-                    <Separator className="mx-6 w-auto opacity-50" />
+                    <Separator className="mx-6 w-auto" />
 
-                    {/* Navigation */}
                     <ScrollArea className="flex-1 px-4 py-6">
                         <div className="space-y-2">
                             {menuItems.map((item) => (
@@ -149,7 +147,7 @@ export default function DashboardLayout({
 
                         <div className="mt-10">
                             {isSidebarOpen && (
-                                <p className="px-4 mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                <p className="px-4 mb-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                     Account
                                 </p>
                             )}
@@ -157,7 +155,7 @@ export default function DashboardLayout({
                                 <SidebarItem icon={Settings} label={isSidebarOpen ? "Settings" : ""} href="/dashboard/settings" />
                                 <Button
                                     variant="ghost"
-                                    className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 group"
+                                    className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive group transition-all duration-200"
                                     onClick={() => logoutUser()}
                                 >
                                     <LogOut className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -167,20 +165,19 @@ export default function DashboardLayout({
                         </div>
                     </ScrollArea>
 
-                    {/* Sidebar Footer */}
-                    <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                    <div className="p-6 bg-muted/30 border-t border-border/50">
                         <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-2 ring-indigo-50">
-                                <AvatarFallback className="bg-slate-900 text-white font-bold text-xs">
+                            <Avatar className="h-10 w-10 border-2 border-background shadow-premium-sm ring-2 ring-primary/20">
+                                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
                                     {loading ? "..." : initials}
                                 </AvatarFallback>
                             </Avatar>
                             {isSidebarOpen && (
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                <div className="flex flex-col overflow-hidden animate-in slide-in-from-left-2 duration-300">
+                                    <span className="text-sm font-bold text-foreground truncate">
                                         {loading ? "Loading..." : fullName}
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight truncate">
                                         {loading ? "..." : accType}
                                     </span>
                                 </div>
@@ -190,15 +187,13 @@ export default function DashboardLayout({
                 </div>
             </aside>
 
-            {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                {/* Header */}
-                <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 dark:bg-slate-900/80 dark:border-slate-800">
+                <header className="h-20 glass-premium border-b border-border px-6 flex items-center justify-between sticky top-0 z-10 transition-all duration-300">
                     <div className="flex items-center gap-4 flex-1">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex rounded-xl"
+                            className="hidden lg:flex rounded-xl hover:bg-accent transition-colors"
                             onClick={toggleSidebar}
                         >
                             <Menu className="h-5 w-5" />
@@ -206,7 +201,7 @@ export default function DashboardLayout({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="lg:hidden"
+                            className="lg:hidden hover:bg-accent transition-colors"
                             onClick={toggleSidebar}
                         >
                             <Menu className="h-5 w-5" />
@@ -215,15 +210,15 @@ export default function DashboardLayout({
                     <div className="flex items-center gap-3">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                                    <Avatar className="h-10 w-10 ring-2 ring-slate-100">
-                                        <AvatarFallback className="bg-indigo-600 text-white font-bold text-xs uppercase">
+                                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-accent transition-colors">
+                                    <Avatar className="h-10 w-10 ring-2 ring-border hover:ring-primary/50 transition-all">
+                                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs uppercase">
                                             {loading ? "..." : initials}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuContent className="w-56 shadow-premium-lg" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
                                         <p className="text-sm font-bold leading-none">{loading ? "Loading..." : fullName}</p>
@@ -232,11 +227,11 @@ export default function DashboardLayout({
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <Link to="/dashboard/settings">
-                                    <DropdownMenuItem className="cursor-pointer">Profile Settings</DropdownMenuItem>
+                                    <DropdownMenuItem className="cursor-pointer hover:bg-accent transition-colors">Profile Settings</DropdownMenuItem>
                                 </Link>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                    className="text-red-600 cursor-pointer"
+                                    className="text-destructive cursor-pointer hover:bg-destructive/10 transition-colors"
                                     onClick={() => logoutUser()}
                                 >
                                     Log out
@@ -246,9 +241,8 @@ export default function DashboardLayout({
                     </div>
                 </header>
 
-                {/* Page Content */}
-                <div className="flex-1 overflow-y-auto">
-                    <div className="p-8">
+                <div className="flex-1 overflow-y-auto bg-muted/20">
+                    <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         {children}
                     </div>
                 </div>

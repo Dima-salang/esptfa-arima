@@ -121,3 +121,113 @@
     @apply bg-background text-foreground;
   }
 }
+
+.shadow-premium-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.shadow-premium-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.shadow-premium-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.shadow-premium-xl {
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.glow-indigo {
+  box-shadow: 0 0 20px -5px rgb(79 70 229 / 0.3);
+}
+
+.glow-indigo-strong {
+  box-shadow: 0 0 30px -5px rgb(79 70 229 / 0.4);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225 / 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184 / 0.8);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105 / 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139 / 0.8);
+}
+
+::selection {
+  background: rgb(79 70 229 / 0.2);
+  color: inherit;
+}
+
+*:focus-visible {
+  outline: 2px solid rgb(79 70 229);
+  outline-offset: 2px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgb(226 232 240 / 0.5) 20%,
+    rgb(226 232 240 / 0.8) 50%,
+    rgb(226 232 240 / 0.5) 80%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgb(51 65 85 / 0.5) 20%,
+    rgb(51 65 85 / 0.8) 50%,
+    rgb(51 65 85 / 0.5) 80%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
+}
+
+.glass-premium {
+  background: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgb(255 255 255 / 0.3);
+}
+
+.dark .glass-premium {
+  background: rgb(30 41 59 / 0.8);
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
