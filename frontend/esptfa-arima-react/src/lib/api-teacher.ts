@@ -186,10 +186,6 @@ export const getStudentProfile = async () => {
 export const logoutUser = async () => {
     useUserStore.getState().clearProfile();
     
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    sessionStorage.clear();
-
     try {
         await api.post("/logout/");
     } catch (error) {
