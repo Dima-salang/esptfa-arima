@@ -41,17 +41,17 @@ export const useUserStore = create<UserState>((set) => ({
             try {
                 const data = await getCurrentUser();
                 set({ user: data, loading: false });
+                lastFetchTime = Date.now();
                 return data;
             } catch (err: any) {
                 console.error("Failed to fetch user profile:", err);
+                profileFetchPromise = null;
                 set({
                     error: err.message || "Failed to load profile",
                     loading: false,
                     user: null
                 });
                 throw err;
-            } finally {
-                profileFetchPromise = null;
             }
         })();
 
