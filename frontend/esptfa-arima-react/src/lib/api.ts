@@ -52,6 +52,8 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (refreshError) {
                 isRefreshing = false;
+                // redirect to login
+                globalThis.location.replace("/login");
                 return Promise.reject(refreshError);
             }
         }
