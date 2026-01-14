@@ -97,7 +97,11 @@ function App() {
 
           <Route
             path="student-analysis/:docId/:lrn"
-            element={<StudentAnalysisPage />}
+            element={
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER", "STUDENT"]}>
+                <StudentAnalysisPage />
+              </RoleRoute>
+            }
           />
 
           <Route
