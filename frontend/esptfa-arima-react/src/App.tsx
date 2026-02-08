@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentImportPage from "./pages/StudentImportPage";
+import AdminDataManagement from "./pages/AdminDataManagement";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useUserStore } from "./store/useUserStore";
 import { Toaster } from "@/components/ui/sonner";
@@ -70,10 +71,12 @@ const RoleRoute = ({ children, allowedRoles }: { children: React.ReactNode, allo
 };
 
 function App() {
-  const { user, loading, fetchProfile } = useUserStore();
+  const { user, fetchProfile } = useUserStore();
 
   useEffect(() => {
-    fetchProfile();
+    fetchProfile().catch(() => {
+      // 401s are expected when not logged in
+    });
   }, [fetchProfile]);
 
   return (
@@ -183,11 +186,20 @@ function App() {
             }
           />
 
-          <Route
+            <Route
             path="users"
             element={
               <RoleRoute allowedRoles={["ADMIN"]}>
                 <UserManagement />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="data-management"
+            element={
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <AdminDataManagement />
               </RoleRoute>
             }
           />

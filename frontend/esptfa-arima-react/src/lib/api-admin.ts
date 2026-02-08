@@ -143,3 +143,94 @@ export const deleteUser = async (id: number) => {
     const response = await api.delete(`/users/${id}/`);
     return response.data;
 };
+
+// --- Subjects CRUD ---
+
+export const createSubject = async (data: { subject_name: string }) => {
+    const response = await api.post("/subject/", data);
+    return response.data;
+};
+
+export const updateSubject = async (id: number, data: { subject_name: string }) => {
+    const response = await api.patch(`/subject/${id}/`, data);
+    return response.data;
+};
+
+export const deleteSubject = async (id: number) => {
+    const response = await api.delete(`/subject/${id}/`);
+    return response.data;
+};
+
+// --- Sections CRUD ---
+
+export const createSection = async (data: { section_name: string }) => {
+    const response = await api.post("/section/", data);
+    return response.data;
+};
+
+export const updateSection = async (id: number, data: { section_name: string }) => {
+    const response = await api.patch(`/section/${id}/`, data);
+    return response.data;
+};
+
+export const deleteSection = async (id: number) => {
+    const response = await api.delete(`/section/${id}/`);
+    return response.data;
+};
+
+// --- Quarters CRUD ---
+
+export interface Quarter {
+    quarter_id: number;
+    quarter_name: string;
+}
+
+export const getAllQuarters = async () => {
+    const response = await api.get("/quarter/");
+    return response.data;
+};
+
+export const createQuarter = async (data: { quarter_name: string }) => {
+    const response = await api.post("/quarter/", data);
+    return response.data;
+};
+
+export const updateQuarter = async (id: number, data: { quarter_name: string }) => {
+    const response = await api.patch(`/quarter/${id}/`, data);
+    return response.data;
+};
+
+export const deleteQuarter = async (id: number) => {
+    const response = await api.delete(`/quarter/${id}/`);
+    return response.data;
+};
+
+// --- Topics CRUD ---
+
+export interface Topic {
+    topic_id: number;
+    topic_name: string;
+    subject?: number;
+    max_score?: number;
+    test_number?: string;
+}
+
+export const getAllTopics = async () => {
+    const response = await api.get("/test-topic/");
+    return response.data;
+};
+
+export const createTopic = async (data: Partial<Topic>) => {
+    const response = await api.post("/test-topic/", data);
+    return response.data;
+};
+
+export const updateTopic = async (id: number, data: Partial<Topic>) => {
+    const response = await api.patch(`/test-topic/${id}/`, data);
+    return response.data;
+};
+
+export const deleteTopic = async (id: number) => {
+    const response = await api.delete(`/test-topic/${id}/`);
+    return response.data;
+};

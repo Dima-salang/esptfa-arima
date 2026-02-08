@@ -19,6 +19,7 @@ import {
     LayoutGrid,
     UserPlus,
     ShieldCheck,
+    Database,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -88,6 +89,11 @@ export default function AdminDashboard() {
                         <Link to="/dashboard/assignments">
                             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-premium-xl glow-indigo-strong rounded-2xl h-12 px-6 transition-all hover:scale-105 active:scale-[0.98]">
                                 <LayoutGrid className="mr-2 h-4 w-4" /> Manage Assignments
+                            </Button>
+                        </Link>
+                        <Link to="/dashboard/data-management">
+                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-premium-xl glow-emerald-strong rounded-2xl h-12 px-6 transition-all hover:scale-105 active:scale-[0.98]">
+                                <Database className="mr-2 h-4 w-4" /> Manage School Data
                             </Button>
                         </Link>
                     </div>
