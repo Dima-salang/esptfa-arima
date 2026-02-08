@@ -898,7 +898,7 @@ export default function AnalysisDetailPage() {
                                                 onClick={() => handleSort("actual_score")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Actual Result
+                                                    Post Test Result
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                     <InfoTooltip content="The actual score achieved by the student in the post-test (if uploaded)." />
                                                 </div>
@@ -951,7 +951,7 @@ export default function AnalysisDetailPage() {
                                                                 <span className="font-black text-emerald-600 text-xl tracking-tighter">
                                                                     {student.actual_score}
                                                                 </span>
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Actual / {student.actual_max}</span>
+                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Post Test Score / {student.actual_max}</span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>

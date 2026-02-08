@@ -57,7 +57,6 @@ export default function UserManagement() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filterActive, setFilterActive] = useState<string>("all");
-    const [filterStaff, setFilterStaff] = useState<string>("all");
     const [ordering, setOrdering] = useState<string>("-date_joined");
 
     // Pagination state
@@ -78,7 +77,6 @@ export default function UserManagement() {
             };
 
             if (filterActive !== "all") params.is_active = filterActive;
-            if (filterStaff !== "all") params.is_staff = filterStaff;
 
             const response = await getAllUsers(params);
             // DRF might return { results: [], count: 0 } or just [] if pagination is off
@@ -95,7 +93,7 @@ export default function UserManagement() {
         } finally {
             setLoading(false);
         }
-    }, [search, filterActive, filterStaff, ordering, page]);
+    }, [search, filterActive, ordering, page]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -127,7 +125,6 @@ export default function UserManagement() {
                 first_name: editingUser.first_name,
                 last_name: editingUser.last_name,
                 is_active: editingUser.is_active,
-                is_staff: editingUser.is_staff,
                 is_superuser: editingUser.is_superuser,
             };
 
@@ -214,23 +211,11 @@ export default function UserManagement() {
                                 </Select>
                             </div>
 
-                            <div className="w-full lg:w-40 space-y-2">
-                                <Label className="text-sm font-bold text-slate-700">Role</Label>
-                                <Select value={filterStaff} onValueChange={setFilterStaff}>
-                                    <SelectTrigger className="rounded-xl border-slate-200">
-                                        <SelectValue placeholder="All Roles" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Roles</SelectItem>
-                                        <SelectItem value="true">Staff Only</SelectItem>
-                                        <SelectItem value="false">Regular Users</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
 
                             <Button
                                 variant="outline"
-                                onClick={() => { setSearch(""); setFilterActive("all"); setFilterStaff("all"); }}
+                                onClick={() => { setSearch(""); setFilterActive("all"); }}
                                 className="rounded-xl border-slate-200"
                             >
                                 Reset Filters
@@ -264,7 +249,6 @@ export default function UserManagement() {
                                         <TableHead className="font-bold text-slate-700">Full Name</TableHead>
                                         <TableHead className="font-bold text-slate-700">Type</TableHead>
                                         <TableHead className="font-bold text-slate-700 text-center">Active</TableHead>
-                                        <TableHead className="font-bold text-slate-700 text-center">Staff</TableHead>
                                         <TableHead onClick={() => handleSort('date_joined')} className="cursor-pointer font-bold text-slate-700">
                                             <div className="flex items-center gap-1">
                                                 Joined <ArrowUpDown className="h-3 w-3" />
@@ -304,13 +288,6 @@ export default function UserManagement() {
                                                 <TableCell className="text-center">
                                                     {user.is_active ? (
                                                         <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-                                                    ) : (
-                                                        <XCircle className="h-4 w-4 text-slate-300 mx-auto" />
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {user.is_staff ? (
-                                                        <CheckCircle2 className="h-4 w-4 text-indigo-500 mx-auto" />
                                                     ) : (
                                                         <XCircle className="h-4 w-4 text-slate-300 mx-auto" />
                                                     )}
@@ -448,24 +425,7 @@ export default function UserManagement() {
                                     </Select>
                                 </div>
 
-                                <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/30">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-sm font-bold">Staff Status</Label>
-                                        <p className="text-xs text-slate-500">Management interface access</p>
-                                    </div>
-                                    <Select
-                                        value={editingUser.is_staff.toString()}
-                                        onValueChange={(val) => setEditingUser({ ...editingUser, is_staff: val === 'true' })}
-                                    >
-                                        <SelectTrigger className="w-24 rounded-lg">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="true">Yes</SelectItem>
-                                            <SelectItem value="false">No</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+
 
                                 <div className="flex items-center justify-between p-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
                                     <div className="space-y-0.5">

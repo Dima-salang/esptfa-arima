@@ -116,7 +116,6 @@ export interface User {
     middle_name?: string;
     last_name: string;
     is_active: boolean;
-    is_staff: boolean;
     is_superuser: boolean;
     acc_type: string;
     date_joined: string;

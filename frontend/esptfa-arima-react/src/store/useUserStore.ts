@@ -5,7 +5,7 @@ let profileFetchPromise: Promise<any> | null = null;
 let lastFetchTime = 0;
 const FETCH_CACHE_DURATION = 30000;
 
-interface UserProfile {
+export interface UserProfile {
     id: number;
     username: string;
     first_name: string;
@@ -20,7 +20,7 @@ interface UserState {
     user: UserProfile | null;
     loading: boolean;
     error: string | null;
-    fetchProfile: () => Promise<void>;
+    fetchProfile: () => Promise<UserProfile | null>;
     clearProfile: () => void;
 }
 
@@ -44,14 +44,16 @@ export const useUserStore = create<UserState>((set) => ({
                 lastFetchTime = Date.now();
                 return data;
             } catch (err: any) {
-                console.error("Failed to fetch user profile:", err);
+                if (err.response?.status !== 401) {
+                    console.error("Failed to fetch user profile:", err);
+                }
                 profileFetchPromise = null;
                 set({
                     error: err.message || "Failed to load profile",
                     loading: false,
                     user: null
                 });
-                throw err;
+                return null;
             }
         })();
 

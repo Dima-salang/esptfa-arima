@@ -51,8 +51,12 @@ export default function LoginPage() {
                 });
 
                 if (response.status === 200) {
-                    await fetchProfile();
-                    navigate("/dashboard");
+                    const user = await fetchProfile();
+                    if (user) {
+                        navigate("/dashboard");
+                    } else {
+                        setError("Failed to load user profile. Please check your connection.");
+                    }
                 } else {
                     setError("Invalid server response.");
                 }
