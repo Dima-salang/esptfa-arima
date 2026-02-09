@@ -38,5 +38,5 @@ class CookieJWTAuthentication(JWTAuthentication):
         except Exception as e:
             # If token in header/cookie is invalid, fallback to checking cookie if we haven't already
             # or just return None to allow other authenticators or fail with 401
-            logger.debug(f"JWT authentication failed: {str(e)}")
+            logger.error(f"JWT authentication failed: {str(e)}")
             return None

@@ -41,12 +41,17 @@ class Quarter(models.Model):
 class Section(models.Model):
     section_id = models.AutoField(unique=True, primary_key=True)
     section_name = models.CharField(max_length=100)
+    adviser = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.section_name
 
     class Meta:
         ordering = ['-section_id']
+    
+    # ensure that only users who are teachers are shown
+    def get_queryset(self):
+        return super().get_queryset().filter(user__is_teacher=True)
 
 
 # pairs the teacher for a specific subject and section

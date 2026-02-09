@@ -31,9 +31,6 @@ export const useUserStore = create<UserState>((set) => ({
 
     fetchProfile: async () => {
         const now = Date.now();
-        if (profileFetchPromise && (now - lastFetchTime) < FETCH_CACHE_DURATION) {
-            return profileFetchPromise;
-        }
 
         set({ loading: true, error: null });
 
