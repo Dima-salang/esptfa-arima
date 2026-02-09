@@ -117,7 +117,9 @@ interface StudentPerformance {
     failing_rate: number;
     predicted_score: number | null;
     predicted_status: string;
-    intervention: Record<string, string>;
+    prediction_intervention: Record<string, string>;
+    actual_intervention: Record<string, string>;
+    actual_status: string | null;
     prediction_score_percent: number;
     actual_score: number | null;
     actual_max: number | null;
@@ -181,14 +183,20 @@ export default function AnalysisDetailPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [matrixSearch, setMatrixSearch] = useState("");
     const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
-    const [interventionFilter, setInterventionFilter] = useState("all");
-    const [matrixInterventionFilter, setMatrixInterventionFilter] = useState("all");
+    const [actualStatusFilter, setActualStatusFilter] = useState("all");
+    const [matrixActualStatusFilter, setMatrixActualStatusFilter] = useState("all");
+    const [actualInterventionFilter, setActualInterventionFilter] = useState("all");
+    const [matrixActualInterventionFilter, setMatrixActualInterventionFilter] = useState("all");
     const [processing, setProcessing] = useState(false);
     const [sortField, setSortField] = useState<keyof StudentPerformance>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
     const interventionLabels = Array.from(new Set(
-        (data?.student_performance || []).flatMap(s => Object.keys(s.intervention))
+        (data?.student_performance || []).flatMap(s => Object.keys(s.prediction_intervention))
+    )).sort((a, b) => a.localeCompare(b));
+
+    const actualInterventionLabels = Array.from(new Set(
+        (data?.student_performance || []).flatMap(s => Object.keys(s.actual_intervention || {}))
     )).sort((a, b) => a.localeCompare(b));
 
     useEffect(() => {
@@ -244,16 +252,20 @@ export default function AnalysisDetailPage() {
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.lrn.includes(searchTerm);
             const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
-            const matchesIntervention = interventionFilter === "all" || Object.keys(s.intervention).includes(interventionFilter);
-            return matchesSearch && matchesStatus && matchesIntervention;
+            const matchesActualStatus = actualStatusFilter === "all" || (s.actual_status && s.actual_status.toLowerCase() === actualStatusFilter.toLowerCase());
+            const matchesIntervention = interventionFilter === "all" || Object.keys(s.prediction_intervention).includes(interventionFilter);
+            const matchesActualIntervention = actualInterventionFilter === "all" || (s.actual_intervention && Object.keys(s.actual_intervention).includes(actualInterventionFilter));
+            return matchesSearch && matchesStatus && matchesActualStatus && matchesIntervention && matchesActualIntervention;
         })
     );
     const matrixFilteredStudents = sortStudents(
         (data?.student_performance || []).filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
             const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
-            const matchesIntervention = matrixInterventionFilter === "all" || Object.keys(s.intervention).includes(matrixInterventionFilter);
-            return matchesSearch && matchesStatus && matchesIntervention;
+            const matchesActualStatus = matrixActualStatusFilter === "all" || (s.actual_status && s.actual_status.toLowerCase() === matrixActualStatusFilter.toLowerCase());
+            const matchesIntervention = matrixInterventionFilter === "all" || Object.keys(s.prediction_intervention).includes(matrixInterventionFilter);
+            const matchesActualIntervention = matrixActualInterventionFilter === "all" || (s.actual_intervention && Object.keys(s.actual_intervention).includes(matrixActualInterventionFilter));
+            return matchesSearch && matchesStatus && matchesActualStatus && matchesIntervention && matchesActualIntervention;
         })
     );
 
@@ -426,7 +438,7 @@ export default function AnalysisDetailPage() {
                                                         <p className="text-[10px] opacity-70 mb-2">LRN: {student.lrn}</p>
                                                         <div className="h-px bg-white/10 my-2" />
                                                         <p className="text-[10px] text-red-400 font-bold mb-1">PREDICTION: {student.predicted_score?.toFixed(1)}</p>
-                                                        <p className="text-[9px] italic leading-tight">{Object.values(student.intervention)[0]?.split('.')[0]}.</p>
+                                                        <p className="text-[9px] italic leading-tight">{Object.values(student.prediction_intervention)[0]?.split('.')[0]}.</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
@@ -538,18 +550,33 @@ export default function AnalysisDetailPage() {
                                                             <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-red-600">Needs Support (Predicted Fail)</SelectItem>
                                                         </SelectContent>
                                                     </Select>
-                                                    <Select value={matrixInterventionFilter} onValueChange={setMatrixInterventionFilter}>
-                                                        <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-indigo-300 transition-all">
+                                                    <Select value={matrixActualStatusFilter} onValueChange={setMatrixActualStatusFilter}>
+                                                        <SelectTrigger className="w-52 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-emerald-300 transition-all">
                                                             <div className="flex items-center gap-2 min-w-0 text-left">
-                                                                <BrainCircuit className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                                                                 <div className="truncate pr-2">
-                                                                    <SelectValue placeholder="All Strategies" />
+                                                                    <SelectValue placeholder="Actual Status" />
+                                                                </div>
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1">
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Actual Results</SelectItem>
+                                                            <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Actual Passed</SelectItem>
+                                                            <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-rose-600">Actual Failed</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select value={matrixActualInterventionFilter} onValueChange={setMatrixActualInterventionFilter}>
+                                                        <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-emerald-300 transition-all">
+                                                            <div className="flex items-center gap-2 min-w-0 text-left">
+                                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                                <div className="truncate pr-2">
+                                                                    <SelectValue placeholder="Actual Strategy" />
                                                                 </div>
                                                             </div>
                                                         </SelectTrigger>
                                                         <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1 max-h-[300px]">
-                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Intervention Strategies</SelectItem>
-                                                            {interventionLabels.map(label => (
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Actual Interventions</SelectItem>
+                                                            {actualInterventionLabels.map(label => (
                                                                 <SelectItem key={label} value={label} className="rounded-xl font-bold text-xs py-2">
                                                                     {label}
                                                                 </SelectItem>
@@ -844,15 +871,45 @@ export default function AnalysisDetailPage() {
                                         </SelectContent>
                                     </Select>
                                     <Select value={interventionFilter} onValueChange={setInterventionFilter}>
-                                        <SelectTrigger className="w-full sm:w-56 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                        <SelectTrigger className="w-full sm:w-52 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
                                             <div className="flex items-center gap-2">
-                                                <BrainCircuit className="h-4 w-4 text-slate-400 shrink-0" />
-                                                <SelectValue placeholder="Intervention Strategy" />
+                                                <BrainCircuit className="h-4 w-4 text-indigo-400 shrink-0" />
+                                                <SelectValue placeholder="Pred. Strategy" />
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Intervention Strategies</SelectItem>
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Pred. Interventions</SelectItem>
                                             {interventionLabels.map(label => (
+                                                <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <div className="h-10 w-px bg-slate-200 hidden sm:block mx-1" />
+                                    <Select value={actualStatusFilter} onValueChange={setActualStatusFilter}>
+                                        <SelectTrigger className="w-full sm:w-44 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                                <SelectValue placeholder="Actual Status" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Actual Statuses</SelectItem>
+                                            <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Actual Pass</SelectItem>
+                                            <SelectItem value="fail" className="font-bold rounded-xl h-10 text-rose-600">Actual Fail</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={actualInterventionFilter} onValueChange={setActualInterventionFilter}>
+                                        <SelectTrigger className="w-full sm:w-52 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                                <SelectValue placeholder="Actual Strategy" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Actual Interventions</SelectItem>
+                                            {actualInterventionLabels.map(label => (
                                                 <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
                                                     {label}
                                                 </SelectItem>
@@ -884,35 +941,44 @@ export default function AnalysisDetailPage() {
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30"
                                                 onClick={() => handleSort("predicted_score")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    ARIMA Prediction
+                                                    Predicted Score
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                    <InfoTooltip content="Score predicted by the ARIMA model for the upcoming evaluation." />
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
-                                                onClick={() => handleSort("actual_score")}
-                                            >
-                                                <div className="flex items-center justify-center gap-2">
-                                                    Post Test Result
-                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                    <InfoTooltip content="The actual score achieved by the student in the post-test (if uploaded)." />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead
-                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors"
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30"
                                                 onClick={() => handleSort("predicted_status")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Status
+                                                    Pred. Status
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-black text-slate-700 w-[400px] uppercase text-[11px] tracking-widest pr-8">Intervention Strategy</TableHead>
+                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center bg-indigo-50/30">Prediction Intervention</TableHead>
+                                            
+                                            <TableHead
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30"
+                                                onClick={() => handleSort("actual_score")}
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Actual Score
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30"
+                                                onClick={() => handleSort("actual_status")}
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Actual Status
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center pr-8 bg-emerald-50/30">Actual Intervention</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -937,27 +1003,15 @@ export default function AnalysisDetailPage() {
                                                             {student.mean.toFixed(1)}
                                                         </span>
                                                     </TableCell>
-                                                    <TableCell className="text-center">
+                                                    <TableCell className="text-center bg-indigo-50/10">
                                                         <div className="flex flex-col items-center">
                                                             <span className="font-black text-indigo-600 text-xl tracking-tighter">
                                                                 {student.predicted_score?.toFixed(1) || "N/A"}
                                                             </span>
-                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
+                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {student.actual_score !== null ? (
-                                                            <div className="flex flex-col items-center">
-                                                                <span className="font-black text-emerald-600 text-xl tracking-tighter">
-                                                                    {student.actual_score}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Post Test Score / {student.actual_max}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
+                                                    <TableCell className="text-center bg-indigo-50/10">
                                                         <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.predicted_status === 'Pass'
                                                             ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                             : 'bg-red-50 text-red-600 border-red-100'
@@ -965,26 +1019,66 @@ export default function AnalysisDetailPage() {
                                                             {student.predicted_status}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell className="pr-8">
-                                                        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed shadow-sm flex items-start gap-3 ${getInterventionTheme(student.prediction_score_percent)}`}>
-                                                            <div className="mt-0.5">
-                                                                <Info className="h-3.5 w-3.5 opacity-60" />
-                                                            </div>
-                                                            <div className="flex flex-col gap-2">
-                                                                {Object.entries(student.intervention).map(([label, action]) => (
-                                                                    <div key={label} className="space-y-1">
-                                                                        <span className="font-black uppercase text-[10px] tracking-widest block opacity-70 border-b border-current/20 pb-0.5 mb-1">{label}</span>
-                                                                        <span className="block">{action}</span>
+                                                    <TableCell className="bg-indigo-50/10">
+                                                        <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme(student.prediction_score_percent)}`}>
+                                                            <BrainCircuit className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
+                                                            <div className="flex flex-col gap-1">
+                                                                {Object.entries(student.prediction_intervention).map(([label, action]) => (
+                                                                    <div key={label}>
+                                                                        <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{label}</span>
+                                                                        <span className="block italic">"{action}"</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     </TableCell>
+
+                                                    <TableCell className="text-center bg-emerald-50/10">
+                                                        {student.actual_score !== null ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-emerald-600 text-xl tracking-tighter">
+                                                                    {student.actual_score}
+                                                                </span>
+                                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Post Test Score / {student.actual_max}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-center bg-emerald-50/10">
+                                                        {student.actual_status ? (
+                                                            <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.actual_status === 'Pass'
+                                                                ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                                                : 'bg-rose-100 text-rose-700 border-rose-200'
+                                                                }`}>
+                                                                {student.actual_status}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">-</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="pr-8 bg-emerald-50/10 text-center">
+                                                        {student.actual_score !== null ? (
+                                                            <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme((student.actual_score / (student.actual_max || 1)) * 100)}`}>
+                                                                <CheckCircle2 className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1 text-left">
+                                                                    {Object.entries(student.actual_intervention).map(([label, action]) => (
+                                                                        <div key={label}>
+                                                                            <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{label}</span>
+                                                                            <span className="block italic">"{action}"</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting evaluation...</span>
+                                                        )}
+                                                    </TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="h-40 text-center text-slate-400 font-medium">
+                                                <TableCell colSpan={8} className="h-40 text-center text-slate-400 font-medium">
                                                     No student records found matching "{searchTerm}"
                                                 </TableCell>
                                             </TableRow>

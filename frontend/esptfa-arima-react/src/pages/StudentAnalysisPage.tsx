@@ -60,11 +60,13 @@ interface StudentDetailData {
         predicted_status: string;
         max_score: number;
     } | null;
-    intervention: Record<string, string>;
+    prediction_intervention: Record<string, string> | string;
+    actual_intervention: Record<string, string> | string;
     prediction_score_percent: number;
     actual_post_test: {
         score: number;
         max_score: number;
+        status: string;
     } | null;
     scores: Array<{
         formative_assessment_number: string;
@@ -393,24 +395,56 @@ export default function StudentAnalysisPage() {
                                     </div>
                                     <div className="p-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">INTERVENTION STRATEGY</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PREDICTION INTERVENTION</p>
                                         </div>
                                         <div className="space-y-3">
-                                            {Object.entries(data.intervention).map(([label, action]) => {
-                                                const theme = getInterventionTheme(data.prediction_score_percent);
-                                                return (
-                                                    <div key={label} className="space-y-2">
-                                                        <Badge className={`${theme.badge} border font-bold`}>
-                                                            {label}
-                                                        </Badge>
-                                                        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed italic ${theme.container}`}>
-                                                            "{action}"
+                                            {typeof data.prediction_intervention === 'object' ? 
+                                                Object.entries(data.prediction_intervention).map(([label, action]) => {
+                                                    const theme = getInterventionTheme(data.prediction_score_percent);
+                                                    return (
+                                                        <div key={label} className="space-y-2">
+                                                            <Badge className={`${theme.badge} border font-bold`}>
+                                                                {label}
+                                                            </Badge>
+                                                            <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed italic ${theme.container}`}>
+                                                                "{action}"
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                }) : (
+                                                    <p className="text-xs text-slate-500 italic">{data.prediction_intervention}</p>
+                                                )
+                                            }
                                         </div>
                                     </div>
+                                    
+                                    {data.actual_post_test && (
+                                        <div className="p-6 border-t border-slate-100">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ACTUAL POST-TEST INTERVENTION</p>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {typeof data.actual_intervention === 'object' ? 
+                                                    Object.entries(data.actual_intervention).map(([label, action]) => {
+                                                        const actualPercent = (data.actual_post_test!.score / data.actual_post_test!.max_score) * 100;
+                                                        const theme = getInterventionTheme(actualPercent);
+                                                        return (
+                                                            <div key={label} className="space-y-2">
+                                                                <Badge className={`${theme.badge} border font-bold`}>
+                                                                    {label}
+                                                                </Badge>
+                                                                <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed italic ${theme.container}`}>
+                                                                    "{action}"
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }) : (
+                                                        <p className="text-xs text-slate-500 italic">{data.actual_intervention}</p>
+                                                    )
+                                                }
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
