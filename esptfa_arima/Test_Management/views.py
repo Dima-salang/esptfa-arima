@@ -43,7 +43,6 @@ from .services.analysis_doc_service import (
     start_arima_model,
 )
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from enum import Enum
 
 
@@ -174,7 +173,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # 3. Formative Assessment Statistics (Class level per test)
             fa_stats = FormativeAssessmentStatistic.objects.filter(
                 analysis_document=document
-            ).order_by("formative_assessment_number")
+            ).order_by("test_number")
             fa_stats_data = FormativeAssessmentStatisticSerializer(
                 fa_stats, many=True
             ).data
@@ -210,7 +209,9 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             for ss in student_stats:
                 pred = pred_lookup.get(ss.student.lrn)
                 prediction_score_percent = (
-                    (pred.score / pred.max_score) * 100 if pred.max_score else 0
+                    (pred.score / pred.max_score) * 100
+                    if pred and pred.max_score
+                    else 0
                 )
                 actual = actual_lookup.get(ss.student.lrn)
                 student_performance.append(
@@ -314,7 +315,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # We use the serializer we just updated for fa_topic_name
             fa_stats = FormativeAssessmentStatistic.objects.filter(
                 analysis_document=document
-            ).order_by("formative_assessment_number")
+            ).order_by("test_number")
 
             # prediction score percent
             prediction_score_percent = (
@@ -329,11 +330,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                 data = FormativeAssessmentScoreSerializer(s).data
                 # Find topic name from fa_stats if possible
                 topic_stat = next(
-                    (
-                        stat
-                        for stat in fa_stats
-                        if stat.formative_assessment_number == s.test_number
-                    ),
+                    (stat for stat in fa_stats if stat.test_number == s.test_number),
                     None,
                 )
                 data["topic_name"] = (
@@ -706,7 +703,7 @@ class ActualPostTestViewSet(viewsets.ModelViewSet):
                 for score_item in scores:
                     lrn = score_item.get("lrn")
                     score = score_item.get("score")
-                    max_score = document.post_test_max_score
+                    max_score = document.post_test_max_score or 1
 
                     student = Student.objects.get(lrn=lrn)
 
