@@ -14,6 +14,10 @@ export interface UserProfile {
     acc_type: string;
     lrn?: string;
     section?: string;
+    advising_section?: {
+        id: number;
+        name: string;
+    };
 }
 
 interface UserState {

@@ -181,6 +181,24 @@ export const getStudentProfile = async () => {
     return response.data;
 };
 
+export const adviserBulkImportCSV = async (file: File) => {
+    const formData = new FormData();
+    formData.append("student_import_file", file);
+    const response = await api.post("/student/adviser_bulk_import_csv/", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    });
+    return response.data;
+};
+
+export const adviserManualImportStudents = async (students: any[]) => {
+    const response = await api.post("/student/adviser_manual_import/", {
+        students
+    });
+    return response.data;
+};
+
 
 
 export const logoutUser = async () => {
