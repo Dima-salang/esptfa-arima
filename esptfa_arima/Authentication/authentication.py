@@ -1,5 +1,7 @@
 import logging
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -35,8 +37,9 @@ class CookieJWTAuthentication(JWTAuthentication):
             user = self.get_user(validated_token)
             logger.debug(f"Successfully authenticated user {user.username} via JWT.")
             return user, validated_token
-        except Exception as e:
-            # If token in header/cookie is invalid, fallback to checking cookie if we haven't already
-            # or just return None to allow other authenticators or fail with 401
-            logger.error(f"JWT authentication failed: {str(e)}")
+        except (InvalidToken, TokenError, AuthenticationFailed) as e:
+            logger.exception(f"JWT authentication failed: {str(e)}")
             return None
+        except Exception:
+            # Re-raise unexpected exceptions to bubble up as 500s
+            raise
