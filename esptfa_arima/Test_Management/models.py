@@ -290,6 +290,7 @@ class ActualPostTest(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     max_score = models.FloatField()
+    status = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.student.full_name} - Actual Post Test: {self.score}/{self.max_score} - {self.analysis_document.analysis_doc_title}"
