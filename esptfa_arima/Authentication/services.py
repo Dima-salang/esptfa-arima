@@ -172,6 +172,8 @@ def process_csv_import(file: File, allowed_section: Section = None) -> None:
                         user_id=None,
                     )
                 )
+            except DRFValidationError:
+                raise
             except Exception as e:
                 raise DRFValidationError(f"Row {index + 1}: {str(e)}")
 
@@ -220,42 +222,47 @@ def process_manual_import(
         students_to_save = []
         # loop through the students and prepare them
         for index, student in enumerate(students):
-            lrn = str(student.get("lrn")).strip()
-            if len(lrn) != 11:
-                raise DRFValidationError(
-                    f"Row {index + 1}:LRN '{lrn}' is not 11 characters long"
-                )
-            first_name = str(student.get("first_name")).strip()
-            middle_name = str(student.get("middle_name", "") or "").strip()
-            last_name = str(student.get("last_name")).strip()
-
-            if allowed_section:
-                section = allowed_section
-            else:
-                section_input = student.get("section")
-                # Determine the section object
-                section = sections_dict.get(section_input)
-                if not section:
+            try:
+                lrn = str(student.get("lrn")).strip()
+                if len(lrn) != 11:
                     raise DRFValidationError(
-                        f"Row {index + 1}: Section '{section_input}' does not exist"
+                        f"Row {index + 1}:LRN '{lrn}' is not 11 characters long"
+                    )
+                first_name = str(student.get("first_name")).strip()
+                middle_name = str(student.get("middle_name", "") or "").strip()
+                last_name = str(student.get("last_name")).strip()
+
+                if allowed_section:
+                    section = allowed_section
+                else:
+                    section_input = student.get("section")
+                    # Determine the section object
+                    section = sections_dict.get(section_input)
+                    if not section:
+                        raise DRFValidationError(
+                            f"Row {index + 1}: Section '{section_input}' does not exist"
+                        )
+
+                # Check for existing student
+                if Student.objects.filter(lrn=lrn).exists():
+                    raise DRFValidationError(
+                        f"Row {index + 1}: Student with LRN '{lrn}' already exists"
                     )
 
-            # Check for existing student
-            if Student.objects.filter(lrn=lrn).exists():
-                raise DRFValidationError(
-                    f"Row {index + 1}: Student with LRN '{lrn}' already exists"
+                students_to_save.append(
+                    Student(
+                        lrn=lrn,
+                        first_name=first_name,
+                        middle_name=middle_name,
+                        last_name=last_name,
+                        section=section,
+                        user_id=None,
+                    )
                 )
-
-            students_to_save.append(
-                Student(
-                    lrn=lrn,
-                    first_name=first_name,
-                    middle_name=middle_name,
-                    last_name=last_name,
-                    section=section,
-                    user_id=None,
-                )
-            )
+            except DRFValidationError:
+                raise
+            except Exception as e:
+                raise DRFValidationError(f"Row {index + 1}: {str(e)}")
 
         # save the students in a single transaction
         with transaction.atomic():

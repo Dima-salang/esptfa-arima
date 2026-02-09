@@ -84,7 +84,7 @@ export default function StudentImportPage() {
             const fileInput = document.getElementById('csv-upload') as HTMLInputElement;
             if (fileInput) fileInput.value = '';
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.error || error.response?.data?.['Validation Error: '] || "Failed to import CSV. Please check the file format.");
+            setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import CSV. Please check the file format.");
         } finally {
             setIsLoading(false);
         }
@@ -139,7 +139,7 @@ export default function StudentImportPage() {
             setSuccessMessage("Manual import successful! All students have been added.");
             setManualStudents([{ temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: "" }]);
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.error || error.response?.data?.['Validation Error: '] || "Failed to import students. Please check the data.");
+            setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import students. Please check the data.");
         } finally {
             setIsLoading(false);
         }
