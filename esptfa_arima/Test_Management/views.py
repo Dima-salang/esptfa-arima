@@ -173,7 +173,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # 3. Formative Assessment Statistics (Class level per test)
             fa_stats = FormativeAssessmentStatistic.objects.filter(
                 analysis_document=document
-            ).order_by("test_number")
+            ).order_by("formative_assessment_number")
             fa_stats_data = FormativeAssessmentStatisticSerializer(
                 fa_stats, many=True
             ).data
@@ -309,13 +309,13 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # Individual scores
             scores_objs = FormativeAssessmentScore.objects.filter(
                 analysis_document=document, student_id=student
-            ).order_by("test_number")
+            ).order_by("formative_assessment_number")
 
             # Class FA stats for comparison
             # We use the serializer we just updated for fa_topic_name
             fa_stats = FormativeAssessmentStatistic.objects.filter(
                 analysis_document=document
-            ).order_by("test_number")
+            ).order_by("formative_assessment_number")
 
             # prediction score percent
             prediction_score_percent = (
@@ -330,7 +330,11 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
                 data = FormativeAssessmentScoreSerializer(s).data
                 # Find topic name from fa_stats if possible
                 topic_stat = next(
-                    (stat for stat in fa_stats if stat.test_number == s.test_number),
+                    (
+                        stat
+                        for stat in fa_stats
+                        if stat.formative_assessment_number == s.test_number
+                    ),
                     None,
                 )
                 data["topic_name"] = (
