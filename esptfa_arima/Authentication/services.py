@@ -42,18 +42,27 @@ def register_user(
         is_active=False,
     )
 
-    # create teacher or student that is linked to the user account
+    # Convert empty strings to None
+    if lrn == "":
+        lrn = None
+    if section_id == "":
+        section_id = None
+
+    # create teacher or student that is linked to the user account if applicable
+    acc_type_enum = None
     if isinstance(acc_type, str):
         try:
-            acc_type = ACC_TYPE[acc_type.upper()]
-        except KeyError:
-            # Fallback for old lowercase values if necessary, or just raise error
-            acc_type = ACC_TYPE(acc_type.lower())
+            acc_type_enum = ACC_TYPE[acc_type.upper()]
+        except (KeyError, ValueError):
+            # Not a Teacher or Student, probably an Admin or generic user
+            pass
+    elif isinstance(acc_type, ACC_TYPE):
+        acc_type_enum = acc_type
 
-    if acc_type == ACC_TYPE.TEACHER:
+    if acc_type_enum == ACC_TYPE.TEACHER:
         Teacher.objects.create(user_id=user)
         logger.info(f"Successfully registered teacher: {username}")
-    elif acc_type == ACC_TYPE.STUDENT:
+    elif acc_type_enum == ACC_TYPE.STUDENT:
         if section_id is None:
             logger.error(f"Registration failed for {username}: Section ID missing.")
             user.delete()  # Cleanup if validation failed late
@@ -67,8 +76,8 @@ def register_user(
             user.delete()  # Cleanup
             raise ValidationError("Section does not exist")
 
-        # check if there is already an existing student record
-        student_obj = Student.objects.filter(lrn=lrn, section=section).first()
+        # check if there is already an existing student record globally by LRN
+        student_obj = Student.objects.filter(lrn=lrn).first()
 
         if student_obj:
             if student_obj.user_id is None:
