@@ -2,7 +2,7 @@
 
 add teacher privilege to self-enroll students - DONE
 
-- in their inteface
+- in their interface
 
 remove staff status in admin for editing user details - DONE
 
