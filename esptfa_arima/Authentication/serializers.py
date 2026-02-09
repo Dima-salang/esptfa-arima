@@ -6,10 +6,17 @@ from django.contrib.auth.password_validation import validate_password
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    acc_type = serializers.CharField(required=False)
-    lrn = serializers.CharField(write_only=True, required=False, allow_null=True)
-    section = serializers.CharField(write_only=True, required=False, allow_null=True)
+    acc_type = serializers.CharField(required=False, allow_blank=True)
+    lrn = serializers.CharField(
+        write_only=True, required=False, allow_null=True, allow_blank=True
+    )
+    section = serializers.CharField(
+        write_only=True, required=False, allow_null=True, allow_blank=True
+    )
     middle_name = serializers.CharField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
 
     class Meta:
         model = User
@@ -74,6 +81,52 @@ class AdminUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ["date_joined", "last_login"]
         read_only_fields = ["date_joined", "last_login"]
+
+    def create(self, validated_data):
+        from .services import register_user
+
+        username = validated_data.pop("username")
+        password = validated_data.pop("password")
+        email = validated_data.pop("email", "")
+        first_name = validated_data.pop("first_name", "")
+        middle_name = validated_data.pop("middle_name", "")
+        last_name = validated_data.pop("last_name", "")
+        acc_type = validated_data.pop("acc_type", "ADMIN")
+        lrn = validated_data.pop("lrn", None)
+        section_id = validated_data.pop("section", None)
+
+        is_active = validated_data.pop("is_active", True)
+        is_superuser = validated_data.pop("is_superuser", False)
+
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        # We use a modified version of register_user logic to allow immediate activation and superuser status
+        # but we can also just call register_user and then update the user object
+        try:
+            user = register_user(
+                username=username,
+                password=password,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                email=email,
+                acc_type=acc_type,
+                lrn=lrn,
+                section_id=section_id,
+            )
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(
+                e.message_dict if hasattr(e, "message_dict") else e.messages
+            )
+
+        # Apply admin-specified flags
+        user.is_active = is_active
+        user.is_superuser = is_superuser
+        if is_superuser:
+            user.is_staff = True
+        user.save()
+
+        return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
