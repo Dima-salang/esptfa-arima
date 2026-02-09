@@ -237,7 +237,12 @@ def process_manual_import(
                 else:
                     section_input = student.get("section")
                     # Determine the section object
-                    section = sections_dict.get(section_input)
+                    try:
+                        int_section = int(section_input)
+                        section = sections_dict.get(int_section)
+                    except (ValueError, TypeError):
+                        section = None
+
                     if not section:
                         raise DRFValidationError(
                             f"Row {index + 1}: Section '{section_input}' does not exist"
