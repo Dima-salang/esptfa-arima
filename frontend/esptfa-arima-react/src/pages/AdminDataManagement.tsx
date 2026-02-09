@@ -704,6 +704,10 @@ function TopicManager() {
 
     const handleSubmit = async () => {
         if (!formData.topic_name?.trim()) return;
+        if ((formData.max_score || 0) < 1) {
+            toast.error("Max score must be at least 1");
+            return;
+        }
         
         try {
             if (editingItem) {
@@ -870,6 +874,7 @@ function TopicManager() {
                                 <Input
                                     id="max_score"
                                     type="number"
+                                    min={1}
                                     value={formData.max_score}
                                     onChange={(e) => setFormData({ ...formData, max_score: Number(e.target.value) })}
                                 />

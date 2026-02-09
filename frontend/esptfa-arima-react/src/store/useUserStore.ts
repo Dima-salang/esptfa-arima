@@ -28,13 +28,24 @@ interface UserState {
     clearProfile: () => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
     user: null,
     loading: true, // Start with true to check session
     error: null,
 
     fetchProfile: async () => {
         const now = Date.now();
+        const state = get();
+
+        // Check if we have a valid cache
+        if (state.user && (now - lastFetchTime < FETCH_CACHE_DURATION) && !state.error) {
+            return state.user;
+        }
+
+        // Return existing promise if one is in flight
+        if (profileFetchPromise) {
+            return profileFetchPromise;
+        }
 
         set({ loading: true, error: null });
 
