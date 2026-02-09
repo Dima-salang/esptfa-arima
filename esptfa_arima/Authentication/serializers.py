@@ -27,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "is_superuser",
         ]
+        read_only_fields = ["is_active", "is_superuser"]
 
     def validate_password(self, value):
         if not value:  # Optional password on update
@@ -67,6 +68,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class AdminUserSerializer(UserSerializer):
+    is_active = serializers.BooleanField(required=False)
+    is_superuser = serializers.BooleanField(required=False)
+
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ["date_joined", "last_login"]
         read_only_fields = ["date_joined", "last_login"]
@@ -97,6 +101,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         # validate the lrn to be only 11 chars long
-        if attrs["lrn"] is not None and len(attrs["lrn"]) != 11:
+        lrn = attrs.get("lrn")
+        if lrn is not None and len(lrn) != 11:
             raise serializers.ValidationError("LRN must be 11 characters long.")
         return attrs
