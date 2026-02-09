@@ -43,6 +43,14 @@ export interface Subject {
 export interface Section {
     section_id: number;
     section_name: string;
+    adviser?: number;
+    adviser_details?: {
+        id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        name: string;
+    };
 }
 
 export interface Student {
@@ -163,12 +171,12 @@ export const deleteSubject = async (id: number) => {
 
 // --- Sections CRUD ---
 
-export const createSection = async (data: { section_name: string }) => {
+export const createSection = async (data: Partial<Section>) => {
     const response = await api.post("/section/", data);
     return response.data;
 };
 
-export const updateSection = async (id: number, data: { section_name: string }) => {
+export const updateSection = async (id: number, data: Partial<Section>) => {
     const response = await api.patch(`/section/${id}/`, data);
     return response.data;
 };

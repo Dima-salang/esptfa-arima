@@ -49,8 +49,9 @@ import {
     createTopic,
     updateTopic,
     deleteTopic,
+    getAllTeachers,
 } from "@/lib/api-admin";
-import type { Subject, Section, Quarter, Topic } from "@/lib/api-admin";
+import type { Subject, Section, Quarter, Topic, Teacher } from "@/lib/api-admin";
 import { toast } from "sonner";
 import {
     Select,
@@ -269,20 +270,25 @@ function SubjectManager() {
 
 function SectionManager() {
     const [data, setData] = useState<Section[]>([]);
+    const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Section | null>(null);
-    const [formData, setFormData] = useState({ section_name: "" });
+    const [formData, setFormData] = useState<Partial<Section>>({ section_name: "", adviser: undefined });
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const result = await getAllSections();
-            setData(Array.isArray(result) ? result : result.results || []);
+            const [sectionsRes, teachersRes] = await Promise.all([
+                getAllSections(),
+                getAllTeachers()
+            ]);
+            setData(Array.isArray(sectionsRes) ? sectionsRes : sectionsRes.results || []);
+            setTeachers(Array.isArray(teachersRes) ? teachersRes : teachersRes.results || []);
         } catch (error) {
-            console.error("Error fetching sections:", error);
-            toast.error("Failed to fetch sections");
+            console.error("Error fetching section data:", error);
+            toast.error("Failed to fetch sections or teachers");
         } finally {
             setLoading(false);
         }
@@ -297,7 +303,7 @@ function SectionManager() {
     );
 
     const handleSubmit = async () => {
-        if (!formData.section_name.trim()) return;
+        if (!formData.section_name?.trim()) return;
         
         try {
             if (editingItem) {
@@ -309,7 +315,7 @@ function SectionManager() {
             }
             setIsDialogOpen(false);
             setEditingItem(null);
-            setFormData({ section_name: "" });
+            setFormData({ section_name: "", adviser: undefined });
             fetchData();
         } catch (error) {
             console.error("Error saving section:", error);
@@ -331,13 +337,16 @@ function SectionManager() {
 
     const openCreateDialog = () => {
         setEditingItem(null);
-        setFormData({ section_name: "" });
+        setFormData({ section_name: "", adviser: undefined });
         setIsDialogOpen(true);
     };
 
     const openEditDialog = (item: Section) => {
         setEditingItem(item);
-        setFormData({ section_name: item.section_name });
+        setFormData({ 
+            section_name: item.section_name, 
+            adviser: item.adviser 
+        });
         setIsDialogOpen(true);
     };
 
@@ -346,7 +355,7 @@ function SectionManager() {
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle>Manage Sections</CardTitle>
-                    <CardDescription>Define the sections (classes) in the school</CardDescription>
+                    <CardDescription>Define the sections (classes) and assign advisers</CardDescription>
                 </div>
                 <Button onClick={openCreateDialog} className="shadow-premium-sm hover:shadow-premium-md transition-all hover:scale-105 rounded-xl">
                     <Plus className="mr-2 h-4 w-4" /> Add Section
@@ -371,23 +380,32 @@ function SectionManager() {
                             <TableRow>
                                 <TableHead>ID</TableHead>
                                 <TableHead>Section Name</TableHead>
+                                <TableHead>Adviser</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                                 </TableRow>
                             ) : filteredData.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No sections found.</TableCell>
+                                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No sections found.</TableCell>
                                 </TableRow>
                             ) : (
                                 filteredData.map((item) => (
                                     <TableRow key={item.section_id} className="hover:bg-muted/20">
                                         <TableCell className="font-mono text-xs text-muted-foreground">#{item.section_id}</TableCell>
                                         <TableCell className="font-medium">{item.section_name}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                                                    {item.adviser_details?.name?.charAt(0) || "?"}
+                                                </div>
+                                                <span className="text-sm">{item.adviser_details?.name || "No Adviser"}</span>
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
                                                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)} className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg">
@@ -411,7 +429,7 @@ function SectionManager() {
                     <DialogHeader>
                         <DialogTitle>{editingItem ? 'Edit Section' : 'Add New Section'}</DialogTitle>
                         <DialogDescription>
-                            {editingItem ? 'Update the section details below.' : 'Enter the name of the new section.'}
+                            {editingItem ? 'Update the section details below.' : 'Enter the details of the new section.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -424,10 +442,31 @@ function SectionManager() {
                                 placeholder="e.g. Grade 10 - Emerald"
                             />
                         </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="adviser">Adviser</Label>
+                            <Select 
+                                value={formData.adviser ? String(formData.adviser) : "none"} 
+                                onValueChange={(value) => setFormData({ ...formData, adviser: value === "none" ? undefined : Number(value) })}
+                            >
+                                <SelectTrigger className="rounded-xl">
+                                    <SelectValue placeholder="Select an adviser" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No Adviser</SelectItem>
+                                    {teachers.map((t) => (
+                                        <SelectItem key={t.id} value={String(t.user_id.id)}>
+                                            {t.user_id.first_name} {t.user_id.last_name} ({t.user_id.username})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSubmit}>{editingItem ? 'Save Changes' : 'Create Section'}</Button>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl">Cancel</Button>
+                        <Button onClick={handleSubmit} className="rounded-xl">
+                            {editingItem ? 'Save Changes' : 'Create Section'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
