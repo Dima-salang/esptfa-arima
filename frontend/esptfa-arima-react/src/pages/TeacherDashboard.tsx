@@ -26,14 +26,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    ClipboardList,
-    MoreHorizontal,
-    Plus,
-    Calendar,
-    ArrowUpRight,
-    ChevronRight,
-} from "lucide-react";
+import { toast } from "sonner";
+import { AlertCircle, Trash2, Loader2, LayoutDashboard, ShieldCheck, ClipboardList, MoreHorizontal, Plus, Calendar, ArrowUpRight, ChevronRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -48,8 +43,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { AlertCircle, Trash2, Loader2 } from "lucide-react";
+import AdvisoryClassManager from "@/components/AdvisoryClassManager";
 
 export default function TeacherDashboard() {
     const [documents, setDocuments] = useState<AnalysisDocument[]>([]);
@@ -111,24 +105,43 @@ export default function TeacherDashboard() {
     return (
         <>
             <div className="space-y-8 animate-in fade-in duration-500">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                            Dashboard Overview
-                        </h1>
-                        <p className="text-slate-500 font-medium">
-                            Welcome back, here's what's happening with your class today.
-                        </p>
+                <Tabs defaultValue="overview" className="w-full space-y-10">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <TabsList className="bg-transparent h-auto p-0 gap-8 justify-start">
+                            <TabsTrigger 
+                                value="overview" 
+                                className="bg-transparent p-0 pb-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent shadow-none font-black text-xs uppercase tracking-[0.2em] text-slate-400 data-[state=active]:text-indigo-600 transition-all"
+                            >
+                                <LayoutDashboard className="h-4 w-4 mr-2" />
+                                Overview
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="advisory" 
+                                className="bg-transparent p-0 pb-4 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent shadow-none font-black text-xs uppercase tracking-[0.2em] text-slate-400 data-[state=active]:text-indigo-600 transition-all"
+                            >
+                                <ShieldCheck className="h-4 w-4 mr-2" />
+                                Advisory Class
+                            </TabsTrigger>
+                        </TabsList>
+                        
+                        <div className="pb-4">
+                            <Link to="/dashboard/create-analysis">
+                                <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 rounded-2xl h-11 px-6 font-bold transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                    <Plus className="mr-2 h-4 w-4" /> New Assessment
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Link to="/dashboard/create-analysis">
-                            <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 rounded-xl h-11 px-6">
-                                <Plus className="mr-2 h-4 w-4" /> New Assessment
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
+
+                    <TabsContent value="overview" className="space-y-8 mt-0 focus-visible:outline-none">
+                        <div>
+                            <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+                                Dashboard Overview
+                            </h1>
+                            <p className="text-slate-500 font-medium text-lg mt-1 leading-relaxed">
+                                Welcome back, here's what's happening with your class today.
+                            </p>
+                        </div>
 
 
 
@@ -273,7 +286,13 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+                </TabsContent>
+
+                <TabsContent value="advisory" className="mt-0 focus-visible:outline-none">
+                    <AdvisoryClassManager />
+                </TabsContent>
+            </Tabs>
+        </div>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

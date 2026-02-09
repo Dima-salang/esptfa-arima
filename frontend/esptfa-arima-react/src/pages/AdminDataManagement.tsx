@@ -98,6 +98,23 @@ export default function AdminDataManagement() {
     );
 }
 
+const getErrorMessage = (error: any, defaultMsg: string) => {
+    if (error.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'string') return data;
+        if (typeof data === 'object') {
+            return Object.entries(data)
+                .map(([key, value]) => {
+                    const prefix = (key !== 'detail' && key !== 'non_field_errors') ? `${key}: ` : '';
+                    const message = Array.isArray(value) ? value.join(', ') : value;
+                    return `${prefix}${message}`;
+                })
+                .join('; ');
+        }
+    }
+    return error.message || defaultMsg;
+};
+
 // --- Specific Managers ---
 
 function SubjectManager() {
@@ -146,7 +163,7 @@ function SubjectManager() {
             fetchData();
         } catch (error) {
             console.error("Error saving subject:", error);
-            toast.error("Failed to save subject");
+            toast.error(getErrorMessage(error, "Failed to save subject"));
         }
     };
 
@@ -319,7 +336,7 @@ function SectionManager() {
             fetchData();
         } catch (error) {
             console.error("Error saving section:", error);
-            toast.error("Failed to save section");
+            toast.error(getErrorMessage(error, "Failed to save section"));
         }
     };
 
@@ -349,6 +366,14 @@ function SectionManager() {
         });
         setIsDialogOpen(true);
     };
+
+    const assignedAdviserIds = new Set(
+        data
+            .filter(s => s.adviser && (editingItem?.section_id !== s.section_id))
+            .map(s => s.adviser)
+    );
+
+    const availableTeachers = teachers.filter(t => !assignedAdviserIds.has(t.user_id.id));
 
     return (
         <Card className="border-none shadow-premium-sm">
@@ -429,7 +454,7 @@ function SectionManager() {
                     <DialogHeader>
                         <DialogTitle>{editingItem ? 'Edit Section' : 'Add New Section'}</DialogTitle>
                         <DialogDescription>
-                            {editingItem ? 'Update the section details below.' : 'Enter the details of the new section.'}
+                            {editingItem ? 'Update the section details. Note: A teacher can only be assigned to one section as an adviser.' : 'Enter the details of the new section. Note: A teacher can only be assigned to one section as an adviser.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -453,13 +478,14 @@ function SectionManager() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">No Adviser</SelectItem>
-                                    {teachers.map((t) => (
+                                    {availableTeachers.map((t) => (
                                         <SelectItem key={t.id} value={String(t.user_id.id)}>
                                             {t.user_id.first_name} {t.user_id.last_name} ({t.user_id.username})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-muted-foreground px-1 italic">Only showing teachers not currently assigned to another section.</p>
                         </div>
                     </div>
                     <DialogFooter>
@@ -520,7 +546,7 @@ function QuarterManager() {
             fetchData();
         } catch (error) {
             console.error("Error saving quarter:", error);
-            toast.error("Failed to save quarter");
+            toast.error(getErrorMessage(error, "Failed to save quarter"));
         }
     };
 
@@ -693,7 +719,7 @@ function TopicManager() {
             fetchData();
         } catch (error) {
             console.error("Error saving topic:", error);
-            toast.error("Failed to save topic");
+            toast.error(getErrorMessage(error, "Failed to save topic"));
         }
     };
 
