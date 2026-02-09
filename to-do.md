@@ -1,6 +1,6 @@
 -ADMIN
 
-add teacher privilege to self-enroll students
+add teacher privilege to self-enroll students - DONE
 
 - in their inteface
 
@@ -14,7 +14,7 @@ students who are succeeding and failing per topic in topic analysis
 
 school logo in the dashboard
 
-everything in admin for the sub, quarter, topic,
+everything in admin for the sub, quarter, topic, - DONE
 
 screenshots of the system
 
