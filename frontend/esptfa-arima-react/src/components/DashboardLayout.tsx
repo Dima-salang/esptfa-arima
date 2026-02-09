@@ -22,7 +22,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
@@ -113,21 +112,25 @@ export default function DashboardLayout({
 
     const menuItems = [
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+        { 
+            icon: FileText, 
+            label: isStudent ? "Analysis Archive" : isSuperuser ? "Repository" : "Analysis Documents", 
+            href: "/dashboard/analysis" 
+        },
     ];
 
-    menuItems.push(
-        { icon: FileText, label: isStudent ? "Analysis Archive" : "Analysis Documents", href: "/dashboard/analysis" }
-    );
     if (!isStudent) {
         menuItems.push(
             { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" }
         );
     }
+    
     if (isSuperuser) {
         menuItems.push(
-            { icon: FileText, label: "Repository", href: "/dashboard/analysis" },
+            { icon: Users, label: "User Management", href: "/dashboard/users" },
             { icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" },
-            { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" }
+            { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" },
+            { icon: Settings, label: "Data Management", href: "/dashboard/data-management" }
         );
     }
 
