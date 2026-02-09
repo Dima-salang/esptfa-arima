@@ -294,6 +294,76 @@ class StudentViewSet(ModelViewSet):
         serializer = StudentSerializer(students, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["post"], permission_classes=[IsTeacher])
+    def adviser_bulk_import_csv(self, request):
+        file = request.FILES.get("student_import_file")
+        if not file:
+            return Response(
+                {"detail": "No file provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if the teacher has an advisory section
+        from Test_Management.models import Section
+
+        advising_section = Section.objects.filter(adviser=request.user).first()
+        if not advising_section:
+            return Response(
+                {"detail": "You are not an adviser of any section."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            # We pass the advising_section to ensure only students for this section are allowed
+            process_csv_import(file, allowed_section=advising_section)
+        except DRFValidationError as e:
+            return Response(
+                {"Validation Error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response({"Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "detail": f"Students imported successfully to {advising_section.section_name}"
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["post"], permission_classes=[IsTeacher])
+    def adviser_manual_import(self, request):
+        students = request.data.get("students", [])
+        if not students:
+            return Response(
+                {"detail": "No student data provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if the teacher has an advisory section
+        from Test_Management.models import Section
+
+        advising_section = Section.objects.filter(adviser=request.user).first()
+        if not advising_section:
+            return Response(
+                {"detail": "You are not an adviser of any section."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            process_manual_import(students, allowed_section=advising_section)
+        except DRFValidationError as e:
+            return Response(
+                {"Validation Error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response({"Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "detail": f"Students enrolled successfully to {advising_section.section_name}"
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=False, methods=["get"])
     def me(self, request):
         student = Student.objects.filter(user_id=request.user).first()

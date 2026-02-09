@@ -43,6 +43,15 @@ class UserSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         if hasattr(instance, "teacher"):
             ret["acc_type"] = "TEACHER"
+            # Import Section here to avoid circular dependencies
+            from Test_Management.models import Section
+
+            advising_section = Section.objects.filter(adviser=instance).first()
+            if advising_section:
+                ret["advising_section"] = {
+                    "id": advising_section.section_id,
+                    "name": advising_section.section_name,
+                }
         elif hasattr(instance, "student"):
             ret["acc_type"] = "STUDENT"
         else:

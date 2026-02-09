@@ -109,7 +109,7 @@ from django.db import transaction
 
 
 # processing csv for bulk import
-def process_csv_import(file: File) -> None:
+def process_csv_import(file: File, allowed_section: Section = None) -> None:
     try:
         # read the csv file
         students_csv = pd.read_csv(file)
@@ -118,18 +118,28 @@ def process_csv_import(file: File) -> None:
         students_csv.columns = students_csv.columns.str.strip().str.lower()
         validated_csv = validate_csv(students_csv)
 
-        # get the sections dictionary
-        sections_dict = get_sections_dict()
+        # get the sections dictionary if allowed_section is not fixed
+        sections_dict = {}
+        if not allowed_section:
+            sections_dict = get_sections_dict()
 
         students_to_save = []
 
         # loop through the csv file and prepare the students
         for index, row in validated_csv.iterrows():
-            section_name = str(row["section"]).strip()
-            section = sections_dict.get(section_name)
+            if allowed_section:
+                section = allowed_section
+            else:
+                section_name = str(row["section"]).strip()
+                section = sections_dict.get(section_name)
 
             if not section:
-                raise DRFValidationError(f"Section '{section_name}' does not exist")
+                msg = (
+                    f"Section '{section_name}' does not exist"
+                    if not allowed_section
+                    else "Advisory section not found."
+                )
+                raise DRFValidationError(msg)
 
             try:
                 lrn = str(row["lrn"]).strip()
@@ -198,10 +208,14 @@ def get_sections_dict() -> dict:
 
 # manual importing of students
 # accepts an array of students to be created
-def process_manual_import(students: list[dict]) -> None:
+def process_manual_import(
+    students: list[dict], allowed_section: Section = None
+) -> None:
     try:
-        sections = Section.objects.all()
-        sections_dict = {section.section_id: section for section in sections}
+        sections_dict = {}
+        if not allowed_section:
+            sections = Section.objects.all()
+            sections_dict = {section.section_id: section for section in sections}
 
         students_to_save = []
         # loop through the students and prepare them
@@ -214,14 +228,17 @@ def process_manual_import(students: list[dict]) -> None:
             first_name = str(student.get("first_name")).strip()
             middle_name = str(student.get("middle_name", "") or "").strip()
             last_name = str(student.get("last_name")).strip()
-            section_input = student.get("section")
 
-            # Determine the section object
-            section = sections_dict.get(section_input)
-            if not section:
-                raise DRFValidationError(
-                    f"Row {index + 1}: Section '{section_input}' does not exist"
-                )
+            if allowed_section:
+                section = allowed_section
+            else:
+                section_input = student.get("section")
+                # Determine the section object
+                section = sections_dict.get(section_input)
+                if not section:
+                    raise DRFValidationError(
+                        f"Row {index + 1}: Section '{section_input}' does not exist"
+                    )
 
             # Check for existing student
             if Student.objects.filter(lrn=lrn).exists():
