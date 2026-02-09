@@ -103,7 +103,10 @@ export default function UserManagement() {
 
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -187,16 +190,25 @@ export default function UserManagement() {
         }
     };
 
-    const handleDeleteUser = async (user: User) => {
-        if (!confirm(`Are you sure you want to delete user ${user.username}? This action is irreversible.`)) return;
+    const handleDeleteClick = (user: User) => {
+        setUserToDelete(user);
+        setIsDeleteDialogOpen(true);
+    };
 
+    const confirmDelete = async () => {
+        if (!userToDelete) return;
+        setDeleting(true);
         try {
-            await deleteUser(user.id);
+            await deleteUser(userToDelete.id);
             toast.success("User deleted successfully");
+            setIsDeleteDialogOpen(false);
             fetchUsers();
         } catch (error) {
             console.error("Error deleting user:", error);
             toast.error("Failed to delete user");
+        } finally {
+            setDeleting(false);
+            setUserToDelete(null);
         }
     };
 
@@ -421,7 +433,7 @@ export default function UserManagement() {
                                                                 <span className="font-semibold text-slate-700 text-sm">Edit User</span>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator className="bg-slate-100 mx-1 my-1" />
-                                                            <DropdownMenuItem onClick={() => handleDeleteUser(user)} className="rounded-lg px-2.5 py-2 cursor-pointer focus:bg-red-50 text-red-600">
+                                                            <DropdownMenuItem onClick={() => handleDeleteClick(user)} className="rounded-lg px-2.5 py-2 cursor-pointer focus:bg-red-50 text-red-600">
                                                                 <Trash2 className="h-3.5 w-3.5 mr-2 text-red-400" />
                                                                 <span className="font-semibold text-sm">Delete User</span>
                                                             </DropdownMenuItem>
@@ -568,6 +580,38 @@ export default function UserManagement() {
                         >
                             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Save Changes
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[400px] rounded-2xl border-slate-200 shadow-2xl p-0 overflow-hidden bg-white">
+                    <div className="p-6 text-center">
+                        <div className="mx-auto w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                            <Trash2 className="h-6 w-6 text-red-500" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold text-slate-900 mb-2">Delete User Account</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium text-sm">
+                            Are you sure you want to delete <b>{userToDelete?.username}</b>? This action is permanent and cannot be undone.
+                        </DialogDescription>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2.5">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            className="flex-1 h-10 rounded-xl font-semibold text-sm text-slate-500 border-slate-200"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white h-10 rounded-xl font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2"
+                        >
+                            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            Confirm Delete
                         </Button>
                     </div>
                 </DialogContent>
