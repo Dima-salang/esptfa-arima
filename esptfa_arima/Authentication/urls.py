@@ -11,13 +11,14 @@ from .views import (
     TeacherViewSet, 
     StudentViewSet,
     LogoutViewSet,
-    SystemStatsViewSet
+    SystemStatsViewSet,
+    UserViewSet,
+    CookieTokenRefreshView
 )
 
 
 urlpatterns = [
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]
 
@@ -27,6 +28,7 @@ router.register(r'login', LoginViewSet, basename='rest-login')
 router.register(r'register', RegisterViewSet, basename='register')
 router.register(r'teacher', TeacherViewSet, basename='teacher')
 router.register(r'student', StudentViewSet, basename='student')
+router.register(r'users', UserViewSet, basename='users')
 router.register(r'logout', LogoutViewSet, basename='logout')
 router.register(r'system-stats', SystemStatsViewSet, basename='system-stats')
 

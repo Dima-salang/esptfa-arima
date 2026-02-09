@@ -1,4 +1,5 @@
 import api from "./api";
+import { useUserStore } from "@/store/useUserStore";
 
 export interface Subject {
     subject_id: number;
@@ -180,18 +181,34 @@ export const getStudentProfile = async () => {
     return response.data;
 };
 
+export const adviserBulkImportCSV = async (file: File) => {
+    const formData = new FormData();
+    formData.append("student_import_file", file);
+    const response = await api.post("/student/adviser_bulk_import_csv/", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    });
+    return response.data;
+};
+
+export const adviserManualImportStudents = async (students: any[]) => {
+    const response = await api.post("/student/adviser_manual_import/", {
+        students
+    });
+    return response.data;
+};
+
 
 
 export const logoutUser = async () => {
+    useUserStore.getState().clearProfile();
+    
     try {
-        const refresh = localStorage.getItem("refresh");
-        if (refresh) {
-            await api.post("/logout/", { refresh });
-        }
+        await api.post("/logout/");
     } catch (error) {
         console.error("Logout error:", error);
     } finally {
-        localStorage.clear();
-        globalThis.location.href = "/login";
+        globalThis.location.replace("/login");
     }
 };

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     getAnalysisDocuments,
     getSubjects,
@@ -185,7 +184,7 @@ export default function AllAnalysisPage() {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -475,6 +474,6 @@ export default function AllAnalysisPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </DashboardLayout>
+        </>
     );
 }

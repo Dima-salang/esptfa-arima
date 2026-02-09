@@ -86,7 +86,7 @@ export default function ActualPostTestUploadModal({ analysisDocumentId, students
             <DialogTrigger asChild>
                 <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 rounded-xl shadow-lg shadow-indigo-200">
                     <Upload className="h-4 w-4" />
-                    Upload Actual Scores
+                    Upload Post-Test Results
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none rounded-[2rem] shadow-2xl">

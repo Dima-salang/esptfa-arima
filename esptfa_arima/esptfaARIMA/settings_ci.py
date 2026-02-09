@@ -18,8 +18,15 @@ ASGI_APPLICATION = "esptfaARIMA.asgi.application"
 
 
 # CORS
-# we allow all for now since we are in testing
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 # CORS headers
 # we allow the idempotency key for test drafting
@@ -46,10 +53,15 @@ ALLOWED_HOSTS = ["*"]
 
 # JWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True, # Good for security
     'BLACKLIST_AFTER_ROTATION': True, # Requires 'rest_framework_simplejwt.token_blacklist' in INSTALLED_APPS
+    'AUTH_COOKIE': 'access', # Cookie name for access token
+    'AUTH_COOKIE_REFRESH': 'refresh', # Cookie name for refresh token
+    'AUTH_COOKIE_HTTP_ONLY': True, # HttpOnly
+    'AUTH_COOKIE_SECURE': False, # Set to True in production (HTTPS)
+    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
 LOGIN_URL = "/auth/login/"
@@ -125,12 +137,12 @@ WSGI_APPLICATION = 'esptfaARIMA.wsgi.application'
 # REST
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "Authentication.authentication.CookieJWTAuthentication",
     ],
 
     "DEFAULT_PAGINATION_CLASS":
         "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10
+    "PAGE_SIZE": 60
 }
 
 # Database
@@ -167,6 +179,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+ROTATING_FILE_HANDLER = "logging.handlers.RotatingFileHandler"
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -188,7 +202,7 @@ LOGGING = {
         },
         "file": {
             "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
+            "class": ROTATING_FILE_HANDLER,
             "filename": os.path.join(BASE_DIR, "logs/django/django_logs.log"),
             "maxBytes": 1024 * 1024 * 5,  # 5 MB
             "backupCount": 3,
@@ -197,7 +211,7 @@ LOGGING = {
         },
         "file_INFO": {
             "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
+            "class": ROTATING_FILE_HANDLER,
             "filename": os.path.join(BASE_DIR, "logs/django/django_info_logs.log"),
             "maxBytes": 1024 * 1024 * 5,  # 5 MB
             "backupCount": 2,
@@ -206,7 +220,7 @@ LOGGING = {
         },
         "file_arima_model": {
             "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
+            "class": ROTATING_FILE_HANDLER,
             "filename": os.path.join(BASE_DIR, "logs/arima/arima_model_logs.log"),
             "formatter": "verbose",
             "delay": True,

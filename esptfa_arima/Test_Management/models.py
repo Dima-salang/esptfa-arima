@@ -5,8 +5,6 @@ import uuid
 # Create your models here.
 
 
-
-
 class IdempotencyKey(models.Model):
     idempotency_key = models.UUIDField(unique=True, primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -15,7 +13,7 @@ class IdempotencyKey(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
 class Subject(models.Model):
@@ -26,7 +24,8 @@ class Subject(models.Model):
         return self.subject_name
 
     class Meta:
-        ordering = ['-subject_id']
+        ordering = ["-subject_id"]
+
 
 class Quarter(models.Model):
     quarter_id = models.AutoField(unique=True, primary_key=True)
@@ -36,17 +35,23 @@ class Quarter(models.Model):
         return self.quarter_name
 
     class Meta:
-        ordering = ['-quarter_id']
+        ordering = ["-quarter_id"]
+
 
 class Section(models.Model):
     section_id = models.AutoField(unique=True, primary_key=True)
     section_name = models.CharField(max_length=100)
 
+    # ensure that there is only one adviser per section
+    adviser = models.OneToOneField(
+        User, on_delete=models.SET_NULL, null=True, related_name="advising_section"
+    )
+
     def __str__(self):
         return self.section_name
 
     class Meta:
-        ordering = ['-section_id']
+        ordering = ["-section_id"]
 
 
 # pairs the teacher for a specific subject and section
@@ -61,7 +66,8 @@ class TeacherAssignment(models.Model):
         return f"{self.teacher} - {self.section} - {self.subject}"
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
+
 
 # draft version of the analysis document
 class TestDraft(models.Model):
@@ -74,13 +80,14 @@ class TestDraft(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     section_id = models.ForeignKey(Section, on_delete=models.CASCADE)
-    status = models.CharField(max_length=10, default='draft')
+    status = models.CharField(max_length=10, default="draft")
 
     def __str__(self):
         return f"{self.title} - {self.test_draft_id}"
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
+
 
 class AnalysisDocument(models.Model):
     analysis_document_id = models.AutoField(unique=True, primary_key=True)
@@ -94,16 +101,18 @@ class AnalysisDocument(models.Model):
     post_test_max_score = models.FloatField(null=True)
 
     # ignore the analysis_doc field for now since it is not used
-    analysis_doc = models.FileField(upload_to='analysis_documents/', null=True)
+    analysis_doc = models.FileField(upload_to="analysis_documents/", null=True)
 
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     section = models.ForeignKey(Section, on_delete=models.CASCADE)
     status = models.BooleanField(default=False)  # True if processed, False if not
+
     def __str__(self):
         return self.analysis_doc_title
 
     class Meta:
-        ordering = ['-upload_date']
+        ordering = ["-upload_date"]
+
 
 class TestTopic(models.Model):
     topic_id = models.AutoField(unique=True, primary_key=True)
@@ -112,12 +121,11 @@ class TestTopic(models.Model):
     max_score = models.FloatField(null=True, blank=True)
     test_number = models.CharField(max_length=5, null=True, blank=True)
 
-
     def __str__(self):
         return self.topic_name
 
     class Meta:
-        ordering = ['-topic_id']
+        ordering = ["-topic_id"]
 
     @classmethod
     def get_or_create_topic(cls, topic_name):
@@ -131,38 +139,46 @@ class TestTopic(models.Model):
 
 class TestTopicMapping(models.Model):
     """Maps test numbers to topics for a specific analysis document"""
+
     mapping_id = models.AutoField(unique=True, primary_key=True)
     analysis_document = models.ForeignKey(
-        AnalysisDocument, on_delete=models.CASCADE, related_name='test_topics')
+        AnalysisDocument, on_delete=models.CASCADE, related_name="test_topics"
+    )
     topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - Test {self.topic.test_number}: {self.topic}"
 
     class Meta:
-        ordering = ['-mapping_id']
+        ordering = ["-mapping_id"]
 
 
 class FormativeAssessmentScore(models.Model):
     formative_assessment_score_id = models.AutoField(unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE, null=True
+    )
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
     test_number = models.CharField(max_length=5)
-    topic_mapping = models.ForeignKey(TestTopicMapping, on_delete=models.SET_NULL, null=True, blank=True)
+    topic_mapping = models.ForeignKey(
+        TestTopicMapping, on_delete=models.SET_NULL, null=True, blank=True
+    )
     passing_threshold = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.student_id} - {self.test_number}: {self.score}"
 
     class Meta:
-        ordering = ['-date', '-formative_assessment_score_id']
+        ordering = ["-date", "-formative_assessment_score_id"]
 
 
 class PredictedScore(models.Model):
     predicted_score_id = models.AutoField(unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, null=True)
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE, null=True
+    )
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     date = models.DateField(auto_now_add=True)
@@ -171,21 +187,16 @@ class PredictedScore(models.Model):
     passing_threshold = models.FloatField()
     max_score = models.FloatField(null=True)
 
-
     def __str__(self):
         return f"{self.student_id} - {self.test_number}: {self.score}"
 
     class Meta:
-        ordering = ['-date', '-predicted_score_id']
-
-
+        ordering = ["-date", "-predicted_score_id"]
 
 
 class AnalysisDocumentStatistic(models.Model):
-    analysis_document_statistic_id = models.AutoField(
-        unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(
-        AnalysisDocument, on_delete=models.CASCADE)
+    analysis_document_statistic_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE)
     mean = models.FloatField()
     standard_deviation = models.FloatField()
     median = models.FloatField()
@@ -194,19 +205,18 @@ class AnalysisDocumentStatistic(models.Model):
     mode = models.FloatField()
     total_students = models.IntegerField()
     mean_passing_threshold = models.FloatField()
-    heatmap = models.FileField(upload_to='heatmaps/', null=True)
+    heatmap = models.FileField(upload_to="heatmaps/", null=True)
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} Statistics"
 
     class Meta:
-        ordering = ['-analysis_document_statistic_id']
+        ordering = ["-analysis_document_statistic_id"]
+
 
 class AnalysisDocumentInsights(models.Model):
-    analysis_document_insights_id = models.AutoField(
-        unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(
-        AnalysisDocument, on_delete=models.CASCADE)
+    analysis_document_insights_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE)
     insights = models.JSONField(null=True)
     ai_insights = models.JSONField(null=True)
 
@@ -214,14 +224,13 @@ class AnalysisDocumentInsights(models.Model):
         return f"{self.analysis_document.analysis_doc_title} Insights"
 
     class Meta:
-        ordering = ['-analysis_document_insights_id']
+        ordering = ["-analysis_document_insights_id"]
+
 
 class FormativeAssessmentStatistic(models.Model):
-    formative_assessment_statistic_id = models.AutoField(
-        unique=True, primary_key=True)
+    formative_assessment_statistic_id = models.AutoField(unique=True, primary_key=True)
     formative_assessment_number = models.CharField(max_length=5)
-    analysis_document = models.ForeignKey(
-        AnalysisDocument, on_delete=models.CASCADE)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE)
     fa_topic = models.ForeignKey(TestTopic, on_delete=models.CASCADE, null=True)
     mean = models.FloatField()
     standard_deviation = models.FloatField()
@@ -233,24 +242,24 @@ class FormativeAssessmentStatistic(models.Model):
     failing_rate = models.FloatField()
     passing_threshold = models.FloatField()
     max_score = models.FloatField(null=True)
-    histogram = models.FileField(upload_to='histograms/', null=True)
-    scatterplot = models.FileField(upload_to='scatterplots/', null=True)
-    bar_chart = models.FileField(upload_to='bar_charts/', null=True)
-    boxplot = models.FileField(upload_to='boxplots/', null=True)
-    student_comparison_chart = models.FileField(upload_to='student_comparison_charts/', null=True)
+    histogram = models.FileField(upload_to="histograms/", null=True)
+    scatterplot = models.FileField(upload_to="scatterplots/", null=True)
+    bar_chart = models.FileField(upload_to="bar_charts/", null=True)
+    boxplot = models.FileField(upload_to="boxplots/", null=True)
+    student_comparison_chart = models.FileField(
+        upload_to="student_comparison_charts/", null=True
+    )
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - FA {self.formative_assessment_number} Statistics"
 
     class Meta:
-        ordering = ['-formative_assessment_statistic_id']
+        ordering = ["-formative_assessment_statistic_id"]
 
 
 class StudentScoresStatistic(models.Model):
-    student_scores_statistic_id = models.AutoField(
-        unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(
-        AnalysisDocument, on_delete=models.CASCADE)
+    student_scores_statistic_id = models.AutoField(unique=True, primary_key=True)
+    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     mean = models.FloatField()
     standard_deviation = models.FloatField()
@@ -262,28 +271,33 @@ class StudentScoresStatistic(models.Model):
     failing_rate = models.FloatField()
     sum_scores = models.FloatField(null=True)
     max_possible_score = models.FloatField(null=True)
-    lineplot = models.FileField(upload_to='lineplots/', null=True)
-    heatmap = models.FileField(upload_to='heatmaps/', null=True)
-    performance_comparison_chart = models.FileField(upload_to='performance_comparisons/', null=True)
+    lineplot = models.FileField(upload_to="lineplots/", null=True)
+    heatmap = models.FileField(upload_to="heatmaps/", null=True)
+    performance_comparison_chart = models.FileField(
+        upload_to="performance_comparisons/", null=True
+    )
 
     def __str__(self):
         return f"{self.analysis_document.analysis_doc_title} - {self.student.lrn} Statistics"
 
     class Meta:
-        ordering = ['-student_scores_statistic_id']
+        ordering = ["-student_scores_statistic_id"]
 
 
 class ActualPostTest(models.Model):
     actual_post_test_id = models.AutoField(unique=True, primary_key=True)
-    analysis_document = models.ForeignKey(AnalysisDocument, on_delete=models.CASCADE, related_name='actual_post_tests')
+    analysis_document = models.ForeignKey(
+        AnalysisDocument, on_delete=models.CASCADE, related_name="actual_post_tests"
+    )
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     score = models.FloatField()
     max_score = models.FloatField()
+    status = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.student.full_name} - Actual Post Test: {self.score}/{self.max_score} - {self.analysis_document.analysis_doc_title}"
 
     # enforce unique constraint on analysis_document and student
     class Meta:
-        unique_together = ('analysis_document', 'student')
-        ordering = ['-actual_post_test_id']
+        unique_together = ("analysis_document", "student")
+        ordering = ["-actual_post_test_id"]

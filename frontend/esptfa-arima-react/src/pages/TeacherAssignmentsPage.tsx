@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     getTeacherAssignments,
     createTeacherAssignment,
@@ -126,7 +125,7 @@ export default function TeacherAssignmentsPage() {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -291,6 +290,6 @@ export default function TeacherAssignmentsPage() {
                     </Card>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

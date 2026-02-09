@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import { getStudentAnalysisDetail } from "@/lib/api-teacher";
+import { useUserStore } from "@/store/useUserStore";
+import { toast } from "sonner";
 import {
     Card,
     CardContent,
@@ -40,6 +41,8 @@ import {
     HelpCircle,
     Target,
     CheckCircle2,
+    AlertCircle,
+    Info,
 } from "lucide-react";
 
 interface StudentDetailData {
@@ -57,11 +60,13 @@ interface StudentDetailData {
         predicted_status: string;
         max_score: number;
     } | null;
-    intervention: Record<string, string>;
+    prediction_intervention: Record<string, string> | string;
+    actual_intervention: Record<string, string> | string;
     prediction_score_percent: number;
     actual_post_test: {
         score: number;
         max_score: number;
+        status: string;
     } | null;
     scores: Array<{
         formative_assessment_number: string;
@@ -80,8 +85,177 @@ interface StudentDetailData {
         subject: { subject_name: string };
         quarter: { quarter_name: string };
         section: { section_name: string };
+        post_test_max_score?: number;
     };
 }
+
+const getStatusBadge = (score: number, max: number) => {
+    const percent = max > 0 ? (score / max) * 100 : 0;
+    if (percent >= 90) return <Badge className="bg-emerald-500 text-white border-none font-black shadow-sm px-3">MASTERY</Badge>;
+    if (percent >= 75) return <Badge className="bg-amber-400 text-white border-none font-black shadow-sm px-3">PASSING</Badge>;
+    return <Badge className="bg-red-500 text-white border-none font-black shadow-sm px-3">AT RISK</Badge>;
+};
+
+const getScoreColor = (percent: number) => {
+    if (percent >= 90) return "text-emerald-600";
+    if (percent >= 75) return "text-amber-500";
+    return "text-red-600";
+};
+
+const getInterventionTheme = (percent: number | null) => {
+    if (percent === null || percent === undefined) return {
+        badge: "bg-slate-100 text-slate-700 border-slate-200",
+        container: "bg-slate-50/50 border-slate-100/50 text-slate-900"
+    };
+    if (percent < 75) return {
+        badge: "bg-rose-100 text-rose-700 border-rose-200/50",
+        container: "bg-rose-50/50 border-rose-100/40 text-rose-900"
+    };
+    if (percent < 80) return {
+        badge: "bg-orange-100 text-orange-700 border-orange-200/50",
+        container: "bg-orange-50/50 border-orange-100/40 text-orange-900"
+    };
+    if (percent < 90) return {
+        badge: "bg-indigo-100 text-indigo-700 border-indigo-200/50",
+        container: "bg-indigo-50/50 border-indigo-100/40 text-indigo-900"
+    };
+    return {
+        badge: "bg-emerald-100 text-emerald-700 border-emerald-200/50",
+        container: "bg-emerald-50/50 border-emerald-100/40 text-emerald-900"
+    };
+};
+
+const InfoTooltip = ({ content }: { content: string }) => (
+    <TooltipProvider>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[250px] p-3 rounded-xl bg-slate-900 text-white border-none shadow-xl">
+                <p className="text-xs leading-relaxed">{content}</p>
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
+);
+
+const StudentInterpretationsCard = ({ data }: { data: StudentDetailData }) => {
+    const interpretations: { title: string, content: string, type: 'info' | 'success' | 'warning' | 'error' }[] = [];
+
+    // 1. Trend Analysis
+    const studentScores = data.scores.map(s => s.score / s.max_score);
+    if (studentScores.length >= 2) {
+        let totalChange = 0;
+        let changeCount = 0;
+        for (let i = 1; i < studentScores.length; i++) {
+            if (studentScores[i - 1] > 0) {
+                totalChange += (studentScores[i] - studentScores[i - 1]) / studentScores[i - 1];
+                changeCount++;
+            }
+        }
+        const avgChange = (totalChange / (changeCount || 1)) * 100;
+
+        if (Math.abs(avgChange) < 2) {
+            interpretations.push({
+                title: "Consistent Performance",
+                content: `${data.student.name.split(' ')[0]} is maintaining a stable performance level across assessments.`,
+                type: 'info'
+            });
+        } else if (avgChange > 5) {
+            interpretations.push({
+                title: "Significant Improvement",
+                content: `Great progress! ${data.student.name.split(' ')[0]}'s scores are showing a strong upward trend.`,
+                type: 'success'
+            });
+        } else if (avgChange > 0) {
+            interpretations.push({
+                title: "Gradual Progress",
+                content: "The student is showing steady improvement in their recent work.",
+                type: 'success'
+            });
+        } else if (avgChange < -10) {
+            interpretations.push({
+                title: "Sharp Decline",
+                content: `Warning: ${data.student.name.split(' ')[0]}'s performance has dropped significantly. A check-in is recommended.`,
+                type: 'error'
+            });
+        } else {
+            interpretations.push({
+                title: "Performance Dip",
+                content: "There's a slight downward trend in recent scores.",
+                type: 'warning'
+            });
+        }
+    }
+
+    // 2. Comparison with Class
+    const aboveAvgCount = data.scores.filter(s => {
+        const classAvg = data.class_averages.find(ca => ca.formative_assessment_number === s.formative_assessment_number);
+        return classAvg ? s.score > classAvg.mean : false;
+    }).length;
+
+    if (aboveAvgCount === data.scores.length && data.scores.length > 0) {
+        interpretations.push({
+            title: "Class Leader",
+            content: "Consistent top performer. This student has scored above the class average in every assessment.",
+            type: 'success'
+        });
+    } else if (aboveAvgCount > data.scores.length / 2) {
+        interpretations.push({
+            title: "Strong Class Standing",
+            content: `Performing well. The student is scoring above average in ${aboveAvgCount} out of ${data.scores.length} assessments.`,
+            type: 'success'
+        });
+    } else if (aboveAvgCount < data.scores.length / 4 && data.scores.length > 2) {
+        interpretations.push({
+            title: "Below Class Average",
+            content: "The student is frequently scoring below the class average. Additional focus on core concepts may be needed.",
+            type: 'warning'
+        });
+    }
+
+    const getTypeStyles = (type: string) => {
+        switch (type) {
+            case 'success': return "bg-emerald-50 border-emerald-100 text-emerald-800";
+            case 'warning': return "bg-amber-50 border-amber-100 text-amber-800";
+            case 'error': return "bg-red-50 border-red-100 text-red-800";
+            default: return "bg-blue-50 border-blue-100 text-blue-800";
+        }
+    };
+
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'success': return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+            case 'warning': return <AlertCircle className="h-4 w-4 text-amber-600" />;
+            case 'error': return <AlertCircle className="h-4 w-4 text-red-600" />;
+            default: return <Info className="h-4 w-4 text-blue-600" />;
+        }
+    };
+
+    return (
+        <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-black flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-indigo-600" />
+                    Insights
+                </CardTitle>
+                <CardDescription>Synthesized insights from {data.student.name.split(' ')[0]}'s assessment history.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {interpretations.map((item, idx) => (
+                    <div key={idx} className={`p-4 rounded-2xl border flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300 delay-${idx * 100} ${getTypeStyles(item.type)}`}>
+                        <div className="mt-0.5 shrink-0">
+                            {getTypeIcon(item.type)}
+                        </div>
+                        <div className="space-y-1">
+                            <h4 className="font-black text-[10px] uppercase tracking-wider">{item.title}</h4>
+                            <p className="text-xs font-medium leading-relaxed opacity-90">{item.content}</p>
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function StudentAnalysisPage() {
     const { docId, lrn } = useParams<{ docId: string; lrn: string }>();
@@ -91,6 +265,14 @@ export default function StudentAnalysisPage() {
     useEffect(() => {
         const fetchDetails = async () => {
             if (!docId || !lrn) return;
+
+            // Security check: Students can only view their own LRN
+            const user = useUserStore.getState().user;
+            if (user?.acc_type === "STUDENT" && user.lrn !== lrn) {
+                toast.error("Access denied. You can only view your own performance data.");
+                return;
+            }
+
             try {
                 const result = await getStudentAnalysisDetail(docId, lrn);
                 setData(result);
@@ -106,25 +288,21 @@ export default function StudentAnalysisPage() {
 
     if (loading) {
         return (
-            <DashboardLayout>
                 <div className="flex items-center justify-center h-[80vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-slate-500 font-medium">Loading student statistics...</p>
                     </div>
                 </div>
-            </DashboardLayout>
         );
     }
 
     if (!data) {
         return (
-            <DashboardLayout>
                 <div className="text-center py-20">
                     <h2 className="text-xl font-bold">Student data not found</h2>
                     <Link to={`/dashboard/analysis/${docId}`} className="text-indigo-600">Go back</Link>
                 </div>
-            </DashboardLayout>
         );
     }
 
@@ -138,34 +316,8 @@ export default function StudentAnalysisPage() {
         };
     });
 
-    const getStatusBadge = (score: number, max: number) => {
-        const percent = max > 0 ? (score / max) * 100 : 0;
-        if (percent >= 90) return <Badge className="bg-emerald-500 text-white border-none font-black shadow-sm px-3">MASTERY</Badge>;
-        if (percent >= 75) return <Badge className="bg-amber-400 text-white border-none font-black shadow-sm px-3">PASSING</Badge>;
-        return <Badge className="bg-red-500 text-white border-none font-black shadow-sm px-3">AT RISK</Badge>;
-    };
-
-    const getScoreColor = (percent: number) => {
-        if (percent >= 90) return "text-emerald-600";
-        if (percent >= 75) return "text-amber-500";
-        return "text-red-600";
-    };
-
-    const InfoTooltip = ({ content }: { content: string }) => (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-[250px] p-3 rounded-xl bg-slate-900 text-white border-none shadow-xl">
-                    <p className="text-xs leading-relaxed">{content}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
-
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -204,10 +356,17 @@ export default function StudentAnalysisPage() {
                                     <div className="p-6">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">AVERAGE SCORE</p>
                                         <div className="flex items-end gap-2">
-                                            <h3 className={`text-3xl font-black tracking-tight ${getScoreColor(data.student_stats?.mean || 0)}`}>
-                                                {data.student_stats?.mean.toFixed(1)}%
-                                            </h3>
-                                            <p className="text-sm font-bold text-slate-400 mb-1">vs Class {data.document.subject?.subject_name}</p>
+                                            {(() => {
+                                                const totalMax = data.scores.reduce((acc, s) => acc + s.max_score, 0);
+                                                const totalScore = data.scores.reduce((acc, s) => acc + s.score, 0);
+                                                const historyPercent = totalMax > 0 ? (totalScore / totalMax) * 100 : (data.student_stats?.mean || 0);
+                                                return (
+                                                    <h3 className={`text-3xl font-black tracking-tight ${getScoreColor(historyPercent)}`}>
+                                                        {data.student_stats?.mean.toFixed(1)}
+                                                    </h3>
+                                                );
+                                            })()}
+                                            <p className="text-sm font-bold text-slate-400 mb-1">in {data.document.subject?.subject_name}</p>
                                         </div>
                                     </div>
                                     <div className="p-6">
@@ -236,45 +395,61 @@ export default function StudentAnalysisPage() {
                                     </div>
                                     <div className="p-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ACTUAL POST-TEST</p>
-                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PREDICTION INTERVENTION</p>
                                         </div>
-                                        {data.actual_post_test ? (
-                                            <div className="bg-emerald-50 p-4 rounded-2xl ring-1 ring-emerald-100">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-2xl font-black text-emerald-700 tracking-tighter">
-                                                        {data.actual_post_test.score.toFixed(1)}
-                                                    </span>
-                                                    <Badge className="bg-emerald-500">Completed</Badge>
-                                                </div>
-                                                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-tight">Out of {data.actual_post_test.max_score} points</p>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 border-dashed border-2">
-                                                <p className="text-slate-400 font-bold text-xs italic">Awaiting Results...</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-6">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">PEDAGOGICAL STRATEGY</p>
                                         <div className="space-y-3">
-                                            {Object.entries(data.intervention).map(([label, action]) => (
-                                                <div key={label} className="space-y-2">
-                                                    <Badge className="bg-amber-100 text-amber-700 border-none font-bold">
-                                                        {label}
-                                                    </Badge>
-                                                    <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/50 text-xs font-semibold text-amber-900 leading-relaxed italic">
-                                                        "{action}"
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            {typeof data.prediction_intervention === 'object' ? 
+                                                Object.entries(data.prediction_intervention).map(([label, action]) => {
+                                                    const theme = getInterventionTheme(data.prediction_score_percent);
+                                                    return (
+                                                        <div key={label} className="space-y-2">
+                                                            <Badge className={`${theme.badge} border font-bold`}>
+                                                                {label}
+                                                            </Badge>
+                                                            <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed italic ${theme.container}`}>
+                                                                "{action}"
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }) : (
+                                                    <p className="text-xs text-slate-500 italic">{data.prediction_intervention}</p>
+                                                )
+                                            }
                                         </div>
                                     </div>
+                                    
+                                    {data.actual_post_test && (
+                                        <div className="p-6 border-t border-slate-100">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ACTUAL POST-TEST INTERVENTION</p>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {typeof data.actual_intervention === 'object' ? 
+                                                    Object.entries(data.actual_intervention).map(([label, action]) => {
+                                                        const actualPercent = (data.actual_post_test!.score / data.actual_post_test!.max_score) * 100;
+                                                        const theme = getInterventionTheme(actualPercent);
+                                                        return (
+                                                            <div key={label} className="space-y-2">
+                                                                <Badge className={`${theme.badge} border font-bold`}>
+                                                                    {label}
+                                                                </Badge>
+                                                                <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed italic ${theme.container}`}>
+                                                                    "{action}"
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }) : (
+                                                        <p className="text-xs text-slate-500 italic">{data.actual_intervention}</p>
+                                                    )
+                                                }
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
 
-
+                        <StudentInterpretationsCard data={data} />
                     </div>
 
                     {/* Main Analysis Sections */}
@@ -380,6 +555,6 @@ export default function StudentAnalysisPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

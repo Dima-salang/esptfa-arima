@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAnalysisFullDetails } from "@/lib/api-teacher";
 import {
     Card,
@@ -62,17 +62,17 @@ import {
 import {
     ArrowLeft,
     TrendingUp,
-    Users,
     AlertCircle,
     CheckCircle2,
     Search,
     BrainCircuit,
     Info,
-    HelpCircle,
     LineChart as LucideLineChart,
     Grid3X3,
     BarChart3,
     ArrowUpDown,
+    Filter,
+    Layers,
 } from "lucide-react";
 import ActualPostTestUploadModal from "@/components/ActualPostTestUploadModal";
 
@@ -117,7 +117,9 @@ interface StudentPerformance {
     failing_rate: number;
     predicted_score: number | null;
     predicted_status: string;
-    intervention: Record<string, string>;
+    prediction_intervention: Record<string, string>;
+    actual_intervention: Record<string, string>;
+    actual_status: string | null;
     prediction_score_percent: number;
     actual_score: number | null;
     actual_max: number | null;
@@ -142,19 +144,19 @@ const getTruePercentage = (s: StudentPerformance) => {
     return s.mean || 0;
 };
 
-const getScoreColor = (score: number, maxScore: number) => {
-    const percent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-    if (percent >= 90) return "bg-emerald-500";
-    if (percent >= 75) return "bg-amber-400";
-    return "bg-red-500";
+
+const getInterventionTheme = (percent: number | null) => {
+    if (percent === null || percent === undefined) return "bg-slate-50 text-slate-700 border-slate-200/50";
+    if (percent < 75) return "bg-rose-50 text-rose-700 border-rose-200/50";
+    if (percent < 80) return "bg-orange-50 text-orange-700 border-orange-200/50";
+    if (percent < 90) return "bg-indigo-50 text-indigo-700 border-indigo-200/50";
+    return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
 };
 
-const getInterventionColor = (score: number | null, max: number = 60) => {
-    if (!score) return "bg-slate-100 text-slate-700 border-slate-200";
-    const percent = (score / max) * 100;
-    if (percent < 75) return "bg-red-50 text-red-700 border-red-100";
-    if (percent < 90) return "bg-amber-50 text-amber-700 border-amber-100";
-    return "bg-emerald-50 text-emerald-700 border-emerald-100";
+const getScoreColor = (percent: number) => {
+    if (percent >= 90) return "text-emerald-600";
+    if (percent >= 75) return "text-amber-500";
+    return "text-red-600";
 };
 
 const InfoTooltip = ({ content }: { content: string }) => (
@@ -172,6 +174,7 @@ const InfoTooltip = ({ content }: { content: string }) => (
     </TooltipProvider>
 );
 
+
 export default function AnalysisDetailPage() {
     const { docId } = useParams<{ docId: string }>();
     const [data, setData] = useState<AnalysisDetails | null>(null);
@@ -180,9 +183,23 @@ export default function AnalysisDetailPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [matrixSearch, setMatrixSearch] = useState("");
     const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
+    const [interventionFilter, setInterventionFilter] = useState("all");
+    const [matrixInterventionFilter, setMatrixInterventionFilter] = useState("all");
+    const [actualStatusFilter, setActualStatusFilter] = useState("all");
+    const [matrixActualStatusFilter, setMatrixActualStatusFilter] = useState("all");
+    const [actualInterventionFilter, setActualInterventionFilter] = useState("all");
+    const [matrixActualInterventionFilter, setMatrixActualInterventionFilter] = useState("all");
     const [processing, setProcessing] = useState(false);
     const [sortField, setSortField] = useState<keyof StudentPerformance>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+    const interventionLabels = Array.from(new Set(
+        (data?.student_performance || []).flatMap(s => Object.keys(s.prediction_intervention))
+    )).sort((a, b) => a.localeCompare(b));
+
+    const actualInterventionLabels = Array.from(new Set(
+        (data?.student_performance || []).flatMap(s => Object.keys(s.actual_intervention || {}))
+    )).sort((a, b) => a.localeCompare(b));
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -237,34 +254,37 @@ export default function AnalysisDetailPage() {
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.lrn.includes(searchTerm);
             const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
-            return matchesSearch && matchesStatus;
+            const matchesActualStatus = actualStatusFilter === "all" || (s.actual_status && s.actual_status.toLowerCase() === actualStatusFilter.toLowerCase());
+            const matchesIntervention = interventionFilter === "all" || Object.keys(s.prediction_intervention).includes(interventionFilter);
+            const matchesActualIntervention = actualInterventionFilter === "all" || (s.actual_intervention && Object.keys(s.actual_intervention).includes(actualInterventionFilter));
+            return matchesSearch && matchesStatus && matchesActualStatus && matchesIntervention && matchesActualIntervention;
         })
     );
     const matrixFilteredStudents = sortStudents(
         (data?.student_performance || []).filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
             const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
-            return matchesSearch && matchesStatus;
+            const matchesActualStatus = matrixActualStatusFilter === "all" || (s.actual_status && s.actual_status.toLowerCase() === matrixActualStatusFilter.toLowerCase());
+            const matchesIntervention = matrixInterventionFilter === "all" || Object.keys(s.prediction_intervention).includes(matrixInterventionFilter);
+            const matchesActualIntervention = matrixActualInterventionFilter === "all" || (s.actual_intervention && Object.keys(s.actual_intervention).includes(matrixActualInterventionFilter));
+            return matchesSearch && matchesStatus && matchesActualStatus && matchesIntervention && matchesActualIntervention;
         })
     );
 
 
     if (loading) {
         return (
-            <DashboardLayout>
                 <div className="flex items-center justify-center h-[80vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-slate-500 font-medium">Loading analysis dashboard...</p>
                     </div>
                 </div>
-            </DashboardLayout>
         );
     }
 
     if (processing) {
         return (
-            <DashboardLayout>
                 <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-6">
                     <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
                         <BrainCircuit className="w-12 h-12 text-indigo-600" />
@@ -283,18 +303,15 @@ export default function AnalysisDetailPage() {
                         <Button variant="ghost">Back to Dashboard</Button>
                     </Link>
                 </div>
-            </DashboardLayout>
         );
     }
 
     if (!data) {
         return (
-            <DashboardLayout>
                 <div className="text-center py-20">
                     <h2 className="text-xl font-bold">Analysis not found</h2>
                     <Link to="/dashboard" className="text-indigo-600">Go back</Link>
                 </div>
-            </DashboardLayout>
         );
     }
 
@@ -312,6 +329,8 @@ export default function AnalysisDetailPage() {
         passing_rate: (fa.passing_rate || 0).toFixed(1),
         failing_rate: (fa.failing_rate || 0).toFixed(1),
         mean: Number(fa.mean.toFixed(1)),
+        mean_percentage: Number(((fa.mean / fa.max_score) * 100).toFixed(1)),
+        max_score: fa.max_score
     }));
     const validPredictions = data.student_performance.filter(s => s.predicted_score !== null);
     const avgPredictedPoints = validPredictions.length > 0
@@ -323,7 +342,7 @@ export default function AnalysisDetailPage() {
 
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -421,7 +440,7 @@ export default function AnalysisDetailPage() {
                                                         <p className="text-[10px] opacity-70 mb-2">LRN: {student.lrn}</p>
                                                         <div className="h-px bg-white/10 my-2" />
                                                         <p className="text-[10px] text-red-400 font-bold mb-1">PREDICTION: {student.predicted_score?.toFixed(1)}</p>
-                                                        <p className="text-[9px] italic leading-tight">{Object.values(student.intervention)[0]?.split('.')[0]}.</p>
+                                                        <p className="text-[9px] italic leading-tight">{Object.values(student.prediction_intervention)[0]?.split('.')[0]}.</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
@@ -435,6 +454,7 @@ export default function AnalysisDetailPage() {
                                 </CardContent>
                             </Card>
                         )}
+
 
                         {/* Visualization Sub-Tabs */}
                         <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
@@ -504,116 +524,226 @@ export default function AnalysisDetailPage() {
                                         </ResponsiveContainer>
                                     </TabsContent>
 
-                                    <TabsContent value="heatmap" className="mt-0 animate-in fade-in duration-500 overflow-visible">
-                                        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-64">
-                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                                                    <Input
-                                                        placeholder="Find student..."
-                                                        value={matrixSearch}
-                                                        onChange={(e) => setMatrixSearch(e.target.value)}
-                                                        className="pl-9 h-10 rounded-xl border-slate-200 text-sm focus-visible:ring-indigo-600"
-                                                    />
+                                    <TabsContent value="heatmap" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-700 overflow-visible">
+                                        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                                            <div className="space-y-4">
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <div className="relative group">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                                        <Input
+                                                            placeholder="Search student LRN or name..."
+                                                            value={matrixSearch}
+                                                            onChange={(e) => setMatrixSearch(e.target.value)}
+                                                            className="pl-10 h-11 w-72 rounded-2xl border-slate-200 bg-white shadow-sm transition-all focus:shadow-md focus:ring-indigo-500/20 text-sm font-medium"
+                                                        />
+                                                    </div>
+                                                    <Select value={matrixStatusFilter} onValueChange={setMatrixStatusFilter}>
+                                                        <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-indigo-300 transition-all">
+                                                            <div className="flex items-center gap-2 min-w-0 text-left">
+                                                                <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                                                <div className="truncate pr-2">
+                                                                    <SelectValue placeholder="All Students" />
+                                                                </div>
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1">
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Performance Levels</SelectItem>
+                                                            <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Predicted Passing</SelectItem>
+                                                            <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-red-600">Needs Support (Predicted Fail)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select value={matrixActualStatusFilter} onValueChange={setMatrixActualStatusFilter}>
+                                                        <SelectTrigger className="w-52 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-emerald-300 transition-all">
+                                                            <div className="flex items-center gap-2 min-w-0 text-left">
+                                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                                <div className="truncate pr-2">
+                                                                    <SelectValue placeholder="Actual Status" />
+                                                                </div>
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1">
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Actual Results</SelectItem>
+                                                            <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Actual Passed</SelectItem>
+                                                            <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-rose-600">Actual Failed</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select value={matrixActualInterventionFilter} onValueChange={setMatrixActualInterventionFilter}>
+                                                        <SelectTrigger className="w-64 h-11 rounded-2xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700 hover:border-emerald-300 transition-all">
+                                                            <div className="flex items-center gap-2 min-w-0 text-left">
+                                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                                <div className="truncate pr-2">
+                                                                    <SelectValue placeholder="Actual Strategy" />
+                                                                </div>
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1 max-h-[300px]">
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Actual Interventions</SelectItem>
+                                                            {actualInterventionLabels.map(label => (
+                                                                <SelectItem key={label} value={label} className="rounded-xl font-bold text-xs py-2">
+                                                                    {label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
-                                                <Select value={matrixStatusFilter} onValueChange={setMatrixStatusFilter}>
-                                                    <SelectTrigger className="w-36 h-10 rounded-xl border-slate-200 font-bold text-xs bg-white text-slate-700">
-                                                        <SelectValue placeholder="Status" />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                                        <SelectItem value="all" className="font-bold text-xs">All Students</SelectItem>
-                                                        <SelectItem value="pass" className="font-bold text-xs text-emerald-600">Predicted Pass</SelectItem>
-                                                        <SelectItem value="fail" className="font-bold text-xs text-red-600">Predicted Fail</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
                                             </div>
-                                            <div className="flex gap-4">
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-emerald-500" /> Mastery (≥90%)
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-amber-400" /> Passing (≥75%)
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                                                    <div className="w-2 h-2 rounded-full bg-red-500" /> At Risk ({"<"}75%)
+
+                                            <div className="bg-slate-50/80 backdrop-blur-sm p-4 rounded-3xl border border-slate-200/60 flex items-center gap-6 shadow-sm">
+                                                <div className="space-y-2">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Legend</p>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
+                                                            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" /> Mastery (≥90%)
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
+                                                            <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm shadow-amber-400/40" /> Passing (≥75%)
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/40" /> At Risk ({"<"}75%)
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm max-h-[500px]">
-                                            <table className="w-full text-xs text-left">
-                                                <thead className="bg-slate-50/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-20">
-                                                    <tr>
-                                                        <th
-                                                            className="px-6 py-4 font-bold text-slate-700 uppercase tracking-tighter w-48 bg-slate-50 border-r border-slate-100 sticky left-0 z-30 cursor-pointer hover:text-indigo-600 transition-colors"
-                                                            onClick={() => handleSort("name")}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                Student Name
-                                                                <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                            </div>
-                                                        </th>
-                                                        {data.formative_assessments.map(fa => (
-                                                            <th key={fa.formative_assessment_number} className="px-2 py-4 font-bold text-slate-700 text-center uppercase tracking-tighter border-r border-slate-100/50">
-                                                                {fa.fa_topic_name || `FA${fa.formative_assessment_number}`}
+                                        <div className="relative group/matrix">
+                                            <div className="overflow-x-auto rounded-[2rem] border border-slate-200/60 shadow-xl bg-white max-h-[600px] custom-scrollbar scroll-smooth">
+                                                <table className="w-full text-xs text-left border-collapse">
+                                                    <thead className="sticky top-0 z-40">
+                                                        <tr>
+                                                            <th
+                                                                className="px-8 py-6 font-black text-slate-800 uppercase tracking-widest w-64 bg-slate-50/95 backdrop-blur-xl border-r border-slate-200/60 border-b-2 border-slate-200 sticky left-0 z-50 cursor-pointer hover:bg-slate-100 transition-all group/header shadow-[2px_0_10px_-2px_rgba(0,0,0,0.05)]"
+                                                                onClick={() => handleSort("name")}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <span>Student Directory</span>
+                                                                    <div className={`p-1.5 rounded-lg border transition-all ${sortField === 'name' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white border-slate-200 text-slate-400 opacity-40 group-hover/header:opacity-100'}`}>
+                                                                        <ArrowUpDown className="h-3 w-3" />
+                                                                    </div>
+                                                                </div>
                                                             </th>
-                                                        ))}
-                                                        <th className="px-6 py-4 font-black text-indigo-700 text-center uppercase tracking-tighter bg-indigo-50/50">Predicted</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-50">
-                                                    {matrixFilteredStudents
-                                                        .map((student) => (
-                                                            <tr key={student.lrn} className="group hover:bg-slate-50/80 transition-colors">
-                                                                <td className="px-6 py-3 font-bold text-slate-800 bg-white group-hover:bg-slate-50/80 border-r border-slate-100 sticky left-0 z-10 transition-colors">
-                                                                    <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="hover:text-indigo-600 transition-colors">
-                                                                        {student.name}
-                                                                    </Link>
+                                                            {data.formative_assessments.map(fa => (
+                                                                <th
+                                                                    key={fa.formative_assessment_number}
+                                                                    className="px-3 py-6 font-black text-slate-500 text-center uppercase tracking-[0.2em] bg-slate-50/95 backdrop-blur-xl border-r border-slate-200/40 border-b-2 border-slate-200 min-w-[100px] transition-all"
+                                                                >
+                                                                    <div className="relative inline-block group/topic">
+                                                                        <span className="relative z-10 transition-colors group-hover/topic:text-indigo-600">
+                                                                            {fa.fa_topic_name || `FA${fa.formative_assessment_number}`}
+                                                                        </span>
+                                                                        <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-500 transition-all duration-300 group-hover/topic:w-full" />
+                                                                    </div>
+                                                                </th>
+                                                            ))}
+                                                            <th className="px-8 py-6 font-black text-indigo-700 text-center uppercase tracking-[0.2em] bg-indigo-50/90 backdrop-blur-xl border-b-2 border-indigo-200 sticky right-0 z-30 shadow-[-2px_0_10px_-2px_rgba(79,70,229,0.1)]">
+                                                                Prediction
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100/50">
+                                                        {matrixFilteredStudents.map((student) => (
+                                                            <tr key={student.lrn} className="group hover:bg-indigo-50/30 transition-all duration-300">
+                                                                <td className="px-8 py-4 font-bold text-slate-800 bg-white group-hover:bg-slate-50/95 border-r border-slate-200/60 sticky left-0 z-20 transition-all shadow-[2px_0_10px_-2px_rgba(0,0,0,0.03)] group-hover:shadow-[4px_0_15px_-4px_rgba(0,0,0,0.05)]">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black tracking-tighter shadow-sm transition-transform group-hover:scale-110 ${student.predicted_status === 'Pass' ? 'bg-emerald-100/80 text-emerald-700' : 'bg-rose-100/80 text-rose-700'
+                                                                            }`}>
+                                                                            {student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                                                                        </div>
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <Link
+                                                                                to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`}
+                                                                                className="text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors truncate"
+                                                                            >
+                                                                                {student.name}
+                                                                            </Link>
+                                                                            <span className="text-[10px] font-bold text-slate-400/80 tracking-widest">{student.lrn}</span>
+                                                                        </div>
+                                                                    </div>
                                                                 </td>
                                                                 {data.formative_assessments.map(fa => {
                                                                     const score = student.scores?.[fa.formative_assessment_number];
+                                                                    const percent = score !== undefined ? (score / fa.max_score) * 100 : null;
                                                                     return (
-                                                                        <td key={fa.formative_assessment_number} className="p-1 text-center border-r border-slate-50">
+                                                                        <td key={fa.formative_assessment_number} className="p-2 text-center border-r border-slate-100/30 group-hover:border-indigo-100/50 transition-colors">
                                                                             {score !== undefined ? (
                                                                                 <TooltipProvider>
-                                                                                    <Tooltip>
+                                                                                    <Tooltip delayDuration={200}>
                                                                                         <TooltipTrigger asChild>
-                                                                                            <div
-                                                                                                className={`w-9 h-9 rounded-xl mx-auto flex items-center justify-center font-black text-white transition-all hover:scale-110 shadow-sm ${getScoreColor(score, fa.max_score)}`}
-                                                                                            >
-                                                                                                {Math.round(score)}
+                                                                                            <div className="relative flex items-center justify-center">
+                                                                                                <div
+                                                                                                    className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black transition-all cursor-default relative overflow-hidden group/cell hover:-translate-y-1 hover:shadow-lg ${percent! >= 90 ? 'bg-emerald-500 text-white shadow-emerald-500/20' :
+                                                                                                        percent! >= 75 ? 'bg-amber-400 text-white shadow-amber-400/20' :
+                                                                                                            'bg-rose-500 text-white shadow-rose-500/20'
+                                                                                                        }`}
+                                                                                                >
+                                                                                                    <span className="relative z-10 text-xs">{Math.round(score)}</span>
+                                                                                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+                                                                                                </div>
                                                                                             </div>
                                                                                         </TooltipTrigger>
-                                                                                        <TooltipContent side="top" className="bg-slate-900 text-white rounded-xl border-none p-3 shadow-2xl">
-                                                                                            <div className="space-y-1">
-                                                                                                <p className="text-xs font-black">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
-                                                                                                <div className="h-px bg-slate-700 my-1" />
-                                                                                                <p className="text-xs">Score: <span className="font-bold">{score} / {fa.max_score}</span></p>
-                                                                                                <p className="text-[10px] text-slate-400">Status: <span className={score >= fa.passing_threshold ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{score >= fa.passing_threshold ? "PASSING" : "AT RISK"}</span></p>
+                                                                                        <TooltipContent
+                                                                                            side="top"
+                                                                                            className="bg-slate-900 text-white rounded-[1.25rem] border-none p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+                                                                                        >
+                                                                                            <div className="px-4 py-3 bg-white/5 backdrop-blur-md">
+                                                                                                <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">{fa.fa_topic_name || `Topic ${fa.formative_assessment_number}`}</p>
+                                                                                                <div className="flex items-baseline gap-2">
+                                                                                                    <span className="text-xl font-black text-white">{score}</span>
+                                                                                                    <span className="text-[10px] font-bold text-white/40">OF {fa.max_score} POINTS</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="bg-slate-800/50 px-4 py-3 border-t border-white/5">
+                                                                                                <div className="flex items-center justify-between gap-4">
+                                                                                                    <div className="flex items-center gap-2">
+                                                                                                        <div className={`w-2 h-2 rounded-full ${percent! >= 75 ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400 animate-pulse'}`} />
+                                                                                                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                                                                                                            {(() => {
+                                                                                                                if (percent! >= 90) return "Mastery";
+                                                                                                                if (percent! >= 75) return "Proficient";
+                                                                                                                return "Critical";
+                                                                                                            })()}
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                    <span className="text-[10px] font-black font-mono text-white/60">{(percent || 0).toFixed(1)}%</span>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </TooltipContent>
                                                                                     </Tooltip>
                                                                                 </TooltipProvider>
                                                                             ) : (
-                                                                                <div className="w-9 h-9 rounded-xl mx-auto bg-slate-50 border-2 border-dashed border-slate-100" />
+                                                                                <div className="w-11 h-11 rounded-2xl mx-auto bg-slate-50/50 border-2 border-dashed border-slate-200/50 flex items-center justify-center group-hover:border-indigo-200/50 transition-colors">
+                                                                                    <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                                                                </div>
                                                                             )}
                                                                         </td>
                                                                     );
                                                                 })}
-                                                                <td className="px-6 py-3 bg-indigo-50/20 text-center">
-                                                                    <Badge className={`font-black rounded-lg px-3 py-1 shadow-sm ${student.predicted_status === 'Pass' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                                                                        {student.predicted_score?.toFixed(1) || "N/A"}
-                                                                        {student.predicted_score !== null && (
-                                                                            <span className="text-[9px] opacity-70 ml-1">
-                                                                                ({student.prediction_score_percent.toFixed(0)}%)
+                                                                <td className="px-8 py-4 bg-indigo-50/40 group-hover:bg-indigo-100/40 text-center sticky right-0 z-20 transition-all border-l border-indigo-100/30 shadow-[-2px_0_10px_-2px_rgba(79,70,229,0.05)]">
+                                                                    <div className="flex flex-col items-center gap-1 group/badge p-1">
+                                                                        <div className={`px-4 py-1.5 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-2 transition-all group-hover/badge:scale-105 group-hover/badge:shadow-md ${student.predicted_status === 'Pass' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                                                                            }`}>
+                                                                            {student.predicted_score?.toFixed(1) || "N/A"}
+                                                                            <span className="text-[8px] font-bold opacity-60 bg-black/10 px-1.5 py-0.5 rounded-md">
+                                                                                {student.prediction_score_percent.toFixed(0)}%
                                                                             </span>
-                                                                        )}
-                                                                    </Badge>
+                                                                        </div>
+                                                                        <span className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${student.predicted_status === 'Pass' ? 'text-emerald-700/60' : 'text-rose-700/60'
+                                                                            }`}>
+                                                                            {student.predicted_status === 'Pass' ? 'Pass' : 'At Risk'}
+                                                                        </span>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ))}
-                                                </tbody>
-                                            </table>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Modern Tooltip indicator for scrolling */}
+                                            <div className="absolute -bottom-4 right-8 flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-2xl animate-bounce-subtle pointer-events-none opacity-0 group-hover/matrix:opacity-100 transition-opacity">
+                                                <Layers className="h-3 w-3" />
+                                                <span className="text-[10px] font-black tracking-widest uppercase">Scroll Matrix →</span>
+                                            </div>
                                         </div>
                                     </TabsContent>
 
@@ -630,36 +760,22 @@ export default function AnalysisDetailPage() {
                                                         <PieChart>
                                                             <Pie
                                                                 data={[
-                                                                    {
-                                                                        name: 'Mastery',
-                                                                        value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length,
-                                                                        color: '#10b981'
-                                                                    },
-                                                                    {
-                                                                        name: 'Passing',
-                                                                        value: data.student_performance.filter(s => {
-                                                                            const p = getTruePercentage(s);
-                                                                            return p >= 75 && p < 90;
-                                                                        }).length,
-                                                                        color: '#fbbf24'
-                                                                    },
-                                                                    {
-                                                                        name: 'At Risk',
-                                                                        value: data.student_performance.filter(s => getTruePercentage(s) < 75).length,
-                                                                        color: '#ef4444'
-                                                                    }
+                                                                    { name: 'Mastery', color: '#10b981', value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length },
+                                                                    { name: 'Proficient', color: '#6c6ec1ff', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p >= 80 && p <= 89; }).length },
+                                                                    { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
+                                                                    { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
                                                                 ].filter(d => d.value > 0)}
-                                                                innerRadius={60}
-                                                                outerRadius={80}
+                                                                innerRadius={45}
+                                                                outerRadius={85}
                                                                 paddingAngle={5}
                                                                 dataKey="value"
                                                             >
-                                                                {([
-                                                                    { name: 'Mastery', color: '#10b981' },
-                                                                    { name: 'Proficient', color: '#6366f1' },
-                                                                    { name: 'Developing', color: '#f59e0b' },
-                                                                    { name: 'Remedial', color: '#ef4444' }
-                                                                ]).map((entry, index) => (
+                                                                {[
+                                                                    { name: 'Mastery', color: '#10b981', value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length },
+                                                                    { name: 'Proficient', color: '#6c6ec1ff', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p >= 80 && p <= 89; }).length },
+                                                                    { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
+                                                                    { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
+                                                                ].filter(d => d.value > 0).map((entry, index) => (
                                                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                                                 ))}
                                                             </Pie>
@@ -677,7 +793,7 @@ export default function AnalysisDetailPage() {
                                                     Highest Performers
                                                     <Badge className="bg-emerald-500 text-white border-none">TOP 5</Badge>
                                                 </h4>
-                                                {[...data.student_performance].sort((a, b) => b.mean - a.mean).slice(0, 3).map((s, i) => (
+                                                {[...data.student_performance].sort((a, b) => getTruePercentage(b) - getTruePercentage(a)).slice(0, 3).map((s, i) => (
                                                     <Link
                                                         key={`top-${s.lrn}`}
                                                         to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
@@ -700,7 +816,7 @@ export default function AnalysisDetailPage() {
                                                     Requires Support
                                                     <Badge className="bg-orange-400 text-white border-none">REMEDIAL</Badge>
                                                 </h4>
-                                                {[...data.student_performance].sort((a, b) => a.mean - b.mean).slice(0, 2).map((s, i) => (
+                                                {[...data.student_performance].sort((a, b) => getTruePercentage(a) - getTruePercentage(b)).slice(0, 2).map((s, i) => (
                                                     <Link
                                                         key={`risk-${s.lrn}`}
                                                         to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
@@ -713,7 +829,7 @@ export default function AnalysisDetailPage() {
                                                             <span className="font-bold text-slate-800 group-hover:text-orange-700 transition-colors">{s.name}</span>
                                                         </div>
                                                         <div className="text-right">
-                                                            <span className="text-lg font-black text-orange-600 font-mono">{s.mean.toFixed(1)}</span>
+                                                            <span className={`text-lg font-black font-mono ${getScoreColor(getTruePercentage(s))}`}>{s.mean.toFixed(1)}</span>
                                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</p>
                                                         </div>
                                                     </Link>
@@ -751,9 +867,55 @@ export default function AnalysisDetailPage() {
                                             <SelectValue placeholder="All Statuses" />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Students</SelectItem>
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Statuses</SelectItem>
                                             <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Predicted Pass</SelectItem>
                                             <SelectItem value="fail" className="font-bold rounded-xl h-10 text-red-600">Predicted Fail</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={interventionFilter} onValueChange={setInterventionFilter}>
+                                        <SelectTrigger className="w-full sm:w-52 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <div className="flex items-center gap-2">
+                                                <BrainCircuit className="h-4 w-4 text-indigo-400 shrink-0" />
+                                                <SelectValue placeholder="Pred. Strategy" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Pred. Interventions</SelectItem>
+                                            {interventionLabels.map(label => (
+                                                <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <div className="h-10 w-px bg-slate-200 hidden sm:block mx-1" />
+                                    <Select value={actualStatusFilter} onValueChange={setActualStatusFilter}>
+                                        <SelectTrigger className="w-full sm:w-44 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                                <SelectValue placeholder="Actual Status" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Actual Statuses</SelectItem>
+                                            <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Actual Pass</SelectItem>
+                                            <SelectItem value="fail" className="font-bold rounded-xl h-10 text-rose-600">Actual Fail</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={actualInterventionFilter} onValueChange={setActualInterventionFilter}>
+                                        <SelectTrigger className="w-full sm:w-52 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                                <SelectValue placeholder="Actual Strategy" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
+                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Actual Interventions</SelectItem>
+                                            {actualInterventionLabels.map(label => (
+                                                <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -781,35 +943,44 @@ export default function AnalysisDetailPage() {
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30"
                                                 onClick={() => handleSort("predicted_score")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    ARIMA Prediction
+                                                    Predicted Score
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                    <InfoTooltip content="Score predicted by the ARIMA-XGBoost hybrid model for the upcoming evaluation." />
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
-                                                onClick={() => handleSort("actual_score")}
-                                            >
-                                                <div className="flex items-center justify-center gap-2">
-                                                    Actual Result
-                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                    <InfoTooltip content="The actual score achieved by the student in the post-test (if uploaded)." />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead
-                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors"
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30"
                                                 onClick={() => handleSort("predicted_status")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Status
+                                                    Pred. Status
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-black text-slate-700 w-[400px] uppercase text-[11px] tracking-widest pr-8">Intervention Strategy</TableHead>
+                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center bg-indigo-50/30">Prediction Intervention</TableHead>
+                                            
+                                            <TableHead
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30"
+                                                onClick={() => handleSort("actual_score")}
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Actual Score
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30"
+                                                onClick={() => handleSort("actual_status")}
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    Actual Status
+                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center pr-8 bg-emerald-50/30">Actual Intervention</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -830,31 +1001,19 @@ export default function AnalysisDetailPage() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        <span className="px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-slate-700 text-sm">
+                                                        <span className={`px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-sm ${getScoreColor(getTruePercentage(student))}`}>
                                                             {student.mean.toFixed(1)}
                                                         </span>
                                                     </TableCell>
-                                                    <TableCell className="text-center">
+                                                    <TableCell className="text-center bg-indigo-50/10">
                                                         <div className="flex flex-col items-center">
                                                             <span className="font-black text-indigo-600 text-xl tracking-tighter">
                                                                 {student.predicted_score?.toFixed(1) || "N/A"}
                                                             </span>
-                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
+                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {student.actual_score !== null ? (
-                                                            <div className="flex flex-col items-center">
-                                                                <span className="font-black text-emerald-600 text-xl tracking-tighter">
-                                                                    {student.actual_score}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Actual / {student.actual_max}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
+                                                    <TableCell className="text-center bg-indigo-50/10">
                                                         <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.predicted_status === 'Pass'
                                                             ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                             : 'bg-red-50 text-red-600 border-red-100'
@@ -862,26 +1021,66 @@ export default function AnalysisDetailPage() {
                                                             {student.predicted_status}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell className="pr-8">
-                                                        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed shadow-sm flex items-start gap-3 ${getInterventionColor(student.predicted_score)}`}>
-                                                            <div className="mt-0.5">
-                                                                <Info className="h-3.5 w-3.5 opacity-60" />
-                                                            </div>
-                                                            <div className="flex flex-col gap-2">
-                                                                {Object.entries(student.intervention).map(([label, action]) => (
-                                                                    <div key={label} className="space-y-1">
-                                                                        <span className="font-black uppercase text-[10px] tracking-widest block opacity-70 border-b border-current/20 pb-0.5 mb-1">{label}</span>
-                                                                        <span className="block">{action}</span>
+                                                    <TableCell className="bg-indigo-50/10">
+                                                        <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme(student.prediction_score_percent)}`}>
+                                                            <BrainCircuit className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
+                                                            <div className="flex flex-col gap-1">
+                                                                {Object.entries(student.prediction_intervention).map(([label, action]) => (
+                                                                    <div key={label}>
+                                                                        <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{label}</span>
+                                                                        <span className="block italic">"{action}"</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     </TableCell>
+
+                                                    <TableCell className="text-center bg-emerald-50/10">
+                                                        {student.actual_score !== null ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-emerald-600 text-xl tracking-tighter">
+                                                                    {student.actual_score}
+                                                                </span>
+                                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Post Test Score / {student.actual_max}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-center bg-emerald-50/10">
+                                                        {student.actual_status ? (
+                                                            <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.actual_status === 'Pass'
+                                                                ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                                                : 'bg-rose-100 text-rose-700 border-rose-200'
+                                                                }`}>
+                                                                {student.actual_status}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">-</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="pr-8 bg-emerald-50/10 text-center">
+                                                        {student.actual_score !== null ? (
+                                                            <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme((student.actual_score / (student.actual_max || 1)) * 100)}`}>
+                                                                <CheckCircle2 className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1 text-left">
+                                                                    {Object.entries(student.actual_intervention).map(([label, action]) => (
+                                                                        <div key={label}>
+                                                                            <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{label}</span>
+                                                                            <span className="block italic">"{action}"</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting evaluation...</span>
+                                                        )}
+                                                    </TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="h-40 text-center text-slate-400 font-medium">
+                                                <TableCell colSpan={8} className="h-40 text-center text-slate-400 font-medium">
                                                     No student records found matching "{searchTerm}"
                                                 </TableCell>
                                             </TableRow>
@@ -951,23 +1150,52 @@ export default function AnalysisDetailPage() {
                                                         tickLine={false}
                                                         tick={{ fill: "#64748b", fontSize: 10, fontWeight: 600 }}
                                                         domain={[0, 100]}
+                                                        unit="%"
                                                     />
                                                     <RechartsTooltip
-                                                        cursor={{ fill: 'transparent' }}
-                                                        contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+                                                        cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
+                                                        content={({ active, payload, label }) => {
+                                                            if (active && payload && payload.length) {
+                                                                const d = payload[0].payload;
+                                                                let masteryColorClass = 'text-red-400';
+                                                                if (d.mean_percentage >= 90) masteryColorClass = 'text-emerald-400';
+                                                                else if (d.mean_percentage >= 75) masteryColorClass = 'text-indigo-400';
+                                                                return (
+                                                                    <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border-none animate-in fade-in zoom-in duration-200">
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+                                                                        <div className="space-y-2">
+                                                                            <div className="flex items-center justify-between gap-8">
+                                                                                <span className="text-[10px] font-bold text-slate-400">MASTERY</span>
+                                                                                <span className={`text-sm font-black ${masteryColorClass}`}>
+                                                                                    {d.mean_percentage}%
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center justify-between gap-8">
+                                                                                <span className="text-[10px] font-bold text-slate-400">AVG SCORE</span>
+                                                                                <span className="text-sm font-black text-white">
+                                                                                    {d.mean} / {d.max_score}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        }}
                                                     />
                                                     <Bar
-                                                        dataKey="mean"
-                                                        name="Average Score %"
+                                                        dataKey="mean_percentage"
+                                                        name="Mastery Level %"
                                                         radius={[8, 8, 0, 0]}
                                                         barSize={40}
                                                     >
-                                                        {topicData.map((entry, index) => (
-                                                            <Cell
-                                                                key={`cell-${index}`}
-                                                                fill={entry.mean >= 90 ? '#10b981' : entry.mean >= 75 ? '#6366f1' : '#ef4444'}
-                                                            />
-                                                        ))}
+                                                        {topicData.map((entry, index) => {
+                                                            let barColor = '#ef4444';
+                                                            if (entry.mean_percentage >= 90) barColor = '#10b981';
+                                                            else if (entry.mean_percentage >= 75) barColor = '#6366f1';
+
+                                                            return <Cell key={`cell-${index}`} fill={barColor} />;
+                                                        })}
                                                     </Bar>
                                                 </BarChart>
                                             </ResponsiveContainer>
@@ -1047,7 +1275,7 @@ export default function AnalysisDetailPage() {
                                         {[...data.formative_assessments]
                                             .sort((a, b) => b.passing_rate - a.passing_rate)
                                             .slice(0, 2)
-                                            .map((fa, i) => (
+                                            .map((fa) => (
                                                 <div key={fa.id} className="flex items-center justify-between p-5 rounded-2xl bg-white/80 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-xl">
@@ -1071,6 +1299,6 @@ export default function AnalysisDetailPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

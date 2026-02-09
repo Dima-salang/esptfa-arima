@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { getAnalysisDocuments, getStudentProfile } from "@/lib/api-teacher";
 import type { AnalysisDocument, Student } from "@/lib/api-teacher";
 import { useUserStore } from "@/store/useUserStore";
@@ -46,24 +45,22 @@ export default function StudentDashboard() {
     }, []);
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 animate-in fade-in duration-500">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-8 animate-in fade-in duration-500">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-3xl font-black text-slate-900">Hello, {user?.first_name}!</h1>
-                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-widest">Student Portal</span>
+                            <h1 className="text-3xl font-black text-foreground">Hello, {user?.first_name}!</h1>
+                            <span className="bg-primary/10 text-primary text-[10px] font-black uppercase px-2 py-1 rounded-md tracking-widest">Student Portal</span>
                         </div>
-                        <p className="text-slate-500 font-medium h-5">Welcome back to your academic performance tracker.</p>
+                        <p className="text-muted-foreground font-medium h-5">Welcome back to your academic performance tracker.</p>
                     </div>
                     {studentProfile && (
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white ring-1 ring-slate-200 rounded-2xl px-5 py-3 shadow-sm flex items-center gap-3">
-                                <School className="h-5 w-5 text-indigo-600" />
+                        <div className="flex items-center gap-4 animate-in fade-in duration-500 delay-100">
+                            <div className="bg-background border border-border rounded-2xl px-5 py-3 shadow-premium-sm flex items-center gap-3 hover:shadow-premium-md transition-shadow">
+                                <School className="h-5 w-5 text-primary" />
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Your Section</p>
-                                    <p className="text-sm font-black text-slate-800">{typeof studentProfile.section === 'object' ? (studentProfile.section as any).section_name : "Assigned Section"}</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter">Your Section</p>
+                                    <p className="text-sm font-black text-foreground">{typeof studentProfile.section === 'object' ? (studentProfile.section as any).section_name : "Assigned Section"}</p>
                                 </div>
                             </div>
                         </div>
@@ -71,24 +68,23 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Analysis Documents for Student */}
-                    <Card className="lg:col-span-2 border-none shadow-sm ring-1 ring-slate-200 rounded-[2rem] overflow-hidden">
+                    <Card className="lg:col-span-2 border-none shadow-premium-sm border border-border rounded-[2rem] overflow-hidden hover:shadow-premium-md transition-shadow">
                         <CardHeader className="p-8">
                             <CardTitle className="text-xl font-black">Latest Academic Analysis</CardTitle>
                             <CardDescription>View your detailed performance reports and predictions</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="divide-y divide-slate-50 border-t border-slate-50">
+                            <div className="divide-y divide-border/50 border-t border-border/50">
                                 {loading && (
                                     <div className="p-12 space-y-4">
                                         {[1, 2, 3].map((i) => (
-                                            <div key={`skeleton-${i}`} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />
+                                            <div key={`skeleton-${i}`} className="h-16 bg-muted/50 animate-shimmer rounded-2xl" />
                                         ))}
                                     </div>
                                 )}
 
                                 {!loading && docs.length === 0 && (
-                                    <div className="p-16 text-center italic text-slate-400 font-medium">
+                                    <div className="p-16 text-center italic text-muted-foreground font-medium">
                                         No reports have been published for your section yet.
                                     </div>
                                 )}
@@ -99,33 +95,33 @@ export default function StudentDashboard() {
                                             <Link
                                                 key={doc.analysis_document_id}
                                                 to={`/dashboard/student-analysis/${doc.analysis_document_id}/${studentProfile?.lrn}`}
-                                                className="group flex items-center justify-between p-6 hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0"
+                                                className="group flex items-center justify-between p-6 hover:bg-accent/50 transition-all border-b border-border/50 last:border-0"
                                             >
                                                 <div className="flex items-center gap-5">
-                                                    <div className="w-12 h-12 bg-white ring-1 ring-slate-200 rounded-2xl flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:ring-indigo-100 transition-all">
-                                                        <FileText className="h-6 w-6 text-indigo-500" />
+                                                    <div className="w-12 h-12 bg-background border border-border rounded-2xl flex items-center justify-center shadow-premium-sm group-hover:shadow-premium-md group-hover:border-primary/30 transition-all hover:scale-110">
+                                                        <FileText className="h-6 w-6 text-primary" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
+                                                        <p className="font-black text-foreground group-hover:text-primary transition-colors uppercase tracking-tight text-sm">
                                                             {doc.analysis_doc_title}
                                                         </p>
-                                                        <div className="flex items-center gap-3 text-[11px] text-slate-400 font-bold">
+                                                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-bold">
                                                             <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" /> {typeof doc.subject === 'object' ? doc.subject.subject_name : "Subject"}</span>
                                                             <span>•</span>
                                                             <span>Uploaded {new Date(doc.upload_date).toLocaleDateString()}</span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 transition-all">
-                                                    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-white" />
+                                                <div className="w-10 h-10 rounded-full bg-accent/30 flex items-center justify-center group-hover:bg-primary group-hover:text-background transition-all hover:scale-110">
+                                                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-background" />
                                                 </div>
                                             </Link>
                                         ))}
 
                                         {docs.length > 5 && (
-                                            <div className="p-6 bg-slate-50/50 flex justify-center border-t border-slate-50">
+                                            <div className="p-6 bg-accent/30 flex justify-center border-t border-border/50">
                                                 <Link to="/dashboard/analysis">
-                                                    <Button variant="ghost" className="text-indigo-600 font-black text-xs uppercase tracking-widest gap-2 hover:bg-indigo-50 rounded-xl px-6 h-10 transition-all active:scale-95">
+                                                    <Button variant="ghost" className="text-primary font-black text-xs uppercase tracking-widest gap-2 hover:bg-primary/10 rounded-xl px-6 h-10 transition-all active:scale-95">
                                                         View More Archive <ChevronRight className="h-4 w-4" />
                                                     </Button>
                                                 </Link>
@@ -137,9 +133,8 @@ export default function StudentDashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Sidebar components */}
                     <div className="space-y-6">
-                        <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-[2rem] overflow-hidden bg-slate-900 text-white">
+                        <Card className="border-none shadow-premium-sm border border-border rounded-[2rem] overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 text-foreground">
                             <CardHeader className="p-8">
                                 <GraduationCap className="h-8 w-8 text-indigo-400 mb-4" />
                                 <CardTitle className="text-xl font-black">Performance Tracker</CardTitle>
@@ -161,7 +156,6 @@ export default function StudentDashboard() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }
 

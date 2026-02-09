@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
     CardContent,
@@ -85,7 +84,7 @@ export default function StudentImportPage() {
             const fileInput = document.getElementById('csv-upload') as HTMLInputElement;
             if (fileInput) fileInput.value = '';
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.error || error.response?.data?.['Validation Error: '] || "Failed to import CSV. Please check the file format.");
+            setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import CSV. Please check the file format.");
         } finally {
             setIsLoading(false);
         }
@@ -140,14 +139,14 @@ export default function StudentImportPage() {
             setSuccessMessage("Manual import successful! All students have been added.");
             setManualStudents([{ temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: "" }]);
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.error || error.response?.data?.['Validation Error: '] || "Failed to import students. Please check the data.");
+            setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import students. Please check the data.");
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -379,6 +378,6 @@ export default function StudentImportPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

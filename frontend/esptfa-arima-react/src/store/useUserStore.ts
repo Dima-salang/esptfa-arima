@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { getCurrentUser } from '@/lib/api-teacher';
 
-interface UserProfile {
+let profileFetchPromise: Promise<any> | null = null;
+let lastFetchTime = 0;
+const FETCH_CACHE_DURATION = 30000;
+
+export interface UserProfile {
     id: number;
     username: string;
     first_name: string;
@@ -10,42 +14,71 @@ interface UserProfile {
     acc_type: string;
     lrn?: string;
     section?: string;
+    advising_section?: {
+        id: number;
+        name: string;
+    };
 }
 
 interface UserState {
     user: UserProfile | null;
     loading: boolean;
     error: string | null;
-    fetchProfile: () => Promise<void>;
+    fetchProfile: () => Promise<UserProfile | null>;
     clearProfile: () => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
     user: null,
-    loading: typeof globalThis.window !== 'undefined' ? !!localStorage.getItem("access") : false,
+    loading: true, // Start with true to check session
     error: null,
 
     fetchProfile: async () => {
-        const token = localStorage.getItem("access");
-        if (!token) {
-            set({ user: null, loading: false });
-            return;
+        const now = Date.now();
+        const state = get();
+
+        // Check if we have a valid cache
+        if (state.user && (now - lastFetchTime < FETCH_CACHE_DURATION) && !state.error) {
+            return state.user;
+        }
+
+        // Return existing promise if one is in flight
+        if (profileFetchPromise) {
+            return profileFetchPromise;
         }
 
         set({ loading: true, error: null });
-        try {
-            const data = await getCurrentUser();
-            set({ user: data, loading: false });
-        } catch (err: any) {
-            console.error("Failed to fetch user profile:", err);
-            set({
-                error: err.message || "Failed to load profile",
-                loading: false,
-                user: null
-            });
-        }
+
+        const fetchPromise = (async () => {
+            try {
+                const data = await getCurrentUser();
+                set({ user: data, loading: false });
+                lastFetchTime = Date.now();
+                return data;
+            } catch (err: any) {
+                if (err.response?.status !== 401) {
+                    console.error("Failed to fetch user profile:", err);
+                }
+                profileFetchPromise = null;
+                set({
+                    error: err.message || "Failed to load profile",
+                    loading: false,
+                    user: null
+                });
+                return null;
+            }
+        })();
+
+        profileFetchPromise = fetchPromise;
+        lastFetchTime = now;
+
+        return fetchPromise;
     },
 
-    clearProfile: () => set({ user: null, loading: false, error: null }),
+    clearProfile: () => {
+        profileFetchPromise = null;
+        lastFetchTime = 0;
+        set({ user: null, loading: false, error: null });
+    },
 }));
 

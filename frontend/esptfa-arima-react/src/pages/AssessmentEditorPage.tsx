@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
     Card,
 } from "@/components/ui/card";
@@ -72,6 +71,7 @@ interface ScoreData {
             score: number;
             student_id: string;
             max_score: number;
+            test_number: number;
         };
     };
 }
@@ -149,7 +149,7 @@ export default function AssessmentEditorPage() {
                 // Initialize topics and scores from test_content
                 const content = draftData.test_content || {};
                 const initialTopics = content.topics || [
-                    { id: crypto.randomUUID(), name: "General Topic", max_score: 50 }
+                    { id: crypto.randomUUID(), name: "General Topic", max_score: 50, test_number: 1 }
                 ];
                 const initialScores = content.scores || {};
 
@@ -221,12 +221,13 @@ export default function AssessmentEditorPage() {
     // Handle score change
     const handleScoreChange = (lrn: string, topicId: string, value: string) => {
         const numValue = value === "" ? 0 : Number.parseInt(value);
-        if (Number.isNaN(numValue)) return;
+        if (Number.isNaN(numValue) || numValue < 0) return;
 
         const topic = topics.find(t => t.id === topicId);
         if (topic && numValue > topic.max_score) return; // Basic validation
 
         setScores(prev => {
+            const topicIndex = topics.findIndex(t => t.id === topicId);
             const next = {
                 ...prev,
                 [lrn]: {
@@ -235,7 +236,7 @@ export default function AssessmentEditorPage() {
                         score: numValue,
                         student_id: lrn,
                         max_score: topic?.max_score || 0,
-                        test_number: topic?.test_number || 0
+                        test_number: topicIndex >= 0 ? topicIndex + 1 : 1
                     }
                 }
             };
@@ -290,13 +291,27 @@ export default function AssessmentEditorPage() {
     };
 
     const updateTopicMaxScore = (id: string, maxScore: number) => {
-        const nextTopics = topics.map(t => t.id === id ? { ...t, max_score: maxScore } : t);
+        const validatedMaxScore = Math.max(0, maxScore);
+        const nextTopics = topics.map(t => t.id === id ? { ...t, max_score: validatedMaxScore } : t);
         setTopics(nextTopics);
+
+        // Check for scores that exceed the new max score
+        let invalidCount = 0;
+        Object.keys(scores).forEach(lrn => {
+            if (scores[lrn][id] && scores[lrn][id].score > maxScore) {
+                invalidCount++;
+            }
+        });
+
+        if (invalidCount > 0) {
+            toast.warning(`${invalidCount} student scores now exceed the new max score of ${maxScore}. Please correct them before finalizing.`);
+        }
+
         saveDraft(nextTopics, scores, postTestMaxScore);
     };
 
     const handlePostTestMaxScoreChange = (val: string) => {
-        const num = Number.parseInt(val) || 0;
+        const num = Math.max(0, Number.parseInt(val) || 0);
         setPostTestMaxScore(num);
 
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -334,6 +349,21 @@ export default function AssessmentEditorPage() {
     };
 
     const handleFinalize = () => {
+        // Validation: Check if any score exceeds its topic max_score
+        const invalidScores: string[] = [];
+        topics.forEach(topic => {
+            Object.keys(scores).forEach(lrn => {
+                if (scores[lrn][topic.id] && scores[lrn][topic.id].score > topic.max_score) {
+                    invalidScores.push(lrn);
+                }
+            });
+        });
+
+        if (invalidScores.length > 0) {
+            toast.error(`Cannot finalize. ${invalidScores.length} score(s) exceed the maximum allowed points. Please correct them first.`);
+            return;
+        }
+
         setIsFinalizeDialogOpen(true);
     };
 
@@ -353,12 +383,25 @@ export default function AssessmentEditorPage() {
                 test_number: index + 1
             }));
 
+            // Deep copy and synchronize scores with current topic metadata
+            const synchronizedScores = structuredClone(scores);
+            for (const lrn in synchronizedScores) {
+                const studentScores = synchronizedScores[lrn];
+                for (const tId in studentScores) {
+                    const tIdx = topics.findIndex(t => t.id === tId);
+                    if (tIdx !== -1) {
+                        studentScores[tId].test_number = tIdx + 1;
+                        studentScores[tId].max_score = topics[tIdx].max_score;
+                    }
+                }
+            }
+
             await updateTestDraft(draftId, {
                 status: "finalized",
                 test_content: {
                     topics: topicsWithSequence,
                     students: studentsMetadata,
-                    scores,
+                    scores: synchronizedScores,
                     post_test_max_score: postTestMaxScore
                 }
             });
@@ -416,31 +459,27 @@ export default function AssessmentEditorPage() {
 
     if (isLoading) {
         return (
-            <DashboardLayout defaultCollapsed={true}>
-                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                    <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
-                    <p className="text-slate-500 font-medium animate-pulse">Loading assessment draft...</p>
-                </div>
-            </DashboardLayout>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
+                <p className="text-slate-500 font-medium animate-pulse">Loading assessment draft...</p>
+            </div>
         );
     }
 
     if (error || !draft) {
         return (
-            <DashboardLayout defaultCollapsed={true}>
-                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
-                    <div className="p-4 bg-red-100 text-red-600 rounded-full">
-                        <AlertCircle className="h-10 w-10" />
-                    </div>
-                    <div className="space-y-2">
-                        <h2 className="text-2xl font-bold text-slate-900">Oops! Something went wrong</h2>
-                        <p className="text-slate-500 max-w-md">{error || "Draft not found."}</p>
-                    </div>
-                    <Button onClick={() => navigate("/dashboard")} className="bg-indigo-600">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-                    </Button>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
+                <div className="p-4 bg-red-100 text-red-600 rounded-full">
+                    <AlertCircle className="h-10 w-10" />
                 </div>
-            </DashboardLayout>
+                <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-slate-900">Oops! Something went wrong</h2>
+                    <p className="text-slate-500 max-w-md">{error || "Draft not found."}</p>
+                </div>
+                <Button onClick={() => navigate("/dashboard")} className="bg-indigo-600">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                </Button>
+            </div>
         );
     }
 
@@ -457,7 +496,7 @@ export default function AssessmentEditorPage() {
         : "Quarter";
 
     return (
-        <DashboardLayout defaultCollapsed={true}>
+        <>
             <div className="space-y-8 animate-in fade-in duration-500 pb-32">
                 {/* Editor Header */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 px-4">
@@ -709,7 +748,11 @@ export default function AssessmentEditorPage() {
                                                 // Premium Dynamic Styling
                                                 let bgClass = "bg-white";
                                                 let textClass = "text-slate-900";
-                                                if (percentage >= 90) {
+                                                const isInvalid = score > topic.max_score;
+                                                if (isInvalid) {
+                                                    bgClass = "bg-rose-100/80 group-hover:bg-rose-200/80";
+                                                    textClass = "text-rose-900";
+                                                } else if (percentage >= 90) {
                                                     bgClass = "bg-emerald-50/30 group-hover:bg-emerald-50/50";
                                                     textClass = "text-emerald-700";
                                                 } else if (percentage >= 75) {
@@ -722,7 +765,7 @@ export default function AssessmentEditorPage() {
 
                                                 return (
                                                     <TableCell key={topic.id} className={cn("p-1.5 text-center transition-all border-r border-slate-50/30 last:border-r-0", bgClass)}>
-                                                        <div className="flex items-center justify-center">
+                                                        <div className="flex flex-col items-center justify-center gap-1">
                                                             <Input
                                                                 type="number"
                                                                 min={0}
@@ -731,9 +774,11 @@ export default function AssessmentEditorPage() {
                                                                 onChange={(e) => handleScoreChange(student.lrn, topic.id, e.target.value)}
                                                                 className={cn(
                                                                     "w-24 h-9 text-center font-black text-sm rounded-xl border-none ring-1 ring-slate-200/50 focus:ring-2 focus:ring-indigo-500 bg-white/80 shadow-sm transition-all",
-                                                                    textClass
+                                                                    textClass,
+                                                                    isInvalid && "ring-rose-500 ring-2 animate-pulse"
                                                                 )}
                                                             />
+                                                            {isInvalid && <span className="text-[8px] font-black text-rose-600 uppercase tracking-tighter text-center">Exceeds {topic.max_score}!</span>}
                                                         </div>
                                                     </TableCell>
                                                 );
@@ -867,6 +912,6 @@ export default function AssessmentEditorPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </DashboardLayout>
+        </>
     );
 }
