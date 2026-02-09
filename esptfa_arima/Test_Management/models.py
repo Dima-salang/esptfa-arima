@@ -43,7 +43,9 @@ class Section(models.Model):
     section_name = models.CharField(max_length=100)
 
     # ensure that there is only one adviser per section
-    adviser = models.ForeignKey(User, on_delete=models.CASCADE, null=True, unique=True)
+    adviser = models.OneToOneField(
+        User, on_delete=models.SET_NULL, null=True, related_name="advising_section"
+    )
 
     def __str__(self):
         return self.section_name
