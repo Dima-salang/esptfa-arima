@@ -183,6 +183,8 @@ export default function AnalysisDetailPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [matrixSearch, setMatrixSearch] = useState("");
     const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
+    const [interventionFilter, setInterventionFilter] = useState("all");
+    const [matrixInterventionFilter, setMatrixInterventionFilter] = useState("all");
     const [actualStatusFilter, setActualStatusFilter] = useState("all");
     const [matrixActualStatusFilter, setMatrixActualStatusFilter] = useState("all");
     const [actualInterventionFilter, setActualInterventionFilter] = useState("all");
