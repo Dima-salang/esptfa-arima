@@ -385,7 +385,11 @@ class StudentViewSet(ModelViewSet):
     @action(detail=False, methods=["post"], permission_classes=[IsAdminUser])
     def bulk_import_csv(self, request):
         # get the file from the request
-        file = request.FILES["student_import_file"]
+        file = request.FILES.get("student_import_file")
+        if not file:
+            return Response(
+                {"detail": "No file provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # pass into services
         try:
