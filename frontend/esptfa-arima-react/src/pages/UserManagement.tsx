@@ -3,8 +3,10 @@ import {
     getAllUsers,
     updateUser,
     deleteUser,
+    createUser,
+    getAllSections,
 } from "@/lib/api-admin";
-import type { User } from "@/lib/api-admin";
+import type { User, Section } from "@/lib/api-admin";
 import { toast } from "sonner";
 import {
     Card,
@@ -33,7 +35,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
@@ -45,18 +46,15 @@ import {
     Trash2,
     Loader2,
     Shield,
-    CheckCircle2,
-    XCircle,
     ArrowUpDown,
     Users,
     UserCheck,
-    UserX,
     ShieldAlert,
     RefreshCw,
     MoreHorizontal,
-    Mail,
-    Calendar,
     UserCircle2,
+    UserPlus,
+    Lock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -70,7 +68,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -103,10 +100,40 @@ export default function UserManagement() {
 
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [sections, setSections] = useState<Section[]>([]);
+    
+    // New user form state
+    const [newUser, setNewUser] = useState({
+        username: "",
+        email: "",
+        password: "",
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        acc_type: "ADMIN",
+        is_active: true,
+        is_superuser: false,
+        lrn: "",
+        section: "",
+    });
+
+    const fetchSections = useCallback(async () => {
+        try {
+            const data = await getAllSections();
+            setSections(Array.isArray(data) ? data : data.results || []);
+        } catch (error) {
+            console.error("Error fetching sections:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchSections();
+    }, [fetchSections]);
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -150,6 +177,54 @@ export default function UserManagement() {
             teachers: users.filter(u => u.acc_type === 'TEACHER').length,
         };
     }, [users, totalCount]);
+
+    const handleCreateUser = async () => {
+        if (!newUser.username || !newUser.password) {
+            toast.error("Username and password are required");
+            return;
+        }
+        
+        if (newUser.acc_type === 'STUDENT' && (!newUser.lrn || !newUser.section)) {
+            toast.error("LRN and Section are required for students");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await createUser(newUser);
+            toast.success("User created successfully");
+            setIsAddDialogOpen(false);
+            setNewUser({
+                username: "", email: "", password: "", first_name: "",
+                middle_name: "", last_name: "", acc_type: "ADMIN",
+                is_active: true, is_superuser: false, lrn: "", section: ""
+            });
+            fetchUsers();
+        } catch (error: any) {
+            console.error("Error creating user:", error);
+            let errorMsg = "Failed to create user";
+            
+            if (error.response?.data) {
+                const data = error.response.data;
+                if (typeof data === 'string') {
+                    errorMsg = data;
+                } else if (data.detail) {
+                    errorMsg = data.detail;
+                } else if (typeof data === 'object') {
+                    // Handle field validation errors (e.g., { "username": ["..."] })
+                    const firstError = Object.values(data)[0];
+                    if (Array.isArray(firstError)) {
+                        errorMsg = firstError[0];
+                    } else if (typeof firstError === 'string') {
+                        errorMsg = firstError;
+                    }
+                }
+            }
+            toast.error(errorMsg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleSort = (field: string) => {
         if (ordering === field) {
@@ -255,6 +330,13 @@ export default function UserManagement() {
                     >
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
+                    </Button>
+                    <Button 
+                        onClick={() => setIsAddDialogOpen(true)}
+                        className="bg-slate-900 hover:bg-black text-white rounded-xl px-4 gap-2 shadow-sm font-semibold"
+                    >
+                        <UserPlus className="h-4 w-4" />
+                        Add New User
                     </Button>
                 </div>
             </div>
@@ -476,6 +558,165 @@ export default function UserManagement() {
                     </div>
                 </div>
             </Card>
+
+            {/* Add User Dialog */}
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogContent className="sm:max-w-2xl rounded-2xl border-slate-200 shadow-2xl p-0 overflow-hidden bg-white max-h-[90vh] flex flex-col">
+                    <DialogHeader className="px-6 pt-6 pb-2">
+                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <UserPlus className="h-5 w-5 text-indigo-500" />
+                            Register New Account
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium text-sm">
+                            Create a new user profile with specific system roles and permissions.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <Separator className="bg-slate-100" />
+
+                    <div className="px-6 py-4 space-y-6 overflow-y-auto">
+                        {/* Role Selection */}
+                        <div className="grid grid-cols-3 gap-3">
+                            {['ADMIN', 'TEACHER', 'STUDENT'].map((role) => (
+                                <button
+                                    key={role}
+                                    onClick={() => setNewUser({ 
+                                        ...newUser, 
+                                        acc_type: role,
+                                        is_superuser: role === 'ADMIN'
+                                    })}
+                                    className={`py-3 px-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${
+                                        newUser.acc_type === role 
+                                        ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/10' 
+                                        : 'border-slate-100 bg-white hover:border-slate-200 text-slate-500'
+                                    }`}
+                                >
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${newUser.acc_type === role ? 'text-indigo-600' : ''}`}>
+                                        {role}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">Username</Label>
+                                <div className="relative">
+                                    <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        placeholder="jdoe2024"
+                                        value={newUser.username}
+                                        onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                                        className="pl-10 h-11 rounded-xl border-slate-200 font-medium shadow-sm transition-all focus:ring-2 focus:ring-indigo-500/10"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">Password</Label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={newUser.password}
+                                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                        className="pl-10 h-11 rounded-xl border-slate-200 font-medium shadow-sm transition-all focus:ring-2 focus:ring-indigo-500/10"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">First Name</Label>
+                                <Input
+                                    placeholder="John"
+                                    value={newUser.first_name}
+                                    onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })}
+                                    className="h-11 rounded-xl border-slate-200 font-medium shadow-sm"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">Last Name</Label>
+                                <Input
+                                    placeholder="Doe"
+                                    value={newUser.last_name}
+                                    onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })}
+                                    className="h-11 rounded-xl border-slate-200 font-medium shadow-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">Email Address</Label>
+                            <Input
+                                type="email"
+                                placeholder="john.doe@example.com"
+                                value={newUser.email}
+                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                className="h-11 rounded-xl border-slate-200 font-medium shadow-sm"
+                            />
+                        </div>
+
+                        {newUser.acc_type === 'STUDENT' && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="pt-4 space-y-4 border-t border-slate-100"
+                            >
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">LRN (11 Digits)</Label>
+                                        <Input
+                                            placeholder="12345678901"
+                                            maxLength={11}
+                                            value={newUser.lrn}
+                                            onChange={(e) => setNewUser({ ...newUser, lrn: e.target.value })}
+                                            className="h-11 rounded-xl border-slate-200 font-medium shadow-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">Section Assignment</Label>
+                                        <Select 
+                                            value={newUser.section} 
+                                            onValueChange={(val) => setNewUser({ ...newUser, section: val })}
+                                        >
+                                            <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white font-medium">
+                                                <SelectValue placeholder="Select Section" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl shadow-xl">
+                                                {sections.map((sec) => (
+                                                    <SelectItem key={sec.section_id} value={sec.section_id.toString()} className="font-medium">
+                                                        {sec.section_name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2.5">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsAddDialogOpen(false)}
+                            className="h-10 px-4 rounded-xl font-semibold text-sm text-slate-500 hover:bg-slate-100"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCreateUser}
+                            disabled={submitting}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 h-10 rounded-xl font-semibold text-sm transition-all shadow-md flex items-center gap-2"
+                        >
+                            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                            Create Account
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
