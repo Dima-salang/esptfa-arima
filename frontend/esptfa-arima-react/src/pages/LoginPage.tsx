@@ -16,6 +16,7 @@ import {
     ArrowRight
 } from "lucide-react";
 import { useUserStore } from "@/store/useUserStore";
+import logo from "@/assets/logo.webp";
 
 const FEATURES = [
     { id: "analytics", text: "Advanced Student Progress Analytics" },
@@ -116,9 +117,9 @@ export default function LoginPage() {
                         initial={{ opacity: 0, scale: 0.5, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="inline-flex items-center justify-center p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl mb-10 shadow-2xl"
+                        className="inline-flex items-center justify-center p-6 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl mb-10 shadow-2xl"
                     >
-                        <Lock className="text-white h-10 w-10" />
+                        <img src={logo} alt="SJLSHS Logo" className="h-32 w-32 object-contain" />
                     </motion.div>
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
@@ -219,8 +220,8 @@ export default function LoginPage() {
                     )}
 
                     <div className="mb-10 text-center lg:hidden">
-                        <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-indigo-600 to-violet-500 rounded-2xl mb-6 shadow-lg">
-                            <Lock className="text-white h-7 w-7" />
+                        <div className="inline-flex items-center justify-center p-4 bg-gradient-to-br from-indigo-600 to-violet-500 rounded-2xl mb-6 shadow-lg">
+                            <img src={logo} alt="SJLSHS Logo" className="h-20 w-20 object-contain" />
                         </div>
                         <h2 className="text-3xl font-black text-foreground mb-2">Welcome Back</h2>
                         <p className="text-muted-foreground font-medium">Sign in to your account to continue</p>

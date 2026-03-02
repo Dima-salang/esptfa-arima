@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { getAnalysisFullDetails } from "@/lib/api-teacher";
 import {
     Card,
@@ -73,6 +72,8 @@ import {
     ArrowUpDown,
     Filter,
     Layers,
+    Trophy,
+    LifeBuoy,
 } from "lucide-react";
 import ActualPostTestUploadModal from "@/components/ActualPostTestUploadModal";
 
@@ -159,6 +160,13 @@ const getScoreColor = (percent: number) => {
     return "text-red-600";
 };
 
+const getScoreColorHex = (percent: number) => {
+    if (percent >= 90) return "#10b981";
+    if (percent >= 75) return "#f59e0b";
+    return "#ef4444";
+};
+
+
 const InfoTooltip = ({ content }: { content: string }) => (
     <TooltipProvider>
         <Tooltip delayDuration={300}>
@@ -184,7 +192,7 @@ export default function AnalysisDetailPage() {
     const [matrixSearch, setMatrixSearch] = useState("");
     const [matrixStatusFilter, setMatrixStatusFilter] = useState("all");
     const [interventionFilter, setInterventionFilter] = useState("all");
-    const [matrixInterventionFilter, setMatrixInterventionFilter] = useState("all");
+    const [matrixInterventionFilter, _setMatrixInterventionFilter] = useState("all");
     const [actualStatusFilter, setActualStatusFilter] = useState("all");
     const [matrixActualStatusFilter, setMatrixActualStatusFilter] = useState("all");
     const [actualInterventionFilter, setActualInterventionFilter] = useState("all");
@@ -330,7 +338,8 @@ export default function AnalysisDetailPage() {
         failing_rate: (fa.failing_rate || 0).toFixed(1),
         mean: Number(fa.mean.toFixed(1)),
         mean_percentage: Number(((fa.mean / fa.max_score) * 100).toFixed(1)),
-        max_score: fa.max_score
+        max_score: fa.max_score,
+        formative_assessment_number: fa.formative_assessment_number
     }));
     const validPredictions = data.student_performance.filter(s => s.predicted_score !== null);
     const avgPredictedPoints = validPredictions.length > 0
@@ -339,7 +348,108 @@ export default function AnalysisDetailPage() {
     const maxPossiblePoints = data.document.post_test_max_score || 60;
     const predictedMeanPercentage = (avgPredictedPoints / maxPossiblePoints) * 100;
 
+    const sortedStudentsByPrediction = [...data.student_performance].sort((a, b) => (b.predicted_score || 0) - (a.predicted_score || 0));
+    const overallTopStudents = sortedStudentsByPrediction.filter(s => s.predicted_score !== null).slice(0, 3);
+    const overallBottomStudents = sortedStudentsByPrediction.filter(s => s.predicted_score !== null).reverse().slice(0, 3);
 
+    const scoreRanges = [
+        { label: '0-20%', min: 0, max: 20, count: 0, color: '#ef4444' }, // red (Critical)
+        { label: '21-40%', min: 21, max: 40, count: 0, color: '#f97316' }, // orange (Low)
+        { label: '41-60%', min: 41, max: 60, count: 0, color: '#f59e0b' }, // amber (Below Average)
+        { label: '61-75%', min: 61, max: 75, count: 0, color: '#8b5cf6' }, // violet (Borderline)
+        { label: '76-90%', min: 76, max: 90, count: 0, color: '#6366f1' }, // indigo (Developing/Proficient)
+        { label: '91-100%', min: 91, max: 100, count: 0, color: '#10b981' }, // emerald (Excellent)
+    ];
+    
+    if (data?.student_performance) {
+        data.student_performance.forEach(s => {
+            const perc = getTruePercentage(s);
+            const range = scoreRanges.find(r => perc >= r.min && perc <= r.max);
+            if (range) range.count++;
+        });
+    }
+
+    const TopicPerformanceTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            const d = payload[0].payload;
+            const assessNum = d.formative_assessment_number;
+            const topicName = d.topic;
+            
+            const studentsWithScores = data.student_performance
+                .filter(s => s.scores && typeof s.scores[assessNum] === 'number')
+                .map(s => ({
+                    id: s.lrn,
+                    name: s.name,
+                    score: s.scores[assessNum]
+                }))
+                .sort((a, b) => b.score - a.score);
+
+            const topStudents = studentsWithScores.slice(0, 3);
+            const bottomStudents = studentsWithScores.slice(-3).reverse();
+
+            return (
+                <div className="bg-slate-900/95 backdrop-blur-xl text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 w-80 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="mb-4 pb-4 border-b border-white/10">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1 leading-tight">{topicName}</p>
+                        <div className="flex items-end justify-between gap-4 mt-2">
+                            <span className="text-3xl font-black leading-none">{d.mean.toFixed(1)} <span className="text-sm text-slate-400 font-bold">/ {d.max_score}</span></span>
+                            <span className="text-[10px] font-black px-2.5 py-1.5 bg-white/10 backdrop-blur-md rounded-xl text-indigo-200">
+                                {d.passing_rate}% PASS
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-5">
+                        {topStudents.length > 0 && (
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-3 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span> Top Performers
+                                </p>
+                                <div className="space-y-2">
+                                    {topStudents.map((s, i) => (
+                                        <div key={`top-${s.id}`} className="flex items-center justify-between bg-white/5 rounded-2xl p-2.5 hover:bg-white/10 transition-colors border border-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[11px] font-black shadow-inner">
+                                                    {i + 1}
+                                                </div>
+                                                <span className="text-xs font-bold truncate max-w-[130px] text-slate-200">{s.name}</span>
+                                            </div>
+                                            <span className="text-sm font-black text-emerald-300 pr-1">{s.score}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {bottomStudents.length > 0 && bottomStudents[0].id !== topStudents[topStudents.length - 1]?.id && (
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-400 mb-3 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></span> Needs Support
+                                </p>
+                                <div className="space-y-2">
+                                    {bottomStudents.map((s) => {
+                                        if (topStudents.find(ts => ts.id === s.id)) return null;
+                                        return (
+                                            <div key={`bot-${s.id}`} className="flex items-center justify-between bg-white/5 rounded-2xl p-2.5 hover:bg-white/10 transition-colors border border-white/5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-7 h-7 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-[12px] font-black shadow-inner">
+                                                        !
+                                                    </div>
+                                                    <span className="text-xs font-bold truncate max-w-[130px] text-slate-200">{s.name}</span>
+                                                </div>
+                                                <span className="text-sm font-black text-rose-300 pr-1">{s.score}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <>
@@ -455,6 +565,83 @@ export default function AnalysisDetailPage() {
                             </Card>
                         )}
 
+                        {/* Insights Panels */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
+                                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                            <Trophy className="h-5 w-5 text-emerald-500" />
+                                            Top Performers
+                                        </CardTitle>
+                                        <CardDescription>Highest predicted scores</CardDescription>
+                                    </div>
+                                    <Badge className="bg-emerald-100 text-emerald-800 border-none font-bold">Top {overallTopStudents.length}</Badge>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {overallTopStudents.map((student, i) => (
+                                            <div key={student.lrn} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100/50 hover:bg-slate-100 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-xs shadow-sm shadow-emerald-500/10">
+                                                        #{i + 1}
+                                                    </div>
+                                                    <div>
+                                                        <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="font-bold text-slate-800 text-sm hover:text-indigo-600 transition-colors">
+                                                            {student.name}
+                                                        </Link>
+                                                        <p className="text-[10px] text-slate-400 font-bold tracking-widest leading-none mt-0.5">{student.lrn}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-lg font-black text-emerald-600 leading-none">{student.predicted_score?.toFixed(1)}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">{student.prediction_score_percent.toFixed(0)}%</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-none shadow-sm ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
+                                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                            <LifeBuoy className="h-5 w-5 text-rose-500" />
+                                            Needs Support
+                                        </CardTitle>
+                                        <CardDescription>Lowest predicted scores</CardDescription>
+                                    </div>
+                                    <Badge className="bg-rose-100 text-rose-800 border-none font-bold">Bottom {overallBottomStudents.length}</Badge>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {overallBottomStudents.map((student) => (
+                                            <div key={student.lrn} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100/50 hover:bg-slate-100 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center font-black text-xs shadow-sm shadow-rose-500/10">
+                                                        !
+                                                    </div>
+                                                    <div>
+                                                        <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="font-bold text-slate-800 text-sm hover:text-indigo-600 transition-colors">
+                                                            {student.name}
+                                                        </Link>
+                                                        <p className="text-[10px] text-slate-400 font-bold tracking-widest leading-none mt-0.5">{student.lrn}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right flex flex-col items-end flex-wrap gap-1">
+                                                    <p className="text-lg font-black text-rose-600 leading-none">{student.predicted_score?.toFixed(1)}</p>
+                                                    <Badge variant="outline" className="text-[9px] font-bold border-rose-200 text-rose-600 px-1.5 py-0 uppercase tracking-wider">
+                                                        {student.predicted_status}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
 
                         {/* Visualization Sub-Tabs */}
                         <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
@@ -476,6 +663,9 @@ export default function AnalysisDetailPage() {
                                         </TabsTrigger>
                                         <TabsTrigger value="heatmap" className="rounded-lg text-xs font-bold gap-2">
                                             <Grid3X3 className="h-3.5 w-3.5" /> Grade Matrix
+                                        </TabsTrigger>
+                                        <TabsTrigger value="histogram" className="rounded-lg text-xs font-bold gap-2">
+                                            <BarChart3 className="h-3.5 w-3.5" /> Score Distribution
                                         </TabsTrigger>
                                     </TabsList>
                                 </div>
@@ -837,6 +1027,32 @@ export default function AnalysisDetailPage() {
                                             </div>
                                         </div>
                                     </TabsContent>
+
+                                    <TabsContent value="histogram" className="mt-0 animate-in fade-in duration-500">
+                                        <div className="flex flex-col h-full">
+                                            <div className="mb-6 flex items-center justify-between">
+                                                <div>
+                                                    <h4 className="font-black text-slate-800 text-lg">Class Score Distribution</h4>
+                                                    <p className="text-sm text-slate-500 font-medium mt-1">Number of students falling into each grade bracket.</p>
+                                                </div>
+                                            </div>
+                                            <div className="h-[350px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={scoreRanges} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }} dy={10} />
+                                                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }} />
+                                                        <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
+                                                        <Bar dataKey="count" name="Students" radius={[8, 8, 0, 0]} maxBarSize={60}>
+                                                            {scoreRanges.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                                            ))}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
                                 </CardContent>
                             </Tabs>
                         </Card>
@@ -933,6 +1149,9 @@ export default function AnalysisDetailPage() {
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
+                                            <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest w-[120px]">
+                                                Trend
+                                            </TableHead>
                                             <TableHead
                                                 className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
                                                 onClick={() => handleSort("mean")}
@@ -998,6 +1217,27 @@ export default function AnalysisDetailPage() {
                                                                 </Link>
                                                                 <span className="text-[10px] text-slate-400 font-mono tracking-wider">{student.lrn}</span>
                                                             </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center w-[120px] px-2">
+                                                        <div className="h-8 w-full">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <LineChart data={data.formative_assessments.map(fa => ({
+                                                                    score: student.scores?.[fa.formative_assessment_number] !== undefined ? student.scores[fa.formative_assessment_number] : null,
+                                                                    max: fa.max_score
+                                                                }))}>
+                                                                    <Line 
+                                                                        type="monotone" 
+                                                                        dataKey={(d) => d.score !== null ? (d.score / d.max) * 100 : null}
+                                                                        stroke={getScoreColorHex(getTruePercentage(student))} 
+                                                                        strokeWidth={2} 
+                                                                        dot={{ r: 2, fill: getScoreColorHex(getTruePercentage(student)), strokeWidth: 0 }}
+                                                                        isAnimationActive={false}
+                                                                        connectNulls
+                                                                    />
+                                                                    <YAxis domain={[0, 100]} hide />
+                                                                </LineChart>
+                                                            </ResponsiveContainer>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="text-center">
@@ -1080,7 +1320,7 @@ export default function AnalysisDetailPage() {
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={8} className="h-40 text-center text-slate-400 font-medium">
+                                                <TableCell colSpan={9} className="h-40 text-center text-slate-400 font-medium">
                                                     No student records found matching "{searchTerm}"
                                                 </TableCell>
                                             </TableRow>
@@ -1123,7 +1363,7 @@ export default function AnalysisDetailPage() {
                                                     />
                                                     <RechartsTooltip
                                                         cursor={{ fill: '#f8fafc' }}
-                                                        contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+                                                        content={<TopicPerformanceTooltip />}
                                                     />
                                                     <Legend verticalAlign="top" align="right" height={40} iconType="circle" wrapperStyle={{ fontWeight: "bold", fontSize: "12px" }} />
                                                     <Bar dataKey="passing_rate" name="Pass Rate %" stackId="a" fill="#10b981" barSize={32} radius={[0, 0, 0, 0]} />
@@ -1154,34 +1394,7 @@ export default function AnalysisDetailPage() {
                                                     />
                                                     <RechartsTooltip
                                                         cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
-                                                        content={({ active, payload, label }) => {
-                                                            if (active && payload && payload.length) {
-                                                                const d = payload[0].payload;
-                                                                let masteryColorClass = 'text-red-400';
-                                                                if (d.mean_percentage >= 90) masteryColorClass = 'text-emerald-400';
-                                                                else if (d.mean_percentage >= 75) masteryColorClass = 'text-indigo-400';
-                                                                return (
-                                                                    <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border-none animate-in fade-in zoom-in duration-200">
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
-                                                                        <div className="space-y-2">
-                                                                            <div className="flex items-center justify-between gap-8">
-                                                                                <span className="text-[10px] font-bold text-slate-400">MASTERY</span>
-                                                                                <span className={`text-sm font-black ${masteryColorClass}`}>
-                                                                                    {d.mean_percentage}%
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex items-center justify-between gap-8">
-                                                                                <span className="text-[10px] font-bold text-slate-400">AVG SCORE</span>
-                                                                                <span className="text-sm font-black text-white">
-                                                                                    {d.mean} / {d.max_score}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        }}
+                                                        content={<TopicPerformanceTooltip />}
                                                     />
                                                     <Bar
                                                         dataKey="mean_percentage"

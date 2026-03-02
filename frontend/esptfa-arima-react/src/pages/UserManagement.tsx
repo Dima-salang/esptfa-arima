@@ -72,20 +72,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-};
 
 export default function UserManagement() {
     const [users, setUsers] = useState<User[]>([]);
