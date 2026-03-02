@@ -309,7 +309,7 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             # Individual scores
             scores_objs = FormativeAssessmentScore.objects.filter(
                 analysis_document=document, student_id=student
-            ).order_by("formative_assessment_number")
+            ).order_by("test_number")
 
             # Class FA stats for comparison
             # We use the serializer we just updated for fa_topic_name

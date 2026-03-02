@@ -170,6 +170,18 @@
   box-shadow: 0 0 20px -5px rgb(79 70 229 / 0.3);
 }
 
+.glow-indigo-sm {
+  box-shadow: 0 0 10px -2px rgb(79 70 229 / 0.2);
+}
+
+.glow-amber-sm {
+  box-shadow: 0 0 10px -2px rgb(245 158 11 / 0.2);
+}
+
+.glow-emerald-sm {
+  box-shadow: 0 0 10px -2px rgb(16 185 129 / 0.2);
+}
+
 .glow-indigo-strong {
   box-shadow: 0 0 30px -5px rgb(79 70 229 / 0.4);
 }

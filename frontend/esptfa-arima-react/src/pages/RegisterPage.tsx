@@ -16,7 +16,6 @@ import api from "@/lib/api";
 import {
     AlertCircle,
     Loader2,
-    UserPlus,
     User,
     Mail,
     Lock,
@@ -26,6 +25,7 @@ import {
     ChevronLeft,
     CheckCircle2
 } from "lucide-react";
+import logo from "@/assets/logo.webp";
 
 interface Section {
     section_id: number;
@@ -183,7 +183,6 @@ export default function RegisterPage() {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                             <div>
                                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-sm font-black mb-4 tracking-wider uppercase">
-                                    <UserPlus className="h-4 w-4" />
                                     Get Started
                                 </div>
                                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -425,10 +424,6 @@ export default function RegisterPage() {
                                         </>
                                     )}
                                 </Button>
-                                <p className="mt-8 text-center text-slate-400 font-medium">
-                                    By creating an account, you agree to our{" "}
-                                    <Link to="/terms" className="text-indigo-600 underline underline-offset-4 font-bold">Terms of Service</Link>
-                                </p>
                             </div>
                         </form>
                     </div>

@@ -22,11 +22,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
 import { logoutUser } from "@/lib/api-teacher";
+import logo from "@/assets/logo.webp";
 
 interface SidebarItemProps {
     icon: React.ElementType;
@@ -113,21 +113,25 @@ export default function DashboardLayout({
 
     const menuItems = [
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+        { 
+            icon: FileText, 
+            label: isStudent ? "Analysis Archive" : isSuperuser ? "Repository" : "Analysis Documents", 
+            href: "/dashboard/analysis" 
+        },
     ];
 
-    menuItems.push(
-        { icon: FileText, label: isStudent ? "Analysis Archive" : "Analysis Documents", href: "/dashboard/analysis" }
-    );
     if (!isStudent) {
         menuItems.push(
             { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" }
         );
     }
+    
     if (isSuperuser) {
         menuItems.push(
-            { icon: FileText, label: "Repository", href: "/dashboard/analysis" },
+            { icon: Users, label: "User Management", href: "/dashboard/users" },
             { icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" },
-            { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" }
+            { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" },
+            { icon: Settings, label: "Data Management", href: "/dashboard/data-management" }
         );
     }
 
@@ -150,9 +154,9 @@ export default function DashboardLayout({
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="w-10 h-10 bg-gradient-to-tr from-primary to-indigo-500 rounded-xl flex items-center justify-center shadow-lg cursor-pointer shrink-0"
+                                className="w-10 h-10 bg-white shadow-lg rounded-xl flex items-center justify-center cursor-pointer shrink-0"
                             >
-                                <FileText className="text-white h-5 w-5" />
+                                <img src={logo} alt="SJLSHS Logo" className="h-8 w-8 object-contain" />
                             </motion.div>
                             <AnimatePresence>
                                 {isSidebarOpen && (
@@ -266,8 +270,8 @@ export default function DashboardLayout({
                 <div className="flex flex-col h-full">
                      <div className="h-20 flex items-center px-6 border-b border-border/50 justify-between">
                         <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 bg-gradient-to-tr from-primary to-indigo-500 rounded-lg flex items-center justify-center">
-                                <FileText className="text-white h-4 w-4" />
+                             <div className="w-8 h-8 bg-white shadow-md rounded-lg flex items-center justify-center">
+                                <img src={logo} alt="SJLSHS Logo" className="h-6 w-6 object-contain" />
                             </div>
                             <span className="text-lg font-bold">ESPTFA</span>
                         </div>

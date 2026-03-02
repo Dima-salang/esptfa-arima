@@ -8,7 +8,7 @@ remove staff status in admin for editing user details - DONE
 
 rename actual result to post test scores - DONE
 
-post test sys msg in stud perf registry
+post test sys msg in stud perf registry - DONE
 
 students who are succeeding and failing per topic in topic analysis
 
