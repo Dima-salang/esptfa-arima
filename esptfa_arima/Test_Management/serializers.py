@@ -96,6 +96,8 @@ class FormativeAssessmentScoreSerializer(serializers.ModelSerializer):
 
 
 class PredictedScoreSerializer(serializers.ModelSerializer):
+    formative_assessment_number = serializers.ReadOnlyField(source="test_number")
+
     class Meta:
         model = PredictedScore
         fields = "__all__"
