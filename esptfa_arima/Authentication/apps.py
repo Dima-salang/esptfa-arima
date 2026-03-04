@@ -7,30 +7,35 @@ class AuthenticationConfig(AppConfig):
 
     def ready(self):
         import os
+        import logging
         from django.conf import settings
 
-        # Define a flag file path to track initialization
-        flag_file = os.path.join(settings.BASE_DIR, ".initialized")
+        logger = logging.getLogger(__name__)
 
-        if not os.path.exists(flag_file):
-            try:
-                from django.contrib.auth.models import User
+        try:
+            from django.contrib.auth.models import User
 
+            # Check if any superuser exists
+            if not User.objects.filter(is_superuser=True).exists():
                 # Securely get credentials from env with fallbacks
                 username = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
                 email = os.environ.get("DJANGO_SUPERUSER_EMAIL", "admin@example.com")
                 password = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "admin")
 
-                # Check if we can access the DB and if users table exists
-                if not User.objects.filter(username=username).exists():
-                    User.objects.create_superuser(username, email, password)
-                    print(f"Default superuser '{username}' created.")
+                User.objects.create_superuser(
+                    username=username, email=email, password=password
+                )
+                logger.info(
+                    f"No administrators found. Default superuser '{username}' created."
+                )
 
-                # Create the flag file to mark initialization as complete
-                with open(flag_file, "w") as f:
-                    f.write("Initialized")
-
-            except Exception:
-                # If the database or table is not ready, we simply skip.
-                # The flag file is NOT created, so it will try again next time.
-                pass
+                # Optional: Create a flag file for other one-time setup tasks
+                flag_file = os.path.join(settings.BASE_DIR, ".initialized")
+                if not os.path.exists(flag_file):
+                    with open(flag_file, "w") as f:
+                        f.write("Initialized")
+        except Exception:
+            # If the database tables are not yet created (e.g. during first migrate),
+            # this will fail silently and try again on the next start.
+            logger.debug("Database not ready yet, skipping admin auto-creation.")
+            pass

@@ -10,6 +10,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
+# REACT DIR
+REACT_DIST_DIR = os.path.join(BASE_DIR.parent, "frontend", "esptfa-arima-react", "dist")
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -22,25 +26,30 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 # CORS headers
 # we allow the idempotency key for test drafting
 from corsheaders.defaults import default_headers
+
 CORS_ALLOW_HEADERS = list(default_headers) + [
-    'idempotency-key',
+    "idempotency-key",
 ]
 
 
 # DJANGO EVENTSTREAM
 EVENTSTREAM_REDIS = {
-    'host': 'redis',
-    'port': 6379,
-    'db': 0,
+    "host": "redis",
+    "port": 6379,
+    "db": 0,
 }
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -53,15 +62,15 @@ ALLOWED_HOSTS = ["*"]
 
 # JWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True, # Good for security
-    'BLACKLIST_AFTER_ROTATION': True, # Requires 'rest_framework_simplejwt.token_blacklist' in INSTALLED_APPS
-    'AUTH_COOKIE': 'access', # Cookie name for access token
-    'AUTH_COOKIE_REFRESH': 'refresh', # Cookie name for refresh token
-    'AUTH_COOKIE_HTTP_ONLY': True, # HttpOnly
-    'AUTH_COOKIE_SECURE': False, # Set to True in production (HTTPS)
-    'AUTH_COOKIE_SAMESITE': 'Lax',
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,  # Good for security
+    "BLACKLIST_AFTER_ROTATION": True,  # Requires 'rest_framework_simplejwt.token_blacklist' in INSTALLED_APPS
+    "AUTH_COOKIE": "access",  # Cookie name for access token
+    "AUTH_COOKIE_REFRESH": "refresh",  # Cookie name for refresh token
+    "AUTH_COOKIE_HTTP_ONLY": True,  # HttpOnly
+    "AUTH_COOKIE_SECURE": False,  # Set to True in production (HTTPS)
+    "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
 LOGIN_URL = "/auth/login/"
@@ -83,55 +92,54 @@ CELERY_TASK_SERIALIZER = "json"
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
-    'django_eventstream',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt.token_blacklist',
-    'django_filters',
-    'corsheaders',
-    
+    "daphne",
+    "django_eventstream",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+    "django_filters",
+    "corsheaders",
     # mine
-    'arima_model',
-    'Test_Management',
-    'Authentication',
+    "arima_model",
+    "Test_Management",
+    "Authentication",
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'esptfaARIMA.urls'
+ROOT_URLCONF = "esptfaARIMA.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [REACT_DIST_DIR],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'esptfaARIMA.wsgi.application'
+WSGI_APPLICATION = "esptfaARIMA.wsgi.application"
 
 
 # REST
@@ -139,19 +147,17 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "Authentication.authentication.CookieJWTAuthentication",
     ],
-
-    "DEFAULT_PAGINATION_CLASS":
-        "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 60
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 60,
 }
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # 'django.db.backends.postgresql',
-        'NAME':  'esptfa_arima',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",  # 'django.db.backends.postgresql',
+        "NAME": "esptfa_arima",
         #'USER': 'postgres',
         #'PASSWORD': 'test',
         #'HOST': 'db',
@@ -165,16 +171,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -238,22 +244,22 @@ LOGGING = {
             "level": "ERROR",
             "handlers": ["console", "file_INFO"],
             "propagate": False,
-        }, "arima_model": {
+        },
+        "arima_model": {
             "handlers": ["console", "file_arima_model"],
             "level": "DEBUG",
             "propagate": True,
-        }
+        },
     },
 }
-
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -263,10 +269,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = "static/"
+STATICFILES_DIRS = [REACT_DIST_DIR]
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
