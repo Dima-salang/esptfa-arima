@@ -25,7 +25,6 @@ import {
     ChevronLeft,
     CheckCircle2
 } from "lucide-react";
-import logo from "@/assets/logo.webp";
 
 interface Section {
     section_id: number;

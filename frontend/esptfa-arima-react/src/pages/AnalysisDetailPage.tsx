@@ -1157,7 +1157,7 @@ export default function AnalysisDetailPage() {
                                                 onClick={() => handleSort("mean")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Avg. Historical
+                                                    Avg. Score
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
@@ -1425,7 +1425,7 @@ export default function AnalysisDetailPage() {
                                                     <PolarAngleAxis dataKey="subject" tick={{ fill: "#64748b", fontSize: 10, fontWeight: "bold" }} />
                                                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
                                                     <Radar
-                                                        name="Mastery Level"
+                                                        name="Passing Rate"
                                                         dataKey="A"
                                                         stroke="#6366f1"
                                                         fill="#6366f1"
