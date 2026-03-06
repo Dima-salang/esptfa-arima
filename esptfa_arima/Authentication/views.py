@@ -52,6 +52,19 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ["username", "email", "first_name", "last_name"]
     ordering_fields = ["username", "email", "date_joined", "last_login"]
 
+    def get_queryset(self):
+        queryset = User.objects.all().order_by("-date_joined")
+        acc_type = self.request.query_params.get("acc_type", None)
+        if acc_type:
+            acc_type_upper = acc_type.upper()
+            if acc_type_upper == "TEACHER":
+                queryset = queryset.filter(teacher__isnull=False)
+            elif acc_type_upper == "STUDENT":
+                queryset = queryset.filter(student__isnull=False)
+            elif acc_type_upper == "ADMIN":
+                queryset = queryset.filter(is_superuser=True)
+        return queryset
+
 
 def register(request):
     if request.method == "POST":
@@ -270,8 +283,49 @@ class StudentViewSet(ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ["section"]
+    search_fields = ["first_name", "last_name", "lrn", "user_id__email"]
 
     # func for getting students for a specific section
+    @action(
+        detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def force_password_reset(self, request):
+        user = request.user
+        student = Student.objects.filter(user_id=user).first()
+        if not student:
+            return Response(
+                {"detail": "Only students can perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        new_password = request.data.get("new_password")
+        if not new_password:
+            return Response(
+                {"detail": "New password is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(new_password) < 8:
+            return Response(
+                {"detail": "Password must be at least 8 characters long."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # update password
+        user.set_password(new_password)
+        user.save()
+
+        # clear initial password and flag
+        student.initial_password = None
+        student.requires_password_change = False
+        student.save()
+
+        return Response(
+            {"detail": "Password reset successfully."}, status=status.HTTP_200_OK
+        )
+
     @action(detail=False, methods=["get"], permission_classes=[IsTeacher])
     def students_for_section(self, request):
         section = request.query_params.get("section")
@@ -291,7 +345,9 @@ class StudentViewSet(ModelViewSet):
             )
 
         students = Student.objects.filter(section=section)
-        serializer = StudentSerializer(students, many=True)
+        serializer = StudentSerializer(
+            students, many=True, context={"request": request}
+        )
         return Response(serializer.data)
 
     @action(detail=False, methods=["post"], permission_classes=[IsTeacher])
@@ -317,13 +373,15 @@ class StudentViewSet(ModelViewSet):
             process_csv_import(file, allowed_section=advising_section)
         except DRFValidationError as e:
             error_msg = e.detail
-            if isinstance(error_msg, list) and len(error_msg) > 0:
-                error_msg = error_msg[0]
+            logger.error(f"Adviser CSV Import DRF Error: {error_msg}")
             return Response(
-                {"Validation Error": str(error_msg)}, status=status.HTTP_400_BAD_REQUEST
+                {"Validation Error": error_msg}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            return Response({"Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Adviser CSV Import Unexpected Error: {str(e)}")
+            return Response(
+                {"Validation Error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         return Response(
             {
@@ -395,6 +453,7 @@ class StudentViewSet(ModelViewSet):
         try:
             process_csv_import(file)
         except DRFValidationError as e:
+            print(e.detail)
             error_msg = e.detail
             if isinstance(error_msg, list) and len(error_msg) > 0:
                 error_msg = error_msg[0]
@@ -402,6 +461,7 @@ class StudentViewSet(ModelViewSet):
                 {"Validation Error": str(error_msg)}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
+            print(e)
             return Response({"Error: ": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(
             {"detail": "Students imported successfully"}, status=status.HTTP_200_OK

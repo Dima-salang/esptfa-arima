@@ -62,6 +62,13 @@ class UserSerializer(serializers.ModelSerializer):
                 }
         elif hasattr(instance, "student"):
             ret["acc_type"] = "STUDENT"
+            if instance.student.section:
+                ret["section_details"] = {
+                    "id": instance.student.section.section_id,
+                    "name": instance.student.section.section_name,
+                }
+            else:
+                ret["section_details"] = None
         else:
             ret["acc_type"] = "ADMIN" if instance.is_superuser else "USER"
 
@@ -70,6 +77,7 @@ class UserSerializer(serializers.ModelSerializer):
             ret["teacher_id"] = instance.teacher.id
         if hasattr(instance, "student"):
             ret["student_lrn"] = instance.student.lrn
+            ret["requires_password_change"] = instance.student.requires_password_change
 
         return ret
 
@@ -137,6 +145,13 @@ class AdminUserSerializer(UserSerializer):
 
 class TeacherSerializer(serializers.ModelSerializer):
     user_id = UserSerializer(read_only=True)
+    user_pk = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="user_id",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Teacher
@@ -146,15 +161,47 @@ class TeacherSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     user_id = UserSerializer(read_only=True)
+    user_pk = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="user_id",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    initial_password = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
         fields = "__all__"
         depth = 1
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Import Section here to avoid circular dependencies
+        from Test_Management.models import Section
+
+        self.fields["section_id"] = serializers.PrimaryKeyRelatedField(
+            queryset=Section.objects.all(),
+            source="section",
+            write_only=True,
+            required=False,
+        )
+
+    def get_initial_password(self, obj):
+        request = self.context.get("request")
+        if request and request.user and request.user.is_authenticated:
+            # Only the section adviser or an admin can see the initial password
+            if request.user.is_superuser or (
+                hasattr(obj.section, "adviser") and obj.section.adviser == request.user
+            ):
+                return obj.initial_password
+        return None
+
     def validate(self, attrs):
-        # validate the lrn to be only 11 chars long
+        # validate the lrn to be only 12 chars long
         lrn = attrs.get("lrn")
-        if lrn is not None and len(lrn) != 11:
-            raise serializers.ValidationError("LRN must be 11 characters long.")
+        if lrn is not None and len(lrn) != 12:
+            raise serializers.ValidationError(
+                {"lrn": "LRN must be 12 characters long."}
+            )
         return attrs

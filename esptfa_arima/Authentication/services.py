@@ -1,5 +1,8 @@
 import logging
 import pandas as pd
+import random
+import string
+import re
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -8,6 +11,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from Test_Management.models import Section
 from .models import Teacher, Student
 from model_types import ACC_TYPE
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -114,14 +118,43 @@ def register_user(
     return user
 
 
-from django.db import transaction
+def generate_credentials(first_name, middle_name, last_name):
+    first_initials = "".join([part[0].lower() for part in first_name.split() if part])
+    middle_initials = (
+        "".join([part[0].lower() for part in middle_name.split() if part])
+        if middle_name
+        else ""
+    )
+    last_cleaned = re.sub(r"[^a-zA-Z0-9]", "", last_name).lower()
+
+    base_username = f"{first_initials}{middle_initials}{last_cleaned}"
+
+    random_digits = "".join(random.choices(string.digits, k=6))
+    password = f"{last_cleaned}{random_digits}"
+
+    return base_username, password
+
+
+def generate_unique_username(base_username):
+    username = base_username
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{counter}"
+        counter += 1
+    return username
 
 
 # processing csv for bulk import
 def process_csv_import(file: File, allowed_section: Section = None) -> None:
     try:
-        # read the csv file
-        students_csv = pd.read_csv(file)
+        # read the excel file
+        try:
+            students_csv = pd.read_excel(file)
+        except Exception as e:
+            logger.error(f"Failed to read Excel file: {str(e)}")
+            raise DRFValidationError(
+                f"Could not read the Excel file. Please ensure it is a valid Excel file (.xlsx or .xls). Error: {str(e)}"
+            )
 
         # Normalize column names to lowercase and strip whitespace
         students_csv.columns = students_csv.columns.str.strip().str.lower()
@@ -132,7 +165,8 @@ def process_csv_import(file: File, allowed_section: Section = None) -> None:
         if not allowed_section:
             sections_dict = get_sections_dict()
 
-        students_to_save = []
+        students_data = []
+        seen_lrns = set()
 
         # loop through the csv file and prepare the students
         for index, row in validated_csv.iterrows():
@@ -140,7 +174,8 @@ def process_csv_import(file: File, allowed_section: Section = None) -> None:
                 section = allowed_section
             else:
                 section_name = str(row["section"]).strip()
-                section = sections_dict.get(section_name)
+                # Case-insensitive lookup
+                section = sections_dict.get(section_name.upper())
 
             if not section:
                 msg = (
@@ -151,11 +186,25 @@ def process_csv_import(file: File, allowed_section: Section = None) -> None:
                 raise DRFValidationError(msg)
 
             try:
-                lrn = str(row["lrn"]).strip()
-                if len(lrn) != 11:
+                # Handle pandas potential float conversion and strip spaces
+                lrn_val = row["lrn"]
+                if pd.isna(lrn_val):
+                    raise DRFValidationError(f"Row {index + 1}: LRN is missing")
+
+                lrn = str(lrn_val).strip()
+                if lrn.endswith(".0"):
+                    lrn = lrn[:-2]
+
+                if len(lrn) != 12:
                     raise DRFValidationError(
-                        f"Row {index + 1}:LRN '{lrn}' is not 11 characters long"
+                        f"Row {index + 1}: LRN '{lrn}' is {len(lrn)} characters long, but must be exactly 12."
                     )
+
+                if lrn in seen_lrns:
+                    raise DRFValidationError(
+                        f"Row {index + 1}: Duplicate LRN '{lrn}' found in the CSV file."
+                    )
+                seen_lrns.add(lrn)
                 first_name = str(row["first_name"]).strip()
                 middle_name = (
                     str(row["middle_name"]).strip()
@@ -171,24 +220,49 @@ def process_csv_import(file: File, allowed_section: Section = None) -> None:
                         f"Row {index + 1}:LRN '{lrn}' already exists"
                     )
 
-                students_to_save.append(
-                    Student(
-                        lrn=lrn,
-                        section=section,
-                        first_name=first_name,
-                        middle_name=middle_name,
-                        last_name=last_name,
-                        user_id=None,
-                    )
+                base_username, initial_password = generate_credentials(
+                    first_name, middle_name, last_name
                 )
-            except DRFValidationError:
+
+                students_data.append(
+                    {
+                        "lrn": lrn,
+                        "section": section,
+                        "first_name": first_name,
+                        "middle_name": middle_name,
+                        "last_name": last_name,
+                        "base_username": base_username,
+                        "initial_password": initial_password,
+                    }
+                )
+            except DRFValidationError as e:
+                logger.error(f"CSV Import Row {index + 1} validation error: {e.detail}")
                 raise
             except Exception as e:
+                logger.error(f"CSV Import Row {index + 1} unexpected error: {str(e)}")
                 raise DRFValidationError(f"Row {index + 1}: {str(e)}")
 
-        # save the students in a single transaction
+        # save the students and create users in a single transaction
         with transaction.atomic():
-            Student.objects.bulk_create(students_to_save)
+            for s_data in students_data:
+                username = generate_unique_username(s_data["base_username"])
+                user = User.objects.create_user(
+                    username=username,
+                    password=s_data["initial_password"],
+                    first_name=s_data["first_name"],
+                    last_name=s_data["last_name"],
+                    is_active=True,
+                )
+                Student.objects.create(
+                    lrn=s_data["lrn"],
+                    section=s_data["section"],
+                    first_name=s_data["first_name"],
+                    middle_name=s_data["middle_name"],
+                    last_name=s_data["last_name"],
+                    user_id=user,
+                    initial_password=s_data["initial_password"],
+                    requires_password_change=True,
+                )
 
     except Exception as e:
         if isinstance(e, (ValidationError, DRFValidationError)):
@@ -200,7 +274,7 @@ def validate_csv(df: pd.DataFrame) -> pd.DataFrame:
     required_columns = ["lrn", "first_name", "middle_name", "last_name", "section"]
     if not all(col in df.columns for col in required_columns):
         raise DRFValidationError(
-            f"CSV file must have the following columns: {', '.join(required_columns)}"
+            f"Excel file must have the following columns: {', '.join(required_columns)}"
         )
 
     return df
@@ -211,7 +285,8 @@ def validate_csv(df: pd.DataFrame) -> pd.DataFrame:
 def get_sections_dict() -> dict:
     try:
         sections = Section.objects.all()
-        sections_dict = {section.section_name: section for section in sections}
+        # Use upper case for case-insensitive matching
+        sections_dict = {section.section_name.upper(): section for section in sections}
         return sections_dict
     except Exception as e:
         raise ValidationError(str(e))
@@ -228,15 +303,29 @@ def process_manual_import(
             sections = Section.objects.all()
             sections_dict = {section.section_id: section for section in sections}
 
-        students_to_save = []
+        students_data = []
+        seen_lrns = set()
         # loop through the students and prepare them
         for index, student in enumerate(students):
             try:
-                lrn = str(student.get("lrn")).strip()
-                if len(lrn) != 11:
+                lrn_val = student.get("lrn")
+                if not lrn_val:
+                    raise DRFValidationError(f"Row {index + 1}: LRN is missing")
+
+                lrn = str(lrn_val).strip()
+                if lrn.endswith(".0"):
+                    lrn = lrn[:-2]
+
+                if len(lrn) != 12:
                     raise DRFValidationError(
-                        f"Row {index + 1}:LRN '{lrn}' is not 11 characters long"
+                        f"Row {index + 1}: LRN '{lrn}' is {len(lrn)} characters long, but must be exactly 12."
                     )
+
+                if lrn in seen_lrns:
+                    raise DRFValidationError(
+                        f"Row {index + 1}: Duplicate LRN '{lrn}' found in the import list."
+                    )
+                seen_lrns.add(lrn)
                 first_name = str(student.get("first_name")).strip()
                 middle_name = str(student.get("middle_name", "") or "").strip()
                 last_name = str(student.get("last_name")).strip()
@@ -263,24 +352,47 @@ def process_manual_import(
                         f"Row {index + 1}: Student with LRN '{lrn}' already exists"
                     )
 
-                students_to_save.append(
-                    Student(
-                        lrn=lrn,
-                        first_name=first_name,
-                        middle_name=middle_name,
-                        last_name=last_name,
-                        section=section,
-                        user_id=None,
-                    )
+                base_username, initial_password = generate_credentials(
+                    first_name, middle_name, last_name
+                )
+
+                students_data.append(
+                    {
+                        "lrn": lrn,
+                        "first_name": first_name,
+                        "middle_name": middle_name,
+                        "last_name": last_name,
+                        "section": section,
+                        "base_username": base_username,
+                        "initial_password": initial_password,
+                    }
                 )
             except DRFValidationError:
                 raise
             except Exception as e:
                 raise DRFValidationError(f"Row {index + 1}: {str(e)}")
 
-        # save the students in a single transaction
+        # save the students and create users in a single transaction
         with transaction.atomic():
-            Student.objects.bulk_create(students_to_save)
+            for s_data in students_data:
+                username = generate_unique_username(s_data["base_username"])
+                user = User.objects.create_user(
+                    username=username,
+                    password=s_data["initial_password"],
+                    first_name=s_data["first_name"],
+                    last_name=s_data["last_name"],
+                    is_active=True,
+                )
+                Student.objects.create(
+                    lrn=s_data["lrn"],
+                    first_name=s_data["first_name"],
+                    middle_name=s_data["middle_name"],
+                    last_name=s_data["last_name"],
+                    section=s_data["section"],
+                    user_id=user,
+                    initial_password=s_data["initial_password"],
+                    requires_password_change=True,
+                )
 
     except Exception as e:
         if isinstance(e, (ValidationError, DRFValidationError)):
