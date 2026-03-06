@@ -301,3 +301,20 @@ class ActualPostTest(models.Model):
     class Meta:
         unique_together = ("analysis_document", "student")
         ordering = ["-actual_post_test_id"]
+
+
+class AnalysisGroup(models.Model):
+    group_id = models.AutoField(unique=True, primary_key=True)
+    group_name = models.CharField(max_length=100)
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    analysis_documents = models.ManyToManyField(
+        AnalysisDocument, related_name="analysis_groups", blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.group_name} by {self.teacher.username}"
+
+    class Meta:
+        ordering = ["-created_at"]
