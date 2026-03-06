@@ -11,6 +11,7 @@ import {
     Menu,
     ChevronRight,
     UserPlus,
+    FolderKanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -122,13 +123,16 @@ export default function DashboardLayout({
 
     if (!isStudent) {
         menuItems.push(
-            { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" }
+            { icon: ClipboardList, label: "Test Drafts", href: "/dashboard/drafts" },
+            { icon: FolderKanban, label: "Analysis Groups", href: "/dashboard/groups" }
         );
     }
     
     if (isSuperuser) {
         menuItems.push(
             { icon: Users, label: "User Management", href: "/dashboard/users" },
+            { icon: Users, label: "Student List", href: "/dashboard/students" },
+            { icon: Users, label: "Teacher List", href: "/dashboard/teachers" },
             { icon: Users, label: "Teacher Assignments", href: "/dashboard/assignments" },
             { icon: UserPlus, label: "Student Import", href: "/dashboard/import-students" },
             { icon: Settings, label: "Data Management", href: "/dashboard/data-management" }

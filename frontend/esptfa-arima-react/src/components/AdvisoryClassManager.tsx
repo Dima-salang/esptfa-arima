@@ -33,6 +33,7 @@ import {
 import { adviserBulkImportCSV, adviserManualImportStudents } from "@/lib/api-teacher";
 import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
+import EnrolledClassView from "./EnrolledClassView";
 
 interface ManualStudentEntry {
     temp_id: string;
@@ -80,15 +81,16 @@ export default function AdvisoryClassManager() {
         setSuccessMessage(null);
         try {
             const res = await adviserBulkImportCSV(csvFile);
-            setSuccessMessage(res.detail || "CSV import successful!");
-            toast.success("Advisory class updated via CSV successfully");
+            setSuccessMessage(res.detail || "Excel import successful!");
+            toast.success("Advisory class updated via Excel successfully");
             setCsvFile(null);
             const fileInput = document.getElementById('csv-upload') as HTMLInputElement;
             if (fileInput) fileInput.value = '';
         } catch (error: any) {
-            const msg = error.response?.data?.detail || error.response?.data?.['Validation Error'] || "Failed to import CSV. Ensure LRNs are unique and 11 digits.";
-            setErrorMessage(msg);
-            toast.error("CSV import failed");
+            const data = error.response?.data;
+            const msg = data?.detail || data?.['Validation Error'] || data?.['Error'] || "Failed to import Excel. Check console for details or ensure 12-digit LRNs.";
+            setErrorMessage(typeof msg === 'object' ? JSON.stringify(msg) : msg);
+            toast.error("Excel import failed");
         } finally {
             setIsLoading(false);
         }
@@ -96,7 +98,7 @@ export default function AdvisoryClassManager() {
 
     const downloadTemplate = () => {
         const headers = "lrn,first_name,middle_name,last_name,section";
-        const sample = `12345678901,Juan,Dela,Cruz,${advisingSection.name}`;
+        const sample = `123456789012,Juan,Dela,Cruz,${advisingSection.name}`;
         const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + sample;
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -143,7 +145,7 @@ export default function AdvisoryClassManager() {
             toast.success("Students enrolled successfully");
             setManualStudents([{ temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "" }]);
         } catch (error: any) {
-             const msg = error.response?.data?.detail || error.response?.data?.['Validation Error'] || "Failed to enroll students. Verify LRNs are 11 digits and unique.";
+             const msg = error.response?.data?.detail || error.response?.data?.['Validation Error'] || "Failed to enroll students. Verify LRNs are 12 digits and unique.";
             setErrorMessage(msg);
             toast.error("Enrollment failed");
         } finally {
@@ -163,7 +165,7 @@ export default function AdvisoryClassManager() {
                         {advisingSection.name}
                     </h2>
                     <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-2xl">
-                        Enroll your students into your advisory class. You can either upload a CSV file or add them manually one by one.
+                        Enroll your students into your advisory class. You can either upload an Excel file or add them manually one by one.
                     </p>
                 </div>
             </div>
@@ -192,22 +194,29 @@ export default function AdvisoryClassManager() {
                 </div>
             )}
 
-            <Tabs defaultValue="csv" className="w-full">
-                <TabsList className="bg-slate-100/50 p-1.5 rounded-[2rem] grid grid-cols-2 max-w-sm h-14 gap-2 mb-8 ring-1 ring-slate-200/50 backdrop-blur-sm">
+            <Tabs defaultValue="enrolled" className="w-full">
+                <TabsList className="bg-slate-100/50 p-1.5 rounded-[2rem] grid grid-cols-3 max-w-2xl h-14 gap-2 mb-8 ring-1 ring-slate-200/50 backdrop-blur-sm">
+                    <TabsTrigger value="enrolled" className="rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 data-[state=active]:ring-1 data-[state=active]:ring-indigo-50/50">
+                        Enrolled Students
+                    </TabsTrigger>
                     <TabsTrigger value="csv" className="rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 data-[state=active]:ring-1 data-[state=active]:ring-indigo-50/50">
-                        CSV Batch
+                        Excel Batch
                     </TabsTrigger>
                     <TabsTrigger value="manual" className="rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 data-[state=active]:ring-1 data-[state=active]:ring-indigo-50/50">
                         Manual Entry
                     </TabsTrigger>
                 </TabsList>
 
+                <TabsContent value="enrolled" className="mt-0 focus-visible:outline-none">
+                    <EnrolledClassView sectionId={advisingSection.id} />
+                </TabsContent>
+
                 <TabsContent value="csv" className="mt-0 focus-visible:outline-none">
                     <Card className="border-none shadow-premium-xl rounded-[2.5rem] overflow-hidden bg-white/70 backdrop-blur-md ring-1 ring-slate-200/50">
                         <CardHeader className="p-10 pb-0">
                             <CardTitle className="text-2xl font-black flex items-center gap-4">
                                 <FileUp className="h-7 w-7 text-indigo-500" />
-                                CSV Enrollment
+                                Excel Enrollment
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-10 space-y-10">
@@ -220,7 +229,7 @@ export default function AdvisoryClassManager() {
                                             <FileUp className="h-10 w-10" />
                                         </div>
                                         <div className="text-center space-y-1">
-                                            <p className="font-black text-xl text-slate-900">{csvFile ? csvFile.name : "Choose CSV File"}</p>
+                                            <p className="font-black text-xl text-slate-900">{csvFile ? csvFile.name : "Choose Excel File"}</p>
                                             <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">
                                                 {csvFile ? "Ready to process" : "Drag and drop or click to browse"}
                                             </p>
@@ -228,7 +237,7 @@ export default function AdvisoryClassManager() {
                                         <input
                                             id="csv-upload"
                                             type="file"
-                                            accept=".csv"
+                                            accept=".xlsx, .xls"
                                             className="absolute inset-0 opacity-0 cursor-pointer"
                                             onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
                                         />
@@ -251,7 +260,8 @@ export default function AdvisoryClassManager() {
                                         </h4>
                                         <ul className="space-y-4">
                                         {[
-                                                "LRN must be exactly 11 digits.",
+                                                "Required headers: lrn, first_name, middle_name, last_name, section",
+                                                "LRN must be exactly 12 digits.",
                                                 `Students will be assigned to ${advisingSection.name}.`,
                                                 "Column headers are case-sensitive."
                                             ].map((text) => (
@@ -259,7 +269,13 @@ export default function AdvisoryClassManager() {
                                                     <div className="h-6 w-6 rounded-full bg-white border border-indigo-100 flex items-center justify-center text-[10px] font-black text-indigo-400 shrink-0 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                                                         •
                                                     </div>
-                                                    <span className="text-sm text-slate-600 font-bold leading-relaxed">{text}</span>
+                                                    <span className="text-sm text-slate-600 font-bold leading-relaxed">
+                                                        {text.startsWith("Required headers:") ? (
+                                                            <>
+                                                                Required headers: <code className="text-indigo-600 font-bold bg-indigo-50 px-1 rounded">lrn, first_name, middle_name, last_name, section</code>
+                                                            </>
+                                                        ) : text}
+                                                    </span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -306,7 +322,7 @@ export default function AdvisoryClassManager() {
                                 <Table>
                                     <TableHeader className="bg-slate-50/50">
                                         <TableRow className="border-slate-100 h-16">
-                                            <TableHead className="px-10 font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] w-[20%]">LRN (11 Digits)</TableHead>
+                                            <TableHead className="px-10 font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] w-[20%]">LRN (12 Digits)</TableHead>
                                             <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] w-[25%]">First Name</TableHead>
                                             <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] w-[20%]">Middle (Opt)</TableHead>
                                             <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] w-[25%]">Last Name</TableHead>
@@ -318,8 +334,8 @@ export default function AdvisoryClassManager() {
                                             <TableRow key={entry.temp_id} className="border-slate-50 hover:bg-white transition-all group">
                                                 <TableCell className="px-10 py-6">
                                                     <Input
-                                                        placeholder="12345678901"
-                                                        maxLength={11}
+                                                        placeholder="123456789012"
+                                                        maxLength={12}
                                                         value={entry.lrn}
                                                         onChange={(e) => updateManualEntry(entry.temp_id, "lrn", e.target.value)}
                                                         className="h-12 bg-slate-50/50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-900 shadow-sm"
