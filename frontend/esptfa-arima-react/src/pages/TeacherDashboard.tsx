@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     getAnalysisDocuments,
+    getAnalysisGroups,
     getTestDrafts,
     deleteAnalysisDocument,
 } from "@/lib/api-teacher";
 import type {
     AnalysisDocument,
-    TestDraft
+    TestDraft,
+    AnalysisGroup
 } from "@/lib/api-teacher";
 import {
     Card,
@@ -27,7 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { AlertCircle, Trash2, Loader2, LayoutDashboard, ShieldCheck, ClipboardList, MoreHorizontal, Plus, Calendar, ArrowUpRight, ChevronRight } from "lucide-react";
+import { AlertCircle, Trash2, Loader2, LayoutDashboard, ShieldCheck, ClipboardList, MoreHorizontal, Plus, Calendar, ArrowUpRight, ChevronRight, FolderKanban } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     DropdownMenu,
@@ -48,6 +50,7 @@ import AdvisoryClassManager from "@/components/AdvisoryClassManager";
 export default function TeacherDashboard() {
     const [documents, setDocuments] = useState<AnalysisDocument[]>([]);
     const [drafts, setDrafts] = useState<TestDraft[]>([]);
+    const [groups, setGroups] = useState<AnalysisGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -57,9 +60,11 @@ export default function TeacherDashboard() {
         try {
             const docsData = await getAnalysisDocuments();
             const draftsData = await getTestDrafts();
+            const groupsData = await getAnalysisGroups();
 
             setDocuments(Array.isArray(docsData) ? docsData : docsData.results || []);
             setDrafts(Array.isArray(draftsData) ? draftsData : draftsData.results || []);
+            setGroups(Array.isArray(groupsData) ? groupsData : groupsData.results || []);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
         } finally {
@@ -141,6 +146,54 @@ export default function TeacherDashboard() {
                             <p className="text-slate-500 font-medium text-lg mt-1 leading-relaxed">
                                 Welcome back, here's what's happening with your class today.
                             </p>
+                        </div>
+
+                        {/* Groups Shortcuts */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <FolderKanban className="h-5 w-5 text-indigo-600" />
+                                    Analysis Groups
+                                </h2>
+                                <Link to="/dashboard/groups">
+                                    <Button variant="ghost" className="text-indigo-600 hover:bg-indigo-50 font-bold p-0 h-auto">
+                                        Manage Groups <ChevronRight className="h-4 w-4 ml-1" />
+                                    </Button>
+                                </Link>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {loading ? (
+                                    new Array(4).fill(0).map((_, i) => (
+                                        <div key={`skeleton-group-${i}`} className="h-32 bg-slate-50 border border-slate-100 rounded-3xl animate-pulse" />
+                                    ))
+                                ) : groups.length === 0 ? (
+                                    <div className="col-span-full p-4 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                        <p className="text-sm text-slate-500 font-medium italic">Create common groups to organize your analysis reports.</p>
+                                    </div>
+                                ) : (
+                                    groups.slice(0, 4).map((group) => (
+                                        <Link 
+                                            key={group.group_id} 
+                                            to={`/dashboard/groups/${group.group_id}`}
+                                            className="group bg-white p-6 rounded-3xl shadow-premium-sm border border-slate-100 hover:shadow-premium-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+                                        >
+                                            <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-50 rounded-bl-[40px] -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+                                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                                <h3 className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{group.group_name}</h3>
+                                                <div className="mt-4 flex items-center justify-between">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                                        {group.analysis_documents?.length || 0} Reports
+                                                    </span>
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
+                                                        <ChevronRight className="h-4 w-4 text-indigo-600" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
 

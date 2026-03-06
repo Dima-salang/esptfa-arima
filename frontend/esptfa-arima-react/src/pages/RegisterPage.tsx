@@ -83,7 +83,7 @@ export default function RegisterPage() {
             acc_type: Yup.string().required("Account type is required"),
             lrn: Yup.string().when("acc_type", {
                 is: "STUDENT",
-                then: (schema) => schema.required("LRN is required for students").length(11, "LRN must be exactly 11 digits"),
+                then: (schema) => schema.required("LRN is required for students").length(12, "LRN must be exactly 12 digits"),
                 otherwise: (schema) => schema.notRequired(),
             }),
             section: Yup.string().when("acc_type", {
@@ -369,10 +369,10 @@ export default function RegisterPage() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2.5">
-                                            <Label htmlFor="lrn" className="text-slate-700 dark:text-slate-300 font-bold ml-1">LRN (11 digits)</Label>
+                                            <Label htmlFor="lrn" className="text-slate-700 dark:text-slate-300 font-bold ml-1">LRN (12 digits)</Label>
                                             <Input
                                                 id="lrn"
-                                                placeholder="12345678901"
+                                                placeholder="123456789012"
                                                 className={`h-12 bg-slate-50 dark:bg-slate-800/50 border-transparent focus:bg-white dark:focus:bg-slate-800 rounded-2xl transition-all ${formik.touched.lrn && formik.errors.lrn ? "border-rose-500 ring-4 ring-rose-500/10" : ""}`}
                                                 {...formik.getFieldProps("lrn")}
                                             />

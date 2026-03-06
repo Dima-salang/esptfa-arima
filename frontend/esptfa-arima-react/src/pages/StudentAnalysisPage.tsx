@@ -262,7 +262,7 @@ export default function StudentAnalysisPage() {
 
             // Security check: Students can only view their own LRN
             const user = useUserStore.getState().user;
-            if (user?.acc_type === "STUDENT" && user.lrn !== lrn) {
+            if (user?.acc_type === "STUDENT" && (user.student_lrn || user.lrn) !== lrn) {
                 toast.error("Access denied. You can only view your own performance data.");
                 return;
             }
@@ -293,10 +293,71 @@ export default function StudentAnalysisPage() {
 
     if (!data) {
         return (
-                <div className="text-center py-20">
-                    <h2 className="text-xl font-bold">Student data not found</h2>
-                    <Link to={`/dashboard/analysis/${docId}`} className="text-indigo-600">Go back</Link>
+                <div className="text-center py-20 bg-white rounded-3xl m-10 shadow-sm border border-slate-100">
+                    <h2 className="text-xl font-bold text-slate-800">Student data not found</h2>
+                    <p className="text-slate-500 mb-6 mt-2">The requested student could not be found or there was an error retrieving their record.</p>
+                    <Link to={`/dashboard/analysis/${docId}`}>
+                        <Button variant="outline" className="font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Go back
+                        </Button>
+                    </Link>
                 </div>
+        );
+    }
+
+    if (data.scores.length === 0) {
+        return (
+            <motion.div 
+                initial="hidden"
+                animate="visible"
+                variants={containerVariants}
+                className="space-y-6"
+            >
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Link to={`/dashboard`}>
+                            <Button variant="outline" size="icon" className="rounded-xl border-slate-200 hover:bg-slate-50">
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-black text-slate-900 tracking-tight">{data.student.name}</h1>
+                                <Badge variant="outline" className="border-indigo-200 bg-indigo-50/50 text-indigo-700 font-black px-3 rounded-lg">
+                                    LRN: {data.student.lrn}
+                                </Badge>
+                            </div>
+                            <p className="text-slate-500 font-bold flex items-center gap-2 mt-1">
+                                <Sparkles className="h-4 w-4 text-amber-400" />
+                                {data.document.analysis_doc_title} • {data.document.subject?.subject_name}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col items-center justify-center p-12 md:p-24 bg-white rounded-[2.5rem] shadow-premium-sm border border-slate-100 mt-8 text-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-rose-50/50 pointer-events-none" />
+                    <div className="relative z-10 max-w-lg mx-auto space-y-6">
+                        <div className="w-24 h-24 bg-white shadow-xl shadow-indigo-100 rounded-full mx-auto flex items-center justify-center ring-1 ring-slate-100">
+                            <BookOpen className="w-10 h-10 text-indigo-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">No Assessment Data</h3>
+                            <p className="text-slate-500 font-medium mt-3 leading-relaxed">
+                                We don't have enough performance data yet to generate a mastery profile and personalized study guide for this student.
+                            </p>
+                        </div>
+                        <Link to={`/dashboard`} className="inline-block mt-4">
+                            <Button variant="outline" className="h-12 px-8 rounded-2xl border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-50">
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Back to Dashboard
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </motion.div>
         );
     }
 

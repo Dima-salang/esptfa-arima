@@ -55,6 +55,10 @@ import {
     UserCircle2,
     UserPlus,
     Lock,
+    ChevronsLeft,
+    ChevronsRight,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -78,6 +82,7 @@ export default function UserManagement() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filterActive, setFilterActive] = useState<string>("all");
+    const [filterRole, setFilterRole] = useState<string>("all");
     const [ordering, setOrdering] = useState<string>("-date_joined");
 
     // Pagination state
@@ -91,6 +96,10 @@ export default function UserManagement() {
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+    const [resettingUser, setResettingUser] = useState<User | null>(null);
+    const [newPassword, setNewPassword] = useState("");
+    const [isResetting, setIsResetting] = useState(false);
     const [sections, setSections] = useState<Section[]>([]);
     
     // New user form state
@@ -131,6 +140,7 @@ export default function UserManagement() {
             };
 
             if (filterActive !== "all") params.is_active = filterActive;
+            if (filterRole !== "all") params.acc_type = filterRole;
 
             const response = await getAllUsers(params);
             if (response.results) {
@@ -146,7 +156,7 @@ export default function UserManagement() {
         } finally {
             setLoading(false);
         }
-    }, [search, filterActive, ordering, page]);
+    }, [search, filterActive, filterRole, ordering, page]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -256,6 +266,12 @@ export default function UserManagement() {
         setIsDeleteDialogOpen(true);
     };
 
+    const handleResetPasswordClick = (user: User) => {
+        setResettingUser(user);
+        setNewPassword("");
+        setIsResetPasswordDialogOpen(true);
+    };
+
     const confirmDelete = async () => {
         if (!userToDelete) return;
         setDeleting(true);
@@ -270,6 +286,29 @@ export default function UserManagement() {
         } finally {
             setDeleting(false);
             setUserToDelete(null);
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!resettingUser || !newPassword) return;
+        if (newPassword.length < 8) {
+            toast.error("Password must be at least 8 characters long");
+            return;
+        }
+
+        setIsResetting(true);
+        try {
+            await updateUser(resettingUser.id, { password: newPassword });
+            toast.success(`Password reset for ${resettingUser.username}`);
+            setIsResetPasswordDialogOpen(false);
+            setResettingUser(null);
+            setNewPassword("");
+        } catch (error: any) {
+            console.error("Error resetting password:", error);
+            const errorMsg = error.response?.data?.detail || "Failed to reset password";
+            toast.error(errorMsg);
+        } finally {
+            setIsResetting(false);
         }
     };
 
@@ -298,7 +337,7 @@ export default function UserManagement() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-                        User Management
+                        Users
                         <Badge variant="outline" className="h-5 px-2.5 rounded-full bg-slate-100/50 text-slate-500 border-slate-200 font-semibold text-[10px] tracking-wide uppercase">
                             Administrator
                         </Badge>
@@ -349,7 +388,6 @@ export default function UserManagement() {
                 ))}
             </div>
 
-            {/* Filters and Search */}
             <Card className="border-slate-200 shadow-sm rounded-2xl overflow-hidden bg-white">
                 <CardContent className="p-5">
                     <div className="flex flex-col lg:flex-row gap-4 items-end">
@@ -361,14 +399,29 @@ export default function UserManagement() {
                                     placeholder="Search by name, email, or username..."
                                     className="pl-10 h-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all"
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                                 />
                             </div>
                         </div>
 
-                        <div className="w-full lg:w-48 space-y-1.5">
+                        <div className="w-full lg:w-44 space-y-1.5">
+                            <Label className="text-[11px] font-bold uppercase text-slate-500 ml-0.5">Role</Label>
+                            <Select value={filterRole} onValueChange={(v) => { setFilterRole(v); setPage(1); }}>
+                                <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-slate-50/50 focus:ring-2 focus:ring-indigo-500/10 font-medium">
+                                    <SelectValue placeholder="All Roles" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                    <SelectItem value="all">All Roles</SelectItem>
+                                    <SelectItem value="ADMIN">Admin</SelectItem>
+                                    <SelectItem value="TEACHER">Teacher</SelectItem>
+                                    <SelectItem value="STUDENT">Student</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="w-full lg:w-44 space-y-1.5">
                             <Label className="text-[11px] font-bold uppercase text-slate-500 ml-0.5">Status</Label>
-                            <Select value={filterActive} onValueChange={setFilterActive}>
+                            <Select value={filterActive} onValueChange={(v) => { setFilterActive(v); setPage(1); }}>
                                 <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-slate-50/50 focus:ring-2 focus:ring-indigo-500/10 font-medium">
                                     <SelectValue placeholder="All Status" />
                                 </SelectTrigger>
@@ -382,8 +435,8 @@ export default function UserManagement() {
 
                         <Button
                             variant="ghost"
-                            onClick={() => { setSearch(""); setFilterActive("all"); }}
-                            className="h-10 px-4 rounded-xl text-slate-500 hover:text-slate-900 font-semibold"
+                            onClick={() => { setSearch(""); setFilterActive("all"); setFilterRole("all"); setPage(1); }}
+                            className="h-10 px-4 rounded-xl text-slate-500 hover:text-slate-900 font-semibold shrink-0"
                         >
                             Reset
                         </Button>
@@ -396,7 +449,7 @@ export default function UserManagement() {
                 <CardHeader className="p-6 pb-2">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-lg font-bold text-slate-900">User List</CardTitle>
+                            <CardTitle className="text-lg font-bold text-slate-900">Users</CardTitle>
                             <CardDescription className="text-slate-500 text-xs">A total of {totalCount} registered users</CardDescription>
                         </div>
                     </div>
@@ -413,6 +466,7 @@ export default function UserManagement() {
                                     </TableHead>
                                     <TableHead className="h-12 font-bold text-[11px] uppercase tracking-wider text-slate-500">Full Name</TableHead>
                                     <TableHead className="h-12 font-bold text-[11px] uppercase tracking-wider text-slate-500">Role</TableHead>
+                                    <TableHead className="h-12 font-bold text-[11px] uppercase tracking-wider text-slate-500 text-center">Details</TableHead>
                                     <TableHead className="h-12 font-bold text-[11px] uppercase tracking-wider text-slate-500 text-center">Status</TableHead>
                                     <TableHead onClick={() => handleSort('date_joined')} className="h-12 cursor-pointer font-bold text-[11px] uppercase tracking-wider text-slate-500">
                                         <div className="flex items-center gap-1.5 px-2">
@@ -427,7 +481,7 @@ export default function UserManagement() {
                                     {loading ? (
                                         ['s1', 's2', 's3', 's4', 's5'].map((key) => (
                                             <TableRow key={key} className="h-16">
-                                                <TableCell colSpan={6}><div className="h-10 bg-slate-50 animate-pulse rounded-lg w-full"></div></TableCell>
+                                                <TableCell colSpan={7}><div className="h-10 bg-slate-50 animate-pulse rounded-lg w-full"></div></TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
@@ -469,6 +523,29 @@ export default function UserManagement() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
+                                                    <div className="flex flex-col gap-1 items-center justify-center">
+                                                        {user.acc_type === 'TEACHER' && user.advising_section && (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Section Adviser</span>
+                                                                <Badge variant="outline" className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border-none h-5 px-2">
+                                                                    {user.advising_section.name}
+                                                                </Badge>
+                                                            </div>
+                                                        )}
+                                                        {user.acc_type === 'STUDENT' && (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">LRN: {user.student_lrn || '—'}</span>
+                                                                <Badge variant="outline" className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border-none h-5 px-2">
+                                                                    {user.section_details?.name || 'Unassigned'}
+                                                                </Badge>
+                                                            </div>
+                                                        )}
+                                                        {user.acc_type === 'ADMIN' && (
+                                                            <span className="text-[10px] font-black text-slate-300 uppercase italic">System Access</span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
                                                     <div className="flex justify-center">
                                                         {user.is_active ? (
                                                             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -500,6 +577,10 @@ export default function UserManagement() {
                                                                 <Edit2 className="h-3.5 w-3.5 mr-2 text-slate-400" />
                                                                 <span className="font-semibold text-slate-700 text-sm">Edit User</span>
                                                             </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleResetPasswordClick(user)} className="rounded-lg px-2.5 py-2 cursor-pointer focus:bg-indigo-50">
+                                                                <Lock className="h-3.5 w-3.5 mr-2 text-indigo-400" />
+                                                                <span className="font-semibold text-slate-700 text-sm">Reset Password</span>
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuSeparator className="bg-slate-100 mx-1 my-1" />
                                                             <DropdownMenuItem onClick={() => handleDeleteClick(user)} className="rounded-lg px-2.5 py-2 cursor-pointer focus:bg-red-50 text-red-600">
                                                                 <Trash2 className="h-3.5 w-3.5 mr-2 text-red-400" />
@@ -518,31 +599,81 @@ export default function UserManagement() {
                 </CardContent>
                 
                 {/* Pagination */}
-                <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-white">
-                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-tight">
-                         Page {page} of {Math.ceil(totalCount / 10) || 1}
-                    </p>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={page === 1}
-                            onClick={() => setPage(p => p - 1)}
-                            className="rounded-lg h-9 px-3 border-slate-200 font-semibold text-xs text-slate-600"
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={users.length < 10}
-                            onClick={() => setPage(p => p + 1)}
-                            className="rounded-lg h-9 px-3 border-slate-200 font-semibold text-xs text-slate-600"
-                        >
-                            Next
-                        </Button>
-                    </div>
-                </div>
+                {(() => {
+                    const totalPages = Math.ceil(totalCount / 10) || 1;
+                    return (
+                        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-white">
+                            <p className="text-xs text-slate-400 font-semibold uppercase tracking-tight">
+                                Page {page} of {totalPages} &mdash; {totalCount} users
+                            </p>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={page === 1}
+                                    onClick={() => setPage(1)}
+                                    className="rounded-lg h-9 w-9 border-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-30"
+                                    title="First page"
+                                >
+                                    <ChevronsLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={page === 1}
+                                    onClick={() => setPage(p => p - 1)}
+                                    className="rounded-lg h-9 w-9 border-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-30"
+                                    title="Previous page"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <div className="flex items-center gap-1 px-1">
+                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                        // Show pages centered around current page
+                                        let startPage = Math.max(1, page - 2);
+                                        const endPage = Math.min(totalPages, startPage + 4);
+                                        startPage = Math.max(1, endPage - 4);
+                                        const p = startPage + i;
+                                        if (p > totalPages) return null;
+                                        return (
+                                            <button
+                                                key={p}
+                                                onClick={() => setPage(p)}
+                                                className={`h-9 w-9 rounded-lg text-xs font-bold transition-all ${
+                                                    p === page
+                                                        ? 'bg-slate-900 text-white shadow-sm'
+                                                        : 'text-slate-500 hover:bg-slate-100'
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={page >= totalPages || users.length < 10}
+                                    onClick={() => setPage(p => p + 1)}
+                                    className="rounded-lg h-9 w-9 border-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-30"
+                                    title="Next page"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={page >= totalPages || users.length < 10}
+                                    onClick={() => setPage(totalPages)}
+                                    className="rounded-lg h-9 w-9 border-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-30"
+                                    title="Last page"
+                                >
+                                    <ChevronsRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                })()}
             </Card>
 
             {/* Add User Dialog */}
@@ -652,10 +783,10 @@ export default function UserManagement() {
                             >
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">LRN (11 Digits)</Label>
+                                        <Label className="text-xs font-bold text-slate-500 uppercase ml-0.5">LRN (12 Digits)</Label>
                                         <Input
-                                            placeholder="12345678901"
-                                            maxLength={11}
+                                            placeholder="123456789012"
+                                            maxLength={12}
                                             value={newUser.lrn}
                                             onChange={(e) => setNewUser({ ...newUser, lrn: e.target.value })}
                                             className="h-11 rounded-xl border-slate-200 font-medium shadow-sm"
@@ -811,6 +942,46 @@ export default function UserManagement() {
                     </div>
                 </DialogContent>
             </Dialog>
+            {/* Reset Password Dialog */}
+            <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+                <DialogContent className="sm:max-w-md rounded-2xl border-slate-200 shadow-2xl p-0 overflow-hidden bg-white">
+                    <DialogHeader className="px-6 pt-6 pb-2">
+                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <Lock className="h-5 w-5 text-indigo-500" />
+                            Reset User Password
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium text-sm">
+                            Resetting password for <span className="font-black text-indigo-600">@{resettingUser?.username}</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400 ml-1">New Secure Password</Label>
+                            <Input 
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Enter at least 8 characters..."
+                                className="h-12 rounded-xl border-slate-200 focus:ring-4 focus:ring-indigo-100 font-bold transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div className="px-6 py-4 bg-slate-50 flex items-center justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setIsResetPasswordDialogOpen(false)} className="rounded-xl font-bold text-slate-500 hover:bg-white border-transparent">
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleResetPassword} 
+                            disabled={isResetting || !newPassword}
+                            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 font-bold flex items-center gap-2 shadow-lg shadow-indigo-200"
+                        >
+                            {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                            Confirm Reset
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* Delete Confirmation Dialog */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-[400px] rounded-2xl border-slate-200 shadow-2xl p-0 overflow-hidden bg-white">

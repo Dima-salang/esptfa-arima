@@ -78,13 +78,13 @@ export default function StudentImportPage() {
         setSuccessMessage(null);
         try {
             await bulkImportCSV(csvFile);
-            setSuccessMessage("CSV import successful! All students have been added to the system.");
+            setSuccessMessage("Excel import successful! All students have been added to the system.");
             setCsvFile(null);
             // reset file input
             const fileInput = document.getElementById('csv-upload') as HTMLInputElement;
             if (fileInput) fileInput.value = '';
         } catch (error: any) {
-            setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import CSV. Please check the file format.");
+            setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import Excel. Please check the file format.");
         } finally {
             setIsLoading(false);
         }
@@ -92,7 +92,7 @@ export default function StudentImportPage() {
 
     const downloadTemplate = () => {
         const headers = "lrn,first_name,middle_name,last_name,section";
-        const sample = "12345678901,John,Doe,Smith,Diamond";
+        const sample = "123456789012,John,Doe,Smith,Diamond";
         const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + sample;
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -173,23 +173,23 @@ export default function StudentImportPage() {
                 <Tabs defaultValue="csv" className="w-full">
                     <TabsList className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl grid grid-cols-2 max-w-md h-auto gap-1">
                         <TabsTrigger value="csv" className="rounded-xl py-2.5 font-bold text-xs uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-indigo-600">
-                            CSV Import
+                            Excel Import
                         </TabsTrigger>
                         <TabsTrigger value="manual" className="rounded-xl py-2.5 font-bold text-xs uppercase tracking-widest transition-all data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-indigo-600">
                             Manual Entry
                         </TabsTrigger>
                     </TabsList>
 
-                    {/* CSV Content */}
+                    {/* Excel Content */}
                     <TabsContent value="csv" className="mt-6">
                         <Card className="border-none shadow-xl ring-1 ring-slate-200 rounded-[2rem] overflow-hidden bg-white dark:bg-slate-900">
                             <CardHeader className="p-8 pb-0">
                                 <CardTitle className="text-2xl font-black flex items-center gap-3">
                                     <FileUp className="h-6 w-6 text-indigo-600" />
-                                    Import from CSV
+                                    Import from Excel
                                 </CardTitle>
                                 <CardDescription className="text-slate-400 font-medium italic">
-                                    Upload a structured CSV file to enroll multiple students at once.
+                                    Upload a structured Excel file to enroll multiple students at once.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="p-8 space-y-8">
@@ -202,7 +202,7 @@ export default function StudentImportPage() {
                                                 <FileUp className="h-8 w-8" />
                                             </div>
                                             <div className="text-center">
-                                                <p className="font-bold text-slate-900">{csvFile ? csvFile.name : "Select a CSV file"}</p>
+                                                <p className="font-bold text-slate-900">{csvFile ? csvFile.name : "Select an Excel file"}</p>
                                                 <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mt-1">
                                                     {csvFile ? "File selected" : "Click to browse or drag and drop"}
                                                 </p>
@@ -210,7 +210,7 @@ export default function StudentImportPage() {
                                             <input
                                                 id="csv-upload"
                                                 type="file"
-                                                accept=".csv"
+                                                accept=".xlsx, .xls"
                                                 className="absolute inset-0 opacity-0 cursor-pointer"
                                                 onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
                                             />
@@ -221,11 +221,11 @@ export default function StudentImportPage() {
                                         <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
                                             <h4 className="font-bold text-indigo-600 text-sm uppercase tracking-widest mb-3 flex items-center gap-2">
                                                 <AlertCircle className="h-4 w-4" />
-                                                CSV Format Requirements
+                                                Excel Format Requirements
                                             </h4>
                                             <ul className="space-y-2 text-sm text-slate-600 font-medium">
                                                 <li className="flex gap-2"><span>•</span> Required headers: <code className="text-indigo-600 font-bold bg-indigo-50 px-1 rounded">lrn, first_name, middle_name, last_name, section</code></li>
-                                                <li className="flex gap-2"><span>•</span> LRN must be exactly 11 digits.</li>
+                                                <li className="flex gap-2"><span>•</span> LRN must be exactly 12 digits.</li>
                                                 <li className="flex gap-2"><span>•</span> Section names must match exactly as defined in the system.</li>
                                             </ul>
                                         </div>
@@ -247,7 +247,7 @@ export default function StudentImportPage() {
                                     onClick={handleCsvUpload}
                                 >
                                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" /> : <Save className="mr-2 h-4 w-4" />}
-                                    Process CSV Import
+                                    Process Excel Import
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -281,7 +281,7 @@ export default function StudentImportPage() {
                                 <Table>
                                     <TableHeader className="bg-slate-50/80 hover:bg-slate-50/80">
                                         <TableRow className="border-slate-100">
-                                            <TableHead className="px-8 font-black text-slate-400 text-[10px] uppercase tracking-widest w-[180px]">LRN (11 Digits)</TableHead>
+                                            <TableHead className="px-8 font-black text-slate-400 text-[10px] uppercase tracking-widest w-[180px]">LRN (12 Digits)</TableHead>
                                             <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest w-[160px]">First Name</TableHead>
                                             <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest w-[140px]">Middle Name (Opt)</TableHead>
                                             <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest w-[160px]">Last Name</TableHead>
@@ -294,8 +294,8 @@ export default function StudentImportPage() {
                                             <TableRow key={entry.temp_id} className="border-slate-50 group hover:bg-slate-50/30 transition-colors">
                                                 <TableCell className="px-8">
                                                     <Input
-                                                        placeholder="12345678901"
-                                                        maxLength={11}
+                                                        placeholder="123456789012"
+                                                        maxLength={12}
                                                         value={entry.lrn}
                                                         onChange={(e) => updateManualEntry(entry.temp_id, "lrn", e.target.value)}
                                                         className="h-10 bg-transparent border-slate-200 rounded-xl focus:ring-indigo-600 text-sm font-medium"

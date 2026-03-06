@@ -134,10 +134,10 @@ export default function StudentDashboard() {
                     </Card>
 
                     <div className="space-y-6">
-                        <Card className="border-none shadow-premium-sm border border-border rounded-[2rem] overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 text-foreground">
+                        <Card className="border-none shadow-premium-sm rounded-[2rem] overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800">
                             <CardHeader className="p-8">
                                 <GraduationCap className="h-8 w-8 text-indigo-400 mb-4" />
-                                <CardTitle className="text-xl font-black">Performance Tracker</CardTitle>
+                                <CardTitle className="text-xl font-black text-white">Performance Tracker</CardTitle>
                                 <CardDescription className="text-slate-400">Track your progress throughout the quarter</CardDescription>
                             </CardHeader>
                             <CardContent className="p-8 pt-0">
@@ -148,7 +148,7 @@ export default function StudentDashboard() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">LRN Number</span>
-                                        <span className="font-black tracking-tighter">{studentProfile?.lrn || "Not Assigned"}</span>
+                                        <span className="font-black tracking-tighter text-white">{studentProfile?.lrn || "Not Assigned"}</span>
                                     </div>
                                 </div>
                             </CardContent>
