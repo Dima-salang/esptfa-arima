@@ -318,11 +318,11 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             ).order_by("formative_assessment_number")
 
             # prediction score percent
-            prediction_score_percent = (
-                (prediction.score / prediction.max_score) * 100
-                if prediction.max_score
-                else 0
-            )
+            prediction_score_percent = 0
+            if prediction and prediction.max_score:
+                prediction_score_percent = (
+                    prediction.score / prediction.max_score
+                ) * 100
 
             # Format scores to include topic name
             scores_data = []
@@ -379,6 +379,10 @@ class AnalysisDocumentViewSet(viewsets.ModelViewSet):
             )
         except Exception as e:
             logger.error(f"Error in student_analysis_detail: {e}")
+            return Response(
+                {"error": "Failed to fetch student statistics"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -1673,3 +1677,33 @@ def delete_document_ajax(request, document_pk):
         return JsonResponse(
             {"status": "error", "message": f"An error occurred: {str(e)}"}, status=500
         )
+
+
+class AnalysisGroupViewSet(viewsets.ModelViewSet):
+    queryset = AnalysisGroup.objects.all().order_by("-created_at")
+    serializer_class = AnalysisGroupSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ["group_name"]
+    ordering_fields = ["created_at"]
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return AnalysisGroup.objects.all().order_by("-created_at")
+        return AnalysisGroup.objects.filter(teacher=self.request.user).order_by(
+            "-created_at"
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(teacher=self.request.user)
+
+    @action(detail=True, methods=["get"])
+    def details(self, request, pk=None):
+        try:
+            group = self.get_object()
+            serializer = AnalysisGroupDetailSerializer(group)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -3,6 +3,7 @@ from .models import *
 from Authentication.models import Teacher
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Avg
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -72,10 +73,41 @@ class AnalysisDocumentSerializer(serializers.ModelSerializer):
     quarter = QuarterSerializer(read_only=True)
     subject = SubjectSerializer(read_only=True)
     section_id = SectionSerializer(source="section", read_only=True)
+    statistics = serializers.SerializerMethodField()
 
     class Meta:
         model = AnalysisDocument
         fields = "__all__"
+
+    def get_statistics(self, obj):
+        try:
+            stat = AnalysisDocumentStatistic.objects.get(analysis_document=obj)
+
+            # Match the computation in AnalysisDetailPage.tsx:
+            # { title: "Class Success %", value: (students with passing_rate >= 75) / (total students) * 100 }
+            student_stats = StudentScoresStatistic.objects.filter(analysis_document=obj)
+            total_students = student_stats.count()
+
+            if total_students > 0:
+                passing_students = student_stats.filter(passing_rate__gte=75).count()
+                success_rate = (passing_students / total_students) * 100
+            else:
+                success_rate = 0
+
+            # Predicted Mean match: average of all student predictions
+            avg_predicted = PredictedScore.objects.filter(
+                analysis_document=obj
+            ).aggregate(avg=Avg("score"))["avg"]
+            if avg_predicted is None:
+                avg_predicted = stat.mean_passing_threshold
+
+            return {
+                "avg_class_score": round(stat.mean, 1),
+                "predicted_mean": round(avg_predicted, 1),
+                "success_rate": round(success_rate, 1),
+            }
+        except (AnalysisDocumentStatistic.DoesNotExist, AttributeError):
+            return None
 
 
 class FormativeAssessmentScoreSerializer(serializers.ModelSerializer):
@@ -148,3 +180,19 @@ class ActualPostTestSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActualPostTest
         fields = "__all__"
+
+
+class AnalysisGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnalysisGroup
+        fields = "__all__"
+        read_only_fields = ["teacher"]
+
+
+class AnalysisGroupDetailSerializer(serializers.ModelSerializer):
+    analysis_documents = AnalysisDocumentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = AnalysisGroup
+        fields = "__all__"
+        read_only_fields = ["teacher"]
