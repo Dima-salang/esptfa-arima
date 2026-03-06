@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ForcePasswordResetPage from "./pages/ForcePasswordResetPage";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import CreateAnalysisPage from "./pages/CreateAnalysisPage";
 import AssessmentEditorPage from "./pages/AssessmentEditorPage";
@@ -9,6 +10,8 @@ import AllDraftsPage from "./pages/AllDraftsPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import StudentAnalysisPage from "./pages/StudentAnalysisPage";
 import AllAnalysisPage from "./pages/AllAnalysisPage";
+import AnalysisGroupsPage from "./pages/AnalysisGroupsPage";
+import AnalysisGroupDetailsPage from "./pages/AnalysisGroupDetailsPage";
 import SettingsPage from "./pages/SettingsPage";
 import TeacherAssignmentsPage from "./pages/TeacherAssignmentsPage";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -17,6 +20,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import StudentImportPage from "./pages/StudentImportPage";
 import AdminDataManagement from "./pages/AdminDataManagement";
 import DashboardLayout from "@/components/DashboardLayout";
+import AllStudentsPage from "./pages/AllStudentsPage";
+import AllTeachersPage from "./pages/AllTeachersPage";
 import { useUserStore } from "./store/useUserStore";
 import { Toaster } from "@/components/ui/sonner";
 import "./App.css";
@@ -49,6 +54,10 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
       <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
+
+  if (user?.requires_password_change) {
+    return <Navigate to="/force-reset" />;
+  }
 
   return user ? <>{children}</> : <Navigate to="/login" />;
 };
@@ -85,6 +94,10 @@ function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+        
+        <Route path="/force-reset" element={
+            user && user.requires_password_change ? <ForcePasswordResetPage /> : <Navigate to="/dashboard" />
+        } />
 
         {/* Protected Dashboard Layout Route */}
         <Route
@@ -160,6 +173,24 @@ function App() {
               </RoleRoute>
             }
           />
+          
+          <Route
+            path="groups"
+            element={
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <AnalysisGroupsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="groups/:id"
+            element={
+              <RoleRoute allowedRoles={["ADMIN", "TEACHER"]}>
+                <AnalysisGroupDetailsPage />
+              </RoleRoute>
+            }
+          />
 
           <Route
             path="settings"
@@ -191,6 +222,24 @@ function App() {
             element={
               <RoleRoute allowedRoles={["ADMIN"]}>
                 <UserManagement />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="students"
+            element={
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <AllStudentsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="teachers"
+            element={
+              <RoleRoute allowedRoles={["ADMIN"]}>
+                <AllTeachersPage />
               </RoleRoute>
             }
           />
