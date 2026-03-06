@@ -2,213 +2,288 @@ import api from "./api";
 import { useUserStore } from "@/store/useUserStore";
 
 export interface Subject {
-    subject_id: number;
-    subject_name: string;
+  subject_id: number;
+  subject_name: string;
 }
 
 export interface Quarter {
-    quarter_id: number;
-    quarter_name: string;
+  quarter_id: number;
+  quarter_name: string;
 }
 
 export interface Section {
-    section_id: number;
-    section_name: string;
+  section_id: number;
+  section_name: string;
 }
 
 export interface User {
-    id: number;
-    username: string;
-    first_name: string;
-    last_name: string;
-    email: string;
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 export interface Student {
-    lrn: string;
-    first_name: string;
-    middle_name: string;
-    last_name: string;
-    user_id: User;
-    section: number | Section;
+  lrn: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  user_id: User;
+  section: number | Section;
+  initial_password?: string;
+  requires_password_change?: boolean;
 }
 
 export interface ActualPostTestScore {
-    lrn: string;
-    score: number;
-    max_score: number;
+  lrn: string;
+  score: number;
+  max_score: number;
 }
 
 export interface AnalysisDocument {
-    analysis_document_id: number;
-    analysis_doc_title: string;
-    quarter: number | Quarter;
-    subject: number | Subject;
-    upload_date: string;
-    test_start_date: string | null;
-    status: boolean;
-    section_id: number | Section;
+  analysis_document_id: number;
+  analysis_doc_title: string;
+  quarter: number | Quarter;
+  subject: number | Subject;
+  upload_date: string;
+  test_start_date: string | null;
+  status: boolean;
+  section_id: number | Section;
+  statistics?: {
+    avg_class_score: number;
+    predicted_mean: number;
+    success_rate: number;
+  };
+}
+
+export interface AnalysisGroup {
+  group_id: number;
+  group_name: string;
+  teacher: number | User;
+  analysis_documents: number[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnalysisGroupDetail extends Omit<
+  AnalysisGroup,
+  "analysis_documents"
+> {
+  analysis_documents: AnalysisDocument[];
 }
 
 export interface TestDraft {
-    test_draft_id: string;
-    title: string;
-    quarter: number | Quarter;
-    subject: number | Subject;
-    test_content: {
-        topics?: Topic[];
-        students?: any[];
-        scores?: Record<string, Record<string, any>>;
-        post_test_max_score?: number;
-    };
-    created_at: string;
-    updated_at: string;
-    status: string;
-    section_id: number | Section;
+  test_draft_id: string;
+  title: string;
+  quarter: number | Quarter;
+  subject: number | Subject;
+  test_content: {
+    topics?: Topic[];
+    students?: any[];
+    scores?: Record<string, Record<string, any>>;
+    post_test_max_score?: number;
+  };
+  created_at: string;
+  updated_at: string;
+  status: string;
+  section_id: number | Section;
 }
 
 export interface Topic {
-    id: string;
-    name: string;
-    max_score: number;
-    test_number?: number;
+  id: string;
+  name: string;
+  max_score: number;
+  test_number?: number;
 }
 
 export const getAnalysisDocuments = async (filters?: Record<string, any>) => {
-    const response = await api.get("/analysis-document/", { params: filters });
-    return response.data.results || response.data;
+  const response = await api.get("/analysis-document/", { params: filters });
+  return response.data.results || response.data;
+};
+
+export const getAnalysisGroups = async (filters?: Record<string, any>) => {
+  const response = await api.get("/analysis-group/", { params: filters });
+  return response.data.results || response.data;
+};
+
+export const getAnalysisGroupDetails = async (id: number | string) => {
+  const response = await api.get(`/analysis-group/${id}/details/`);
+  return response.data;
+};
+
+export const createAnalysisGroup = async (data: Partial<AnalysisGroup>) => {
+  const response = await api.post("/analysis-group/", data);
+  return response.data;
+};
+
+export const updateAnalysisGroup = async (
+  id: number | string,
+  data: Partial<AnalysisGroup>,
+) => {
+  const response = await api.patch(`/analysis-group/${id}/`, data);
+  return response.data;
+};
+
+export const deleteAnalysisGroup = async (id: number | string) => {
+  const response = await api.delete(`/analysis-group/${id}/`);
+  return response.data;
 };
 
 export const getTestDrafts = async (filters?: Record<string, any>) => {
-    const response = await api.get("/test-draft/", { params: filters });
-    return response.data.results || response.data;
+  const response = await api.get("/test-draft/", { params: filters });
+  return response.data.results || response.data;
 };
 
 export const getSubjects = async () => {
-    const response = await api.get("/subject/");
-    return response.data.results || response.data;
+  const response = await api.get("/subject/");
+  return response.data.results || response.data;
 };
 
 export const getQuarters = async () => {
-    const response = await api.get("/quarter/");
-    return response.data.results || response.data;
+  const response = await api.get("/quarter/");
+  return response.data.results || response.data;
 };
 
 export const getSections = async () => {
-    const response = await api.get("/section/");
-    return response.data.results || response.data;
+  const response = await api.get("/section/");
+  return response.data.results || response.data;
 };
 
 export const deleteAnalysisDocument = async (id: number) => {
-    const response = await api.delete(`/analysis-document/${id}/`);
-    return response.data;
+  const response = await api.delete(`/analysis-document/${id}/`);
+  return response.data;
 };
 
 export const deleteTestDraft = async (id: number | string) => {
-    const response = await api.delete(`/test-draft/${id}/`);
-    return response.data;
+  const response = await api.delete(`/test-draft/${id}/`);
+  return response.data;
 };
 
-export const createTestDraft = async (data: Partial<TestDraft>, idempotencyKey: string) => {
-    const response = await api.post("/test-draft/", data, {
-        headers: {
-            "Idempotency-Key": idempotencyKey
-        }
-    });
-    return response.data;
+export const createTestDraft = async (
+  data: Partial<TestDraft>,
+  idempotencyKey: string,
+) => {
+  const response = await api.post("/test-draft/", data, {
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+    },
+  });
+  return response.data;
 };
 
 export const getTestDraft = async (id: string) => {
-    const response = await api.get(`/test-draft/${id}/`);
-    return response.data;
+  const response = await api.get(`/test-draft/${id}/`);
+  return response.data;
 };
 
 export const updateTestDraft = async (id: string, data: Partial<TestDraft>) => {
-    const response = await api.patch(`/test-draft/${id}/`, data);
-    return response.data;
+  const response = await api.patch(`/test-draft/${id}/`, data);
+  return response.data;
 };
 
 export const createAnalysisDocument = async (testDraftId: string) => {
-    const response = await api.post("/analysis-document/", { test_draft_id: testDraftId });
-    return response.data;
+  const response = await api.post("/analysis-document/", {
+    test_draft_id: testDraftId,
+  });
+  return response.data;
 };
 
 export const getStudents = async (sectionId?: string) => {
-    const params = sectionId ? { section: sectionId } : {};
-    const response = await api.get("/student/students_for_section/", { params });
-    return response.data.results || response.data;
+  const params = sectionId ? { section: sectionId } : {};
+  const response = await api.get("/student/students_for_section/", { params });
+  return response.data.results || response.data;
 };
 
 export const getAnalysisFullDetails = async (id: string | number) => {
-    const response = await api.get(`/analysis-document/${id}/full_details/`);
-    return response.data;
+  const response = await api.get(`/analysis-document/${id}/full_details/`);
+  return response.data;
 };
 
-export const getPredictedScores = async (analysisDocumentId: string | number) => {
-    const response = await api.get("/predicted-score/", {
-        params: { analysis_document_id: analysisDocumentId }
-    });
-    return response.data.results || response.data;
+export const getPredictedScores = async (
+  analysisDocumentId: string | number,
+) => {
+  const response = await api.get("/predicted-score/", {
+    params: { analysis_document_id: analysisDocumentId },
+  });
+  return response.data.results || response.data;
 };
 
-export const getStudentAnalysisDetail = async (docId: string | number, lrn: string) => {
-    const response = await api.get(`/analysis-document/${docId}/student_analysis_detail/`, {
-        params: { lrn }
-    });
-    return response.data;
+export const getStudentAnalysisDetail = async (
+  docId: string | number,
+  lrn: string,
+) => {
+  const response = await api.get(
+    `/analysis-document/${docId}/student_analysis_detail/`,
+    {
+      params: { lrn },
+    },
+  );
+  return response.data;
 };
 
-export const bulkUploadActualScores = async (analysisDocumentId: number, scores: ActualPostTestScore[]) => {
-    const response = await api.post("/actual-post-test/bulk_upload/", {
-        analysis_document_id: analysisDocumentId,
-        scores
-    });
-    return response.data;
+export const bulkUploadActualScores = async (
+  analysisDocumentId: number,
+  scores: ActualPostTestScore[],
+) => {
+  const response = await api.post("/actual-post-test/bulk_upload/", {
+    analysis_document_id: analysisDocumentId,
+    scores,
+  });
+  return response.data;
 };
 
 export const getTeacherProfile = async () => {
-    const response = await api.get("/teacher/me/");
-    return response.data;
+  const response = await api.get("/teacher/me/");
+  return response.data;
 };
 
 export const getCurrentUser = async () => {
-    const response = await api.get("/register/me/");
-    return response.data;
+  const response = await api.get("/register/me/");
+  return response.data;
 };
 
 export const getStudentProfile = async () => {
-    const response = await api.get("/student/me/");
-    return response.data;
+  const response = await api.get("/student/me/");
+  return response.data;
 };
 
 export const adviserBulkImportCSV = async (file: File) => {
-    const formData = new FormData();
-    formData.append("student_import_file", file);
-    const response = await api.post("/student/adviser_bulk_import_csv/", formData, {
-        headers: {
-            "Content-Type": "multipart/form-data"
-        }
-    });
-    return response.data;
+  const formData = new FormData();
+  formData.append("student_import_file", file);
+  const response = await api.post(
+    "/student/adviser_bulk_import_csv/",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return response.data;
 };
 
 export const adviserManualImportStudents = async (students: any[]) => {
-    const response = await api.post("/student/adviser_manual_import/", {
-        students
-    });
-    return response.data;
+  const response = await api.post("/student/adviser_manual_import/", {
+    students,
+  });
+  return response.data;
+};
+export const forcePasswordReset = async (newPassword: string) => {
+  const response = await api.post("/student/force_password_reset/", {
+    new_password: newPassword,
+  });
+  return response.data;
 };
 
-
-
 export const logoutUser = async () => {
-    useUserStore.getState().clearProfile();
-    
-    try {
-        await api.post("/logout/");
-    } catch (error) {
-        console.error("Logout error:", error);
-    } finally {
-        globalThis.location.replace("/login");
-    }
+  useUserStore.getState().clearProfile();
+
+  try {
+    await api.post("/logout/");
+  } catch (error) {
+    console.error("Logout error:", error);
+  } finally {
+    globalThis.location.replace("/login");
+  }
 };
