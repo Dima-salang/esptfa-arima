@@ -26,10 +26,10 @@ services:
       DJANGO_SETTINGS_MODULE: esptfaARIMA.settings_ci
     restart: on-failure
     volumes:
-      # SQLite database file – persisted across container restarts.
-      # settings_ci.py: DATABASES NAME = "esptfa_arima" (relative to
-      # BASE_DIR = /app/esptfa_arima, resolved by Django at runtime).
-      - sqlite-data:/app/esptfa_arima
+      # SQLite database file lives in its own subdirectory (settings_ci.py:
+      # NAME = BASE_DIR / "db" / "esptfa_arima"). Mounting only db/ means the
+      # application code in /app/esptfa_arima/ is NEVER shadowed by a volume.
+      - sqlite-data:/app/esptfa_arima/db
       # User-uploaded media files (MEDIA_ROOT in settings_ci.py).
       - esptfa_arima_media:/app/esptfa_arima/media
       # Rotating log files written by RotatingFileHandler in settings_ci.py.

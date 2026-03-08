@@ -34,6 +34,7 @@ import { adviserBulkImportCSV, adviserManualImportStudents } from "@/lib/api-tea
 import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
 import EnrolledClassView from "./EnrolledClassView";
+import { generateUUID } from "@/lib/utils";
 
 interface ManualStudentEntry {
     temp_id: string;
@@ -49,7 +50,7 @@ export default function AdvisoryClassManager() {
     
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [manualStudents, setManualStudents] = useState<ManualStudentEntry[]>([
-        { temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "" }
+        { temp_id: generateUUID(), lrn: "", first_name: "", middle_name: "", last_name: "" }
     ]);
     const [isLoading, setIsLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -112,7 +113,7 @@ export default function AdvisoryClassManager() {
     // Manual Import Logic
     const addRow = () => {
         setManualStudents([...manualStudents, {
-            temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: ""
+            temp_id: generateUUID(), lrn: "", first_name: "", middle_name: "", last_name: ""
         }]);
     };
 
@@ -143,7 +144,7 @@ export default function AdvisoryClassManager() {
             const res = await adviserManualImportStudents(studentsToSend);
             setSuccessMessage(res.detail || "Manual enrollment successful!");
             toast.success("Students enrolled successfully");
-            setManualStudents([{ temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "" }]);
+            setManualStudents([{ temp_id: generateUUID(), lrn: "", first_name: "", middle_name: "", last_name: "" }]);
         } catch (error: any) {
              const msg = error.response?.data?.detail || error.response?.data?.['Validation Error'] || "Failed to enroll students. Verify LRNs are 12 digits and unique.";
             setErrorMessage(msg);

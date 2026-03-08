@@ -35,6 +35,7 @@ import {
     Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { generateUUID } from "@/lib/utils";
 
 
 export default function CreateAnalysisPage() {
@@ -42,7 +43,7 @@ export default function CreateAnalysisPage() {
 
     // UI State
     const [isLoading, setIsLoading] = useState(false);
-    const [idempotencyKey] = useState(() => crypto.randomUUID());
+    const [idempotencyKey] = useState(() => generateUUID());
 
     // Form Data State
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -89,7 +90,7 @@ export default function CreateAnalysisPage() {
                 section_id: Number(details.section),
                 test_content: {
                     topics: [
-                        { id: crypto.randomUUID(), name: "General Topic", max_score: 50, test_number: 1 }
+                        { id: generateUUID(), name: "General Topic", max_score: 50, test_number: 1 }
                     ],
                     students: [],
                     scores: {},

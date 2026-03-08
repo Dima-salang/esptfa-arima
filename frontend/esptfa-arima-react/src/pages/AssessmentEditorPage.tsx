@@ -60,7 +60,7 @@ import {
     X,
     Search
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, generateUUID } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 import { toast } from "sonner";
 
@@ -149,7 +149,7 @@ export default function AssessmentEditorPage() {
                 // Initialize topics and scores from test_content
                 const content = draftData.test_content || {};
                 const initialTopics = content.topics || [
-                    { id: crypto.randomUUID(), name: "General Topic", max_score: 50, test_number: 1 }
+                    { id: generateUUID(), name: "General Topic", max_score: 50, test_number: 1 }
                 ];
                 const initialScores = content.scores || {};
 
@@ -254,7 +254,7 @@ export default function AssessmentEditorPage() {
     // Handle topic changes
     const addTopic = () => {
         const newTopic: Topic = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: `Topic ${topics.length + 1}`,
             max_score: 50,
             test_number: topics.length + 1

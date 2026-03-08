@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { bulkImportCSV, manualImportStudents, getAllSections } from "@/lib/api-admin";
 import type { Section } from "@/lib/api-admin";
+import { generateUUID } from "@/lib/utils";
 
 interface ManualStudentEntry {
     temp_id: string;
@@ -52,7 +53,7 @@ export default function StudentImportPage() {
     const [sections, setSections] = useState<Section[]>([]);
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [manualStudents, setManualStudents] = useState<ManualStudentEntry[]>([
-        { temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: "" }
+        { temp_id: generateUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: "" }
     ]);
     const [isLoading, setIsLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export default function StudentImportPage() {
     // Manual Import Logic
     const addRow = () => {
         setManualStudents([...manualStudents, {
-            temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: ""
+            temp_id: generateUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: ""
         }]);
     };
 
@@ -137,7 +138,7 @@ export default function StudentImportPage() {
         try {
             await manualImportStudents(studentsToSend);
             setSuccessMessage("Manual import successful! All students have been added.");
-            setManualStudents([{ temp_id: crypto.randomUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: "" }]);
+            setManualStudents([{ temp_id: generateUUID(), lrn: "", first_name: "", middle_name: "", last_name: "", section: "" }]);
         } catch (error: any) {
             setErrorMessage(error.response?.data?.detail || error.response?.data?.['Validation Error'] || error.response?.data?.['Validation Error: '] || error.response?.data?.error || "Failed to import students. Please check the data.");
         } finally {
