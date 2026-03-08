@@ -20,11 +20,9 @@ from django.urls import path, include, re_path
 from django.conf.urls.static import static
 from django.conf import settings
 from django.views.generic import TemplateView
-import django_eventstream
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("events/", include(django_eventstream.urls)),
     # rest-based
     path("api/", include("Authentication.urls")),
     path("api/", include("Test_Management.urls")),

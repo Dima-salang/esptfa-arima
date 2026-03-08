@@ -2,9 +2,7 @@
 # Matches the configuration defined in esptfa_arima/esptfaARIMA/settings_ci.py
 #
 # Services
-#   web     – Daphne ASGI server (Django + Channels)
-#   celery  – Celery worker (async task processing)
-#   redis   – Message broker for Celery & Django Eventstream
+#   web  – Daphne ASGI server (Django + serves compiled React frontend)
 #
 # Usage:
 #   1. Ensure esptfa_arima/.env exists with at least DJANGO_SECRET_KEY set.
@@ -26,65 +24,16 @@ services:
     environment:
       # Explicitly set here in case .env omits it.
       DJANGO_SETTINGS_MODULE: esptfaARIMA.settings_ci
-    depends_on:
-      redis:
-        condition: service_healthy
     restart: on-failure
     volumes:
       # SQLite database file – persisted across container restarts.
-      # settings_ci.py: DATABASES NAME = "esptfa_arima" (no path prefix
-      # means Django resolves it relative to BASE_DIR = /app/esptfa_arima).
+      # settings_ci.py: DATABASES NAME = "esptfa_arima" (relative to
+      # BASE_DIR = /app/esptfa_arima, resolved by Django at runtime).
       - sqlite-data:/app/esptfa_arima
-      # User-uploaded media files (MEDIA_ROOT).
+      # User-uploaded media files (MEDIA_ROOT in settings_ci.py).
       - esptfa_arima_media:/app/esptfa_arima/media
       # Rotating log files written by RotatingFileHandler in settings_ci.py.
       - esptfa_arima_logs:/app/esptfa_arima/logs
-
-  # ──────────────────────────────────────────────────────────────
-  # Celery – async worker
-  # settings_ci.py: CELERY_BROKER_URL = "redis://redis:6379/0"
-  # ──────────────────────────────────────────────────────────────
-  celery:
-    image: esptfa_arima_app
-    # Reuse the image built for 'web'; no separate build needed.
-    working_dir: /app/esptfa_arima
-    command: celery -A esptfaARIMA worker --loglevel=INFO --events
-    env_file:
-      - esptfa_arima/.env
-    environment:
-      DJANGO_SETTINGS_MODULE: esptfaARIMA.settings_ci
-    depends_on:
-      redis:
-        condition: service_healthy
-      web:
-        condition: service_started
-    restart: on-failure
-    volumes:
-      - sqlite-data:/app/esptfa_arima
-      - esptfa_arima_media:/app/esptfa_arima/media
-      - esptfa_arima_logs:/app/esptfa_arima/logs
-
-  # ──────────────────────────────────────────────────────────────
-  # Redis – broker for Celery + Django Eventstream
-  # settings_ci.py:
-  #   CELERY_BROKER_URL      = "redis://redis:6379/0"
-  #   EVENTSTREAM_REDIS.host = "redis"
-  #   EVENTSTREAM_REDIS.port = 6379
-  # ──────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    restart: always
-    # Only expose Redis to the internal Docker network; do NOT
-    # publish 6379 to the host in production.
-    expose:
-      - "6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 # ──────────────────────────────────────────────────────────────────
 # Named volumes
@@ -96,5 +45,3 @@ volumes:
   esptfa_arima_media:
   # Persists rotating Django & ARIMA log files.
   esptfa_arima_logs:
-  # Persists Redis AOF / RDB snapshot.
-  redis-data:
