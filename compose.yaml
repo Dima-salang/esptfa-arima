@@ -1,104 +1,100 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
+# Docker Compose – esptfa-arima
+# Matches the configuration defined in esptfa_arima/esptfaARIMA/settings_ci.py
+#
+# Services
+#   web     – Daphne ASGI server (Django + Channels)
+#   celery  – Celery worker (async task processing)
+#   redis   – Message broker for Celery & Django Eventstream
+#
+# Usage:
+#   1. Ensure esptfa_arima/.env exists with at least DJANGO_SECRET_KEY set.
+#   2. docker compose up --build
 
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
-  server:
+  # ──────────────────────────────────────────────────────────────
+  # Web – Daphne ASGI server
+  # ──────────────────────────────────────────────────────────────
+  web:
     image: esptfa_arima_app
     build:
       context: .
+      dockerfile: Dockerfile
     ports:
-      - 8000:8000
+      - "8000:8000"
     env_file:
       - esptfa_arima/.env
-    depends_on:
-      - redis
-      - db
-    volumes:
-      - esptfa_arima_media:/app/esptfa_arima/media
-      - esptfa_arima_static:/app/esptfa_arima/static
-
-  redis:
-    image: redis:latest
-    ports:
-      - 6379:6379
-    restart: always
-
-  db:
-    image: postgres:14
-    restart: always
-    user: postgres
-    secrets:
-      - db-password
     environment:
-      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-      - POSTGRES_DB=esptfa_arima
-    expose:
-      - 5432
-    env_file:
-      - esptfa_arima/.env
+      # Explicitly set here in case .env omits it.
+      DJANGO_SETTINGS_MODULE: esptfaARIMA.settings_ci
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: on-failure
     volumes:
-      - db-data:/var/lib/postgresql/data
+      # SQLite database file – persisted across container restarts.
+      # settings_ci.py: DATABASES NAME = "esptfa_arima" (no path prefix
+      # means Django resolves it relative to BASE_DIR = /app/esptfa_arima).
+      - sqlite-data:/app/esptfa_arima
+      # User-uploaded media files (MEDIA_ROOT).
+      - esptfa_arima_media:/app/esptfa_arima/media
+      # Rotating log files written by RotatingFileHandler in settings_ci.py.
+      - esptfa_arima_logs:/app/esptfa_arima/logs
 
+  # ──────────────────────────────────────────────────────────────
+  # Celery – async worker
+  # settings_ci.py: CELERY_BROKER_URL = "redis://redis:6379/0"
+  # ──────────────────────────────────────────────────────────────
   celery:
     image: esptfa_arima_app
+    # Reuse the image built for 'web'; no separate build needed.
+    working_dir: /app/esptfa_arima
+    command: celery -A esptfaARIMA worker --loglevel=INFO --events
     env_file:
       - esptfa_arima/.env
-    command: celery -A esptfaARIMA worker -l INFO -E
+    environment:
+      DJANGO_SETTINGS_MODULE: esptfaARIMA.settings_ci
     depends_on:
-      - server
-      - redis
-      - db
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: on-failure
     volumes:
+      - sqlite-data:/app/esptfa_arima
       - esptfa_arima_media:/app/esptfa_arima/media
-      - esptfa_arima_static:/app/esptfa_arima/static
-  
+      - esptfa_arima_logs:/app/esptfa_arima/logs
+
+  # ──────────────────────────────────────────────────────────────
+  # Redis – broker for Celery + Django Eventstream
+  # settings_ci.py:
+  #   CELERY_BROKER_URL      = "redis://redis:6379/0"
+  #   EVENTSTREAM_REDIS.host = "redis"
+  #   EVENTSTREAM_REDIS.port = 6379
+  # ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # Only expose Redis to the internal Docker network; do NOT
+    # publish 6379 to the host in production.
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ──────────────────────────────────────────────────────────────────
+# Named volumes
+# ──────────────────────────────────────────────────────────────────
 volumes:
-  db-data:
+  # Persists the SQLite database file between deploys.
+  sqlite-data:
+  # Persists user-uploaded files (MEDIA_ROOT).
   esptfa_arima_media:
-  esptfa_arima_static:
-
-
-secrets:
-  db-password:
-    file: db/password.txt
-
-
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
-# start the database before your application. The `db-data` volume persists the
-# database data between container restarts. The `db-password` secret is used
-# to set the database password. You must create `db/password.txt` and add
-# a password of your choosing to it before running `docker compose up`.
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#   db:
-#     image: postgres
-#     restart: always
-#     user: postgres
-#     secrets:
-#       - db-password
-#     volumes:
-#       - db-data:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_DB=example
-#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-#     expose:
-#       - 5432
-#     healthcheck:
-#       test: [ "CMD", "pg_isready" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-# volumes:
-#   db-data:
-# secrets:
-#   db-password:
-#     file: db/password.txt
-
+  # Persists rotating Django & ARIMA log files.
+  esptfa_arima_logs:
+  # Persists Redis AOF / RDB snapshot.
+  redis-data:
