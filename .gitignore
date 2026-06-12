@@ -1,5 +1,6 @@
 /esptfa-arima-venv
 /esptfa-venv
+*.venv/
 # Ignore Python bytecode and cache
 __pycache__/
 db.sqlite3
