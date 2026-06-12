@@ -20,6 +20,10 @@ cd esptfa_arima
 # Set the Django settings module to ensure it's picked up by the application
 export DJANGO_SETTINGS_MODULE=esptfaARIMA.settings_ci
 
+# migrate
+echo "Migrating database..."
+python manage.py migrate --noinput
+
 # Start the application server via the entrypoint script
 echo "Starting Application Server (Linux/macOS)..."
 python run_app.py
