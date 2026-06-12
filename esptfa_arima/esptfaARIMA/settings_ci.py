@@ -154,13 +154,16 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+DB_DIR = os.path.join(BASE_DIR, "db")
+os.makedirs(DB_DIR, exist_ok=True)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         # Explicit absolute path keeps the database in its own subdirectory.
         # This lets Docker mount ONLY the db/ folder as a volume, so the
         # application code in BASE_DIR is never shadowed by a volume mount.
-        "NAME": os.path.join(BASE_DIR, "db", "esptfa_arima"),
+        "NAME": os.path.join(DB_DIR, "esptfa_arima"),
         #'ENGINE': 'django.db.backends.postgresql',
         #'USER': 'postgres',
         #'PASSWORD': 'test',
