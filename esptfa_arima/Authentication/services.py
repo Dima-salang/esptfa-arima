@@ -147,13 +147,33 @@ def generate_unique_username(base_username):
 # processing csv for bulk import
 def process_csv_import(file: File, allowed_section: Section = None) -> None:
     try:
-        # read the excel file
+        # read the file (supports both CSV and Excel)
         try:
-            students_csv = pd.read_excel(file)
+            # Reset the file pointer to the beginning
+            if hasattr(file, "seek"):
+                file.seek(0)
+
+            filename = getattr(file, "name", "").lower()
+            if filename.endswith(".csv"):
+                try:
+                    students_csv = pd.read_csv(file)
+                except Exception:
+                    # Fallback to excel if csv parsing fails
+                    if hasattr(file, "seek"):
+                        file.seek(0)
+                    students_csv = pd.read_excel(file)
+            else:
+                try:
+                    students_csv = pd.read_excel(file)
+                except Exception:
+                    # Fallback to csv if excel parsing fails (e.g. file is csv but has no extension or wrong extension)
+                    if hasattr(file, "seek"):
+                        file.seek(0)
+                    students_csv = pd.read_csv(file)
         except Exception as e:
-            logger.error(f"Failed to read Excel file: {str(e)}")
+            logger.error(f"Failed to read file: {str(e)}")
             raise DRFValidationError(
-                f"Could not read the Excel file. Please ensure it is a valid Excel file (.xlsx or .xls). Error: {str(e)}"
+                f"Could not read the uploaded file. Please ensure it is a valid CSV (.csv) or Excel (.xlsx/.xls) file. Error: {str(e)}"
             )
 
         # Normalize column names to lowercase and strip whitespace
