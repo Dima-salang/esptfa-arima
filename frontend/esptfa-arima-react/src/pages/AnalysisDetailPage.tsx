@@ -39,6 +39,15 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
     LineChart,
     Line,
     XAxis,
@@ -556,9 +565,50 @@ export default function AnalysisDetailPage() {
                                             </TooltipProvider>
                                         ))}
                                         {data.student_performance.filter(s => s.predicted_status === 'Fail').length > 8 && (
-                                            <Badge variant="outline" className="bg-red-100 border-red-200 text-red-700 font-black px-3 py-1.5 rounded-xl">
-                                                +{data.student_performance.filter(s => s.predicted_status === 'Fail').length - 8} more
-                                            </Badge>
+                                            <Sheet>
+                                                <SheetTrigger asChild>
+                                                    <Badge variant="outline" className="bg-red-100 border-red-200 text-red-700 font-black px-3 py-1.5 rounded-xl cursor-pointer hover:bg-red-200 transition-all shadow-sm">
+                                                        +{data.student_performance.filter(s => s.predicted_status === 'Fail').length - 8} more
+                                                    </Badge>
+                                                </SheetTrigger>
+                                                <SheetContent className="w-[450px] sm:w-[540px] max-w-full flex flex-col h-full bg-white border-l shadow-2xl p-6">
+                                                    <SheetHeader className="pb-4 border-b">
+                                                        <SheetTitle className="text-xl font-black text-red-700 flex items-center gap-2">
+                                                            <AlertCircle className="h-5 w-5" />
+                                                            Immediate Intervention List
+                                                        </SheetTitle>
+                                                        <SheetDescription className="text-slate-500 font-medium">
+                                                            All {data.student_performance.filter(s => s.predicted_status === 'Fail').length} students at high risk requiring action.
+                                                        </SheetDescription>
+                                                    </SheetHeader>
+                                                    <ScrollArea className="flex-1 mt-4 -mr-2 pr-4">
+                                                        <div className="space-y-4 pb-6">
+                                                            {data.student_performance.filter(s => s.predicted_status === 'Fail').map((student) => (
+                                                                <div key={student.lrn} className="flex flex-col p-4 rounded-2xl bg-red-50/20 border border-red-100/50 hover:bg-red-50/40 transition-all">
+                                                                    <div className="flex items-center justify-between gap-4 mb-2">
+                                                                        <div>
+                                                                            <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="font-bold text-slate-800 hover:text-indigo-600 transition-colors text-sm">
+                                                                                {student.name}
+                                                                            </Link>
+                                                                            <p className="text-[10px] text-slate-400 font-bold tracking-widest mt-0.5">LRN: {student.lrn}</p>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-sm font-black text-red-600">Score: {student.predicted_score?.toFixed(1)}</p>
+                                                                            <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Predicted Fail</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    {Object.values(student.prediction_intervention).length > 0 && (
+                                                                        <div className="text-[11px] text-slate-600 bg-white/60 p-2.5 rounded-xl border border-slate-100/80 mt-1">
+                                                                            <p className="font-semibold text-slate-700 mb-0.5 text-[10px] uppercase tracking-wider text-red-600/80">Recommended Intervention:</p>
+                                                                            {Object.values(student.prediction_intervention)[0]}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </ScrollArea>
+                                                </SheetContent>
+                                            </Sheet>
                                         )}
                                     </div>
                                 </CardContent>
