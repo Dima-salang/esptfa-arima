@@ -38,9 +38,8 @@ export default function ForcePasswordResetPage() {
         setLoading(true);
         try {
             await forcePasswordReset(newPassword);
-            toast.success("Password updated successfully.");
-            await fetchProfile(); // Refresh the user profile to clear requires_password_change
-            navigate("/dashboard");
+            toast.success("Password updated successfully. Please log in with your new password.");
+            await logoutUser();
         } catch (err: any) {
             console.error("Password reset error:", err);
             setError(err.response?.data?.detail || "Failed to update password. Please try again.");
