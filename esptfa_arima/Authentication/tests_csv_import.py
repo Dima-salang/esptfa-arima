@@ -56,7 +56,7 @@ class ProcessCSVImportTestCase(TestCase):
         with self.assertRaises((ValidationError, DRFValidationError)) as cm:
             process_csv_import(csv_file)
 
-        self.assertIn("CSV file must have the following columns", str(cm.exception))
+        self.assertIn("Excel file must have the following columns", str(cm.exception))
 
     def test_process_csv_import_invalid_section(self):
         """Test import fails when a section does not exist."""
