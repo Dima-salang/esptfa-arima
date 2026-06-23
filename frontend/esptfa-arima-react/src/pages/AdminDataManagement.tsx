@@ -292,7 +292,7 @@ function SectionManager() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Section | null>(null);
-    const [formData, setFormData] = useState<Partial<Section>>({ section_name: "", adviser: undefined });
+    const [formData, setFormData] = useState<Partial<Section>>({ section_name: "", adviser: null });
 
     const fetchData = async () => {
         setLoading(true);
@@ -332,7 +332,7 @@ function SectionManager() {
             }
             setIsDialogOpen(false);
             setEditingItem(null);
-            setFormData({ section_name: "", adviser: undefined });
+            setFormData({ section_name: "", adviser: null });
             fetchData();
         } catch (error) {
             console.error("Error saving section:", error);
@@ -354,7 +354,7 @@ function SectionManager() {
 
     const openCreateDialog = () => {
         setEditingItem(null);
-        setFormData({ section_name: "", adviser: undefined });
+        setFormData({ section_name: "", adviser: null });
         setIsDialogOpen(true);
     };
 
@@ -362,7 +362,7 @@ function SectionManager() {
         setEditingItem(item);
         setFormData({ 
             section_name: item.section_name, 
-            adviser: item.adviser 
+            adviser: item.adviser || null 
         });
         setIsDialogOpen(true);
     };
@@ -471,7 +471,7 @@ function SectionManager() {
                             <Label htmlFor="adviser">Adviser</Label>
                             <Select 
                                 value={formData.adviser ? String(formData.adviser) : "none"} 
-                                onValueChange={(value) => setFormData({ ...formData, adviser: value === "none" ? undefined : Number(value) })}
+                                onValueChange={(value) => setFormData({ ...formData, adviser: value === "none" ? null : Number(value) })}
                             >
                                 <SelectTrigger className="rounded-xl">
                                     <SelectValue placeholder="Select an adviser" />
