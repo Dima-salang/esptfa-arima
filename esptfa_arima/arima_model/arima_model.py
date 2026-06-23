@@ -16,8 +16,8 @@ from scipy.stats import mode
 from .arima_statistics import compute_document_statistics, compute_test_statistics, compute_student_statistics
 
 
-MASTERY_THRESHOLD = 0.90
-PASSING_THRESHOLD = 0.75
+MASTERY_THRESHOLD = 0.81
+PASSING_THRESHOLD = 0.70
 DEFAULT_POST_TEST_MAX_SCORE = 60.0
 
 logger = logging.getLogger("arima_model")
@@ -69,7 +69,7 @@ def preprocess_data(analysis_document):
     df["normalized_scores"] = df["score"] / df["max_score"]
     
     # normalize passing threshold
-    df["normalized_passing_threshold"] = 0.75
+    df["normalized_passing_threshold"] = 0.70
 
     # make test number into int
     df["test_number"] = df["test_number"].astype(int)
@@ -96,7 +96,7 @@ def preprocess_data(analysis_document):
             "mastery_consistency": mastery_consistency(scores),
             "recent_decay": recent_decay(scores),
             "downside_risk": downside_risk(scores),
-            "normalized_passing_threshold": 0.75, # adding this for predicted status
+            "normalized_passing_threshold": 0.70, # adding this for predicted status
             "test_number": student_data["test_number"].max() # use the last test number as ref
         })
         
@@ -240,9 +240,25 @@ def assign_predicted_status(student_data):
     """
         Assign the predicted status to the student data
     """
-    # Vectorized assignment is more efficient and avoids iterrows copy issues
-    mask = student_data["predictions"] >= (student_data["post_test_max_score"] * student_data["normalized_passing_threshold"])
-    student_data["predicted_status"] = np.where(mask, "Pass", "Fail")
+    # Calculate predicted percentage
+    percent = (student_data["predictions"] / student_data["post_test_max_score"]) * 100
+
+    # Categorize based on new performance levels:
+    # Mastery Learners: 81%+
+    # Monitoring Learners: 70.00% - 80.99%
+    # Priority Support Learners: below 70%
+    conditions = [
+        percent >= 81,
+        (percent >= 70) & (percent < 81),
+        percent < 70
+    ]
+    choices = [
+        "Mastery Learners",
+        "Monitoring Learners",
+        "Priority Support Learners"
+    ]
+
+    student_data["predicted_status"] = np.select(conditions, choices, default="Priority Support Learners")
     
     return student_data 
 
