@@ -37,7 +37,7 @@ export interface Subject {
 export interface Section {
   section_id: number;
   section_name: string;
-  adviser?: number;
+  adviser?: number | null;
   adviser_details?: {
     id: number;
     username: string;
