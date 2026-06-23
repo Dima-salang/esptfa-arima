@@ -220,7 +220,34 @@ export default function AssessmentEditorPage() {
 
     // Handle score change
     const handleScoreChange = (lrn: string, topicId: string, value: string) => {
-        const numValue = value === "" ? 0 : Number.parseInt(value);
+        if (value === "") {
+            setScores(prev => {
+                const topicIndex = topics.findIndex(t => t.id === topicId);
+                const next = {
+                    ...prev,
+                    [lrn]: {
+                        ...prev[lrn],
+                        [topicId]: {
+                            score: "" as any,
+                            student_id: lrn,
+                            max_score: topics.find(t => t.id === topicId)?.max_score || 0,
+                            test_number: topicIndex >= 0 ? topicIndex + 1 : 1
+                        }
+                    }
+                };
+
+                // Debounce save
+                if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = setTimeout(() => {
+                    saveDraft(topics, next, postTestMaxScore);
+                }, 2000);
+
+                return next;
+            });
+            return;
+        }
+
+        const numValue = Number.parseInt(value);
         if (Number.isNaN(numValue) || numValue < 0) return;
 
         const topic = topics.find(t => t.id === topicId);
@@ -655,7 +682,7 @@ export default function AssessmentEditorPage() {
                                 <SelectItem value="all" className="font-bold rounded-xl h-10">All Students</SelectItem>
                                 <SelectItem value="complete" className="font-bold rounded-xl h-10 text-emerald-600">Fully Scored</SelectItem>
                                 <SelectItem value="incomplete" className="font-bold rounded-xl h-10 text-amber-600">Missing Scores</SelectItem>
-                                <SelectItem value="at-risk" className="font-bold rounded-xl h-10 text-red-600">At Risk ({"<"}75%)</SelectItem>
+                                <SelectItem value="at-risk" className="font-bold rounded-xl h-10 text-red-600">At Risk ({"<"}70%)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -742,23 +769,24 @@ export default function AssessmentEditorPage() {
                                             </TableCell>
                                             {topics.map(topic => {
                                                 const scoreEntry = scores[student.lrn]?.[topic.id];
-                                                const score = typeof scoreEntry === 'object' ? scoreEntry.score : (scoreEntry || 0);
-                                                const percentage = topic.max_score > 0 ? (score / topic.max_score) * 100 : 0;
+                                                const score = typeof scoreEntry === 'object' ? scoreEntry.score : (scoreEntry !== undefined ? scoreEntry : "");
+                                                const scoreNum = typeof score === 'number' ? score : (Number(score) || 0);
+                                                const percentage = topic.max_score > 0 ? (scoreNum / topic.max_score) * 100 : 0;
 
                                                 // Premium Dynamic Styling
                                                 let bgClass = "bg-white";
                                                 let textClass = "text-slate-900";
-                                                const isInvalid = score > topic.max_score;
+                                                const isInvalid = scoreNum > topic.max_score;
                                                 if (isInvalid) {
                                                     bgClass = "bg-rose-100/80 group-hover:bg-rose-200/80";
                                                     textClass = "text-rose-900";
                                                 } else if (percentage >= 90) {
                                                     bgClass = "bg-emerald-50/30 group-hover:bg-emerald-50/50";
                                                     textClass = "text-emerald-700";
-                                                } else if (percentage >= 75) {
+                                                } else if (percentage >= 70) {
                                                     bgClass = "bg-blue-50/30 group-hover:bg-blue-50/50";
                                                     textClass = "text-blue-700";
-                                                } else if (percentage < 50 && score > 0) {
+                                                } else if (percentage < 70 && scoreNum > 0) {
                                                     bgClass = "bg-rose-50/30 group-hover:bg-rose-50/50";
                                                     textClass = "text-rose-700";
                                                 }
@@ -770,7 +798,8 @@ export default function AssessmentEditorPage() {
                                                                 type="number"
                                                                 min={0}
                                                                 max={topic.max_score}
-                                                                value={score === 0 && scores[student.lrn]?.[topic.id] === undefined ? "" : score}
+                                                                value={score}
+                                                                onFocus={(e) => e.target.select()}
                                                                 onChange={(e) => handleScoreChange(student.lrn, topic.id, e.target.value)}
                                                                 className={cn(
                                                                     "w-24 h-9 text-center font-black text-sm rounded-xl border-none ring-1 ring-slate-200/50 focus:ring-2 focus:ring-indigo-500 bg-white/80 shadow-sm transition-all",
