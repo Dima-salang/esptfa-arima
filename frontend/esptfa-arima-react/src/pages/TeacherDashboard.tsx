@@ -95,14 +95,14 @@ export default function TeacherDashboard() {
     const getStatusBadge = (status: boolean) => {
         if (status) {
             return (
-                <Badge className="px-3 py-1 rounded-full border-none shadow-none font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                    Processed
+                <Badge className="px-3 py-1 rounded-full border-none shadow-none font-bold bg-emerald-600 text-white hover:bg-emerald-600">
+                    Analysis Completed
                 </Badge>
             );
         }
         return (
             <Badge className="px-3 py-1 rounded-full border-none shadow-none font-bold bg-blue-100 text-blue-700 hover:bg-blue-100">
-                Processing
+                Analyzing
             </Badge>
         );
     };
