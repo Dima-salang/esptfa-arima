@@ -111,7 +111,7 @@ def start_arima_model(document):
 
 """Creates the formative assessment scores and commits them to the db"""
 def process_formative_assessment_scores(document, scores, test_topic_mappings):
-    PASSING_PERCENTAGE = 0.75
+    PASSING_PERCENTAGE = 0.70
     try:
         # Create a lookup for mappings by test_number for efficiency
         mapping_lookup = {str(m.topic.test_number): m for m in test_topic_mappings}
@@ -133,8 +133,11 @@ def process_formative_assessment_scores(document, scores, test_topic_mappings):
                 topic_mapping = mapping_lookup.get(test_num)
 
                 # get the score
-                score = score_data.get('score', 0)
-                max_score = score_data.get('max_score', 0)
+                score_val = score_data.get('score')
+                score = float(score_val) if (score_val is not None and score_val != '') else 0.0
+                
+                max_score_val = score_data.get('max_score')
+                max_score = float(max_score_val) if (max_score_val is not None and max_score_val != '') else 0.0
 
                 # calculate passing threshold
                 passing_threshold = max_score * PASSING_PERCENTAGE if max_score > 0 else 0
