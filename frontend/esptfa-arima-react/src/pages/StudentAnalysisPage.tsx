@@ -49,6 +49,13 @@ import {
     Trophy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+    getLearnerStatus,
+    getScoreColorClass,
+    getScoreColorHex,
+    getInterventionTheme,
+    mapIntervention
+} from "@/lib/student-utils";
 
 const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -71,7 +78,7 @@ const MasteryGauge = ({ percent }: { percent: number }) => {
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percent / 100) * circumference;
-    const color = percent >= 90 ? "#10b981" : percent >= 75 ? "#f59e0b" : "#ef4444";
+    const color = getScoreColorHex(percent);
 
     return (
         <div className="relative flex items-center justify-center">
@@ -108,7 +115,7 @@ const MasteryGauge = ({ percent }: { percent: number }) => {
                 >
                     {percent.toFixed(0)}%
                 </motion.span>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Mastery</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Overall Performance Percentage</span>
             </div>
         </div>
     );
@@ -116,7 +123,7 @@ const MasteryGauge = ({ percent }: { percent: number }) => {
 
 const PersonalizedStudyGuide = ({ scores }: { scores: StudentDetailData['scores'] }) => {
     const weakTopics = [...scores]
-        .filter(s => (s.score / s.max_score) < 0.75)
+        .filter(s => (s.score / s.max_score) < 0.70)
         .sort((a, b) => (a.score / a.max_score) - (b.score / b.max_score));
 
     if (weakTopics.length === 0) return (
@@ -135,7 +142,7 @@ const PersonalizedStudyGuide = ({ scores }: { scores: StudentDetailData['scores'
         <div className="space-y-4">
             <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
                 <Rocket className="h-4 w-4 text-indigo-500" />
-                Your Focus Plan
+                Recommended Focus Areas
             </h4>
             <div className="grid gap-3">
                 {weakTopics.slice(0, 3).map((topic) => (
@@ -201,41 +208,12 @@ interface StudentDetailData {
         post_test_max_score?: number;
     };
 }
-
 const getStatusBadge = (score: number, max: number) => {
     const percent = max > 0 ? (score / max) * 100 : 0;
-    if (percent >= 90) return <Badge className="bg-emerald-500 text-white border-none font-black shadow-sm px-3">MASTERY</Badge>;
-    if (percent >= 75) return <Badge className="bg-amber-400 text-white border-none font-black shadow-sm px-3">PASSING</Badge>;
-    return <Badge className="bg-red-500 text-white border-none font-black shadow-sm px-3">AT RISK</Badge>;
-};
-
-const getScoreColor = (percent: number) => {
-    if (percent >= 90) return "text-emerald-600";
-    if (percent >= 75) return "text-amber-500";
-    return "text-red-600";
-};
-
-const getInterventionTheme = (percent: number | null) => {
-    if (percent === null || percent === undefined) return {
-        badge: "bg-slate-100 text-slate-700 border-slate-200",
-        container: "bg-slate-50/50 border-slate-100/50 text-slate-900"
-    };
-    if (percent < 75) return {
-        badge: "bg-rose-100 text-rose-700 border-rose-200/50",
-        container: "bg-rose-50/50 border-rose-100/40 text-rose-900"
-    };
-    if (percent < 80) return {
-        badge: "bg-orange-100 text-orange-700 border-orange-200/50",
-        container: "bg-orange-50/50 border-orange-100/40 text-orange-900"
-    };
-    if (percent < 90) return {
-        badge: "bg-indigo-100 text-indigo-700 border-indigo-200/50",
-        container: "bg-indigo-50/50 border-indigo-100/40 text-indigo-900"
-    };
-    return {
-        badge: "bg-emerald-100 text-emerald-700 border-emerald-200/50",
-        container: "bg-emerald-50/50 border-emerald-100/40 text-emerald-900"
-    };
+    const status = getLearnerStatus(percent);
+    if (status === 'Mastery Learners') return <Badge className="bg-emerald-500 text-white border-none font-black shadow-sm px-3">MASTERY</Badge>;
+    if (status === 'Monitoring Learners') return <Badge className="bg-amber-400 text-white border-none font-black shadow-sm px-3">MONITORING</Badge>;
+    return <Badge className="bg-red-500 text-white border-none font-black shadow-sm px-3">PRIORITY SUPPORT</Badge>;
 };
 
 const InfoTooltip = ({ content }: { content: string }) => (
@@ -400,7 +378,6 @@ export default function StudentAnalysisPage() {
                     </div>
                 </div>
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Key Stats Sidebar */}
                 <div className="space-y-6">
@@ -411,7 +388,7 @@ export default function StudentAnalysisPage() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-black flex items-center gap-2">
                                 <Trophy className="h-5 w-5 text-amber-500" />
-                                Your Mastery Profile
+                                Learner Mastery Profile
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-8 pt-4">
@@ -425,11 +402,11 @@ export default function StudentAnalysisPage() {
                                         
                                         <div className="grid grid-cols-2 w-full gap-4 mt-8 px-2">
                                             <div className="p-4 bg-slate-50 rounded-2xl text-center">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pass Rate</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Attainment Rate</p>
                                                 <h4 className="text-xl font-black text-slate-800">{(data.student_stats?.passing_rate || 0).toFixed(0)}%</h4>
                                             </div>
                                             <div className="p-4 bg-slate-50 rounded-2xl text-center">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Assessments</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Completed Assessments</p>
                                                 <h4 className="text-xl font-black text-slate-800">{data.scores.length}</h4>
                                             </div>
                                         </div>
@@ -440,8 +417,8 @@ export default function StudentAnalysisPage() {
                             <div className="space-y-6 border-t border-slate-50 pt-6">
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                                        ARIMA PREDICTION
-                                        <InfoTooltip content="AI prediction for your next big exam based on your current trajectory." />
+                                        Predicted Post-Test Performance
+                                        <InfoTooltip content="Estimated post-test score based on formative assessment performance." />
                                     </p>
                                     <div className="bg-indigo-600 p-6 rounded-3xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group">
                                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-indigo-700 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -451,32 +428,47 @@ export default function StudentAnalysisPage() {
                                                     {data.prediction?.score.toFixed(1) || "N/A"}
                                                 </span>
                                                 <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase">
-                                                    {data.prediction?.predicted_status === 'Pass' ? 'Projected: PASS' : 'Projected: AT RISK'}
+                                                    {(() => {
+                                                        const status = getLearnerStatus(data.prediction_score_percent);
+                                                        return `Projected: ${status}`;
+                                                    })()}
                                                 </div>
                                             </div>
-                                            <p className="text-xs font-bold text-indigo-100 opacity-80">Predicted Post-Test Achievement</p>
+                                            <p className="text-xs font-bold text-indigo-100 opacity-80">Predicted Post Test Achievement</p>
                                         </div>
                                     </div>
                                 </div>
-
+ 
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PERSONAL ADVISORY</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Learner Support Advisory</p>
                                     <div className="space-y-3">
                                         {typeof data.prediction_intervention === 'object' ? 
                                             Object.entries(data.prediction_intervention).map(([label, action]) => {
                                                 const theme = getInterventionTheme(data.prediction_score_percent);
+                                                const mapped = mapIntervention(label);
+                                                
+                                                // Enhance Remedial/Priority Support descriptions specifically
+                                                let displayAction = action;
+                                                if (mapped.label === "Targeted Remediation" && action.toLowerCase().includes("support to understand")) {
+                                                    displayAction = "Focused instructional support is recommended. The learner should review prerequisite concepts and complete targeted practice activities.";
+                                                }
+
                                                 return (
                                                     <div key={label} className="space-y-2">
                                                         <Badge className={`${theme.badge} border-none font-black text-[10px] uppercase tracking-wider px-3 py-1 rounded-lg`}>
-                                                            {label}
+                                                            {mapped.label}
                                                         </Badge>
                                                         <div className={`p-5 rounded-2xl border-none shadow-inner text-sm font-bold leading-relaxed italic ${theme.container}`}>
-                                                            "{action}"
+                                                            "{displayAction}"
                                                         </div>
                                                     </div>
                                                 );
                                             }) : (
-                                                <p className="text-sm text-slate-500 italic font-medium">{data.prediction_intervention}</p>
+                                                <p className="text-sm text-slate-500 italic font-medium">
+                                                    {typeof data.prediction_intervention === 'string' 
+                                                        ? data.prediction_intervention 
+                                                        : JSON.stringify(data.prediction_intervention)}
+                                                </p>
                                             )
                                         }
                                     </div>
@@ -489,7 +481,7 @@ export default function StudentAnalysisPage() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-black flex items-center gap-2">
                                 <BookOpen className="h-5 w-5 text-indigo-600" />
-                                Your Growth Guide
+                                Learner Growth Guide
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -505,7 +497,7 @@ export default function StudentAnalysisPage() {
                         <motion.div variants={itemVariants} className="p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-[2rem] text-white shadow-lg shadow-emerald-200 relative overflow-hidden group">
                             <div className="relative z-10">
                                 <TrendingUp className="h-8 w-8 mb-4 opacity-50" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Highest Mastery</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Strongest Competency</h4>
                                 {(() => {
                                     const best = [...data.scores].sort((a, b) => (b.score / b.max_score) - (a.score / a.max_score))[0];
                                     return (
@@ -524,7 +516,7 @@ export default function StudentAnalysisPage() {
                         <motion.div variants={itemVariants} className="p-6 bg-gradient-to-br from-rose-500 to-rose-600 rounded-[2rem] text-white shadow-lg shadow-rose-200 relative overflow-hidden group">
                             <div className="relative z-10">
                                 <TrendingDown className="h-8 w-8 mb-4 opacity-50" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Priority Support</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Priority Competency for Support</h4>
                                 {(() => {
                                     const worst = [...data.scores].sort((a, b) => (a.score / a.max_score) - (b.score / b.max_score))[0];
                                     return (
@@ -545,9 +537,9 @@ export default function StudentAnalysisPage() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-xl font-black flex items-center gap-2">
                                 <TrendingUp className="h-5 w-5 text-indigo-600" />
-                                Performance Trajectory
+                                Learner Performance Trajectory
                             </CardTitle>
-                            <CardDescription className="font-bold">Visualizing your growth against class standards</CardDescription>
+                            <CardDescription className="font-bold">Progress of the learner’s scores across assessed competencies compared with the class benchmark</CardDescription>
                         </CardHeader>
                         <CardContent className="h-[350px]">
                             <ResponsiveContainer width="100%" height="100%">
@@ -605,7 +597,7 @@ export default function StudentAnalysisPage() {
                     <Card className="border-none shadow-xl shadow-slate-200/50 ring-1 ring-slate-200 rounded-[2.5rem] overflow-hidden bg-white">
                         <CardHeader className="border-b border-slate-50 flex flex-row items-center justify-between py-6 px-8">
                             <div>
-                                <CardTitle className="text-xl font-black">Curriculum Outcomes</CardTitle>
+                                <CardTitle className="text-xl font-black">Competency-Based Performance Summary</CardTitle>
                                 <CardDescription className="font-bold">Breaking down your mastery per topic</CardDescription>
                             </div>
                         </CardHeader>
@@ -613,10 +605,10 @@ export default function StudentAnalysisPage() {
                             <Table>
                                 <TableHeader className="bg-slate-50/50">
                                     <TableRow className="hover:bg-transparent border-slate-100 h-14">
-                                        <TableHead className="font-black text-slate-700 px-8 uppercase text-[10px] tracking-widest w-64">Outcome Area</TableHead>
-                                        <TableHead className="font-black text-slate-700 text-center uppercase text-[10px] tracking-widest">Points</TableHead>
-                                        <TableHead className="font-black text-slate-700 text-center uppercase text-[10px] tracking-widest">Mastery Level</TableHead>
-                                        <TableHead className="font-black text-slate-700 pr-8 uppercase text-[10px] tracking-widest text-right">Status</TableHead>
+                                        <TableHead className="font-black text-slate-700 px-8 uppercase text-[10px] tracking-widest w-64">Assessed Competency</TableHead>
+                                        <TableHead className="font-black text-slate-700 text-center uppercase text-[10px] tracking-widest">Score</TableHead>
+                                        <TableHead className="font-black text-slate-700 text-center uppercase text-[10px] tracking-widest">Performance Percentage</TableHead>
+                                        <TableHead className="font-black text-slate-700 pr-8 uppercase text-[10px] tracking-widest text-right">Performance Level</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -630,7 +622,7 @@ export default function StudentAnalysisPage() {
                                                 >
                                                     <TableCell className="px-8 font-black text-slate-900 leading-tight">
                                                         <div className="flex flex-col">
-                                                            <span className="text-xs text-slate-400 font-bold uppercase tracking-tighter mb-0.5">Assessed Topic</span>
+                                                            <span className="text-xs text-slate-400 font-bold uppercase tracking-tighter mb-0.5">Assessed Competency</span>
                                                             <span className="text-sm">{score.topic_name}</span>
                                                         </div>
                                                     </TableCell>
@@ -639,7 +631,7 @@ export default function StudentAnalysisPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         <div className="flex flex-col items-center gap-1.5">
-                                                            <span className={`font-black text-sm tracking-tighter ${getScoreColor(percent)}`}>
+                                                            <span className={`font-black text-sm tracking-tighter ${getScoreColorClass(percent)}`}>
                                                                 {percent.toFixed(1)}%
                                                             </span>
                                                             <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden p-0.5 ring-1 ring-slate-200/50">
@@ -647,8 +639,8 @@ export default function StudentAnalysisPage() {
                                                                     initial={{ width: 0 }}
                                                                     animate={{ width: `${percent}%` }}
                                                                     transition={{ duration: 1, delay: 0.5 }}
-                                                                    className={`h-full rounded-full ${percent >= 90 ? 'bg-emerald-500' :
-                                                                        percent >= 75 ? 'bg-amber-400' : 'bg-rose-500'
+                                                                    className={`h-full rounded-full ${percent >= 81 ? 'bg-emerald-500' :
+                                                                        percent >= 70 ? 'bg-amber-400' : 'bg-rose-500'
                                                                         }`}
                                                                 />
                                                             </div>

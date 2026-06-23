@@ -85,6 +85,20 @@ import {
     LifeBuoy,
 } from "lucide-react";
 import ActualPostTestUploadModal from "@/components/ActualPostTestUploadModal";
+import {
+    getTruePercentage,
+    getLearnerStatus,
+    getScoreColorClass,
+    getScoreColorHex,
+    getInterventionTheme,
+    mapIntervention,
+    getValidationLabel,
+    getValidationLabelStyle,
+    normalizeStatus,
+    getStatusTextClass,
+    getStatusBgClass,
+    getStatusSolidBgClass
+} from "@/lib/student-utils";
 
 interface AnalysisDocument {
     analysis_document_id: number;
@@ -146,35 +160,6 @@ interface AnalysisDetails {
     student_performance: StudentPerformance[];
 }
 
-const getTruePercentage = (s: StudentPerformance) => {
-    if (s.max_possible_score && s.max_possible_score > 0) {
-        const sum = s.sum_scores || 0;
-        return (sum / s.max_possible_score) * 100;
-    }
-    return s.mean || 0;
-};
-
-
-const getInterventionTheme = (percent: number | null) => {
-    if (percent === null || percent === undefined) return "bg-slate-50 text-slate-700 border-slate-200/50";
-    if (percent < 75) return "bg-rose-50 text-rose-700 border-rose-200/50";
-    if (percent < 80) return "bg-orange-50 text-orange-700 border-orange-200/50";
-    if (percent < 90) return "bg-indigo-50 text-indigo-700 border-indigo-200/50";
-    return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
-};
-
-const getScoreColor = (percent: number) => {
-    if (percent >= 90) return "text-emerald-600";
-    if (percent >= 75) return "text-amber-500";
-    return "text-red-600";
-};
-
-const getScoreColorHex = (percent: number) => {
-    if (percent >= 90) return "#10b981";
-    if (percent >= 75) return "#f59e0b";
-    return "#ef4444";
-};
-
 
 const InfoTooltip = ({ content }: { content: string }) => (
     <TooltipProvider>
@@ -209,6 +194,7 @@ export default function AnalysisDetailPage() {
     const [processing, setProcessing] = useState(false);
     const [sortField, setSortField] = useState<keyof StudentPerformance>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [topicSortDirection, setTopicSortDirection] = useState<"asc" | "desc" | "none">("none");
 
     const interventionLabels = Array.from(new Set(
         (data?.student_performance || []).flatMap(s => Object.keys(s.prediction_intervention))
@@ -270,8 +256,8 @@ export default function AnalysisDetailPage() {
         (data?.student_performance || []).filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.lrn.includes(searchTerm);
-            const matchesStatus = statusFilter === "all" || s.predicted_status.toLowerCase() === statusFilter.toLowerCase();
-            const matchesActualStatus = actualStatusFilter === "all" || (s.actual_status && s.actual_status.toLowerCase() === actualStatusFilter.toLowerCase());
+            const matchesStatus = statusFilter === "all" || normalizeStatus(s.predicted_status) === statusFilter;
+            const matchesActualStatus = actualStatusFilter === "all" || (s.actual_status && normalizeStatus(s.actual_status) === actualStatusFilter);
             const matchesIntervention = interventionFilter === "all" || Object.keys(s.prediction_intervention).includes(interventionFilter);
             const matchesActualIntervention = actualInterventionFilter === "all" || (s.actual_intervention && Object.keys(s.actual_intervention).includes(actualInterventionFilter));
             return matchesSearch && matchesStatus && matchesActualStatus && matchesIntervention && matchesActualIntervention;
@@ -280,8 +266,8 @@ export default function AnalysisDetailPage() {
     const matrixFilteredStudents = sortStudents(
         (data?.student_performance || []).filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(matrixSearch.toLowerCase()) || s.lrn.includes(matrixSearch);
-            const matchesStatus = matrixStatusFilter === "all" || s.predicted_status.toLowerCase() === matrixStatusFilter.toLowerCase();
-            const matchesActualStatus = matrixActualStatusFilter === "all" || (s.actual_status && s.actual_status.toLowerCase() === matrixActualStatusFilter.toLowerCase());
+            const matchesStatus = matrixStatusFilter === "all" || normalizeStatus(s.predicted_status) === matrixStatusFilter;
+            const matchesActualStatus = matrixActualStatusFilter === "all" || (s.actual_status && normalizeStatus(s.actual_status) === matrixActualStatusFilter);
             const matchesIntervention = matrixInterventionFilter === "all" || Object.keys(s.prediction_intervention).includes(matrixInterventionFilter);
             const matchesActualIntervention = matrixActualInterventionFilter === "all" || (s.actual_intervention && Object.keys(s.actual_intervention).includes(matrixActualInterventionFilter));
             return matchesSearch && matchesStatus && matchesActualStatus && matchesIntervention && matchesActualIntervention;
@@ -291,46 +277,48 @@ export default function AnalysisDetailPage() {
 
     if (loading) {
         return (
-                <div className="flex items-center justify-center h-[80vh]">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-500 font-medium">Loading analysis dashboard...</p>
-                    </div>
+            <div className="flex items-center justify-center h-[80vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-slate-500 font-medium">Loading analysis dashboard...</p>
                 </div>
+            </div>
         );
     }
 
     if (processing) {
         return (
-                <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-6">
-                    <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
-                        <BrainCircuit className="w-12 h-12 text-indigo-600" />
-                    </div>
-                    <div className="space-y-2 max-w-md">
-                        <h2 className="text-2xl font-bold text-slate-900">Analysis In Progress</h2>
-                        <p className="text-slate-500">
-                            Our ARIMA model is currently processing your data to generate predictions and insights.
-                            This usually takes a few minutes.
-                        </p>
-                    </div>
-                    <Button onClick={() => globalThis.location.reload()} className="bg-indigo-600 hover:bg-indigo-700">
-                        Refresh Status
-                    </Button>
-                    <Link to="/dashboard">
-                        <Button variant="ghost">Back to Dashboard</Button>
-                    </Link>
+            <div className="flex flex-col items-center justify-center h-[80vh] text-center space-y-6">
+                <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center animate-pulse">
+                    <BrainCircuit className="w-12 h-12 text-indigo-600" />
                 </div>
+                <div className="space-y-2 max-w-md">
+                    <h2 className="text-2xl font-bold text-slate-900">Analysis In Progress</h2>
+                    <p className="text-slate-500">
+                        Our ARIMA model is currently processing your data to generate predictions and insights.
+                        This usually takes a few minutes.
+                    </p>
+                </div>
+                <Button onClick={() => globalThis.location.reload()} className="bg-indigo-600 hover:bg-indigo-700">
+                    Refresh Status
+                </Button>
+                <Link to="/dashboard">
+                    <Button variant="ghost">Back to Dashboard</Button>
+                </Link>
+            </div>
         );
     }
 
     if (!data) {
         return (
-                <div className="text-center py-20">
-                    <h2 className="text-xl font-bold">Analysis not found</h2>
-                    <Link to="/dashboard" className="text-indigo-600">Go back</Link>
-                </div>
+            <div className="text-center py-20">
+                <h2 className="text-xl font-bold">Analysis not found</h2>
+                <Link to="/dashboard" className="text-indigo-600">Go back</Link>
+            </div>
         );
     }
+
+
 
     // Prepare data for the trend chart
     const trendData = [...data.formative_assessments].map(fa => ({
@@ -340,23 +328,55 @@ export default function AnalysisDetailPage() {
         topic: fa.fa_topic_name || `Test ${fa.formative_assessment_number}`
     }));
 
-    // Prepare data for the topic performance chart
-    const topicData = [...data.formative_assessments].map(fa => ({
-        topic: fa.fa_topic_name || `FA${fa.formative_assessment_number}`,
-        passing_rate: (fa.passing_rate || 0).toFixed(1),
-        failing_rate: (fa.failing_rate || 0).toFixed(1),
-        mean: Number(fa.mean.toFixed(1)),
-        mean_percentage: Number(((fa.mean / fa.max_score) * 100).toFixed(1)),
-        max_score: fa.max_score,
-        formative_assessment_number: fa.formative_assessment_number
-    }));
+    // Prepare data for the topic performance chart using Mastery, Monitoring, Priority Support breakdowns
+    let topicData = [...data.formative_assessments].map(fa => {
+        const totalStudents = data.student_performance.length;
+        const assessNum = fa.formative_assessment_number;
+
+        let masteryCount = 0;
+        let monitoringCount = 0;
+        let priorityCount = 0;
+
+        data.student_performance.forEach(s => {
+            const score = s.scores?.[assessNum];
+            if (score !== undefined) {
+                const percent = (score / fa.max_score) * 100;
+                if (percent >= 81) masteryCount++;
+                else if (percent >= 70) monitoringCount++;
+                else priorityCount++;
+            } else {
+                // fallback to priority support if no score
+                priorityCount++;
+            }
+        });
+
+        const masteryPercent = totalStudents > 0 ? (masteryCount / totalStudents) * 100 : 0;
+        const monitoringPercent = totalStudents > 0 ? (monitoringCount / totalStudents) * 100 : 0;
+        const priorityPercent = totalStudents > 0 ? (priorityCount / totalStudents) * 100 : 0;
+
+        return {
+            topic: fa.fa_topic_name || `FA${fa.formative_assessment_number}`,
+            mastery_rate: Number(masteryPercent.toFixed(1)),
+            monitoring_rate: Number(monitoringPercent.toFixed(1)),
+            priority_rate: Number(priorityPercent.toFixed(1)),
+            mean: Number(fa.mean.toFixed(1)),
+            mean_percentage: Number(((fa.mean / fa.max_score) * 100).toFixed(1)),
+            max_score: fa.max_score,
+            formative_assessment_number: fa.formative_assessment_number
+        };
+    });
+
+    if (topicSortDirection === "asc") {
+        topicData.sort((a, b) => a.mastery_rate - b.mastery_rate);
+    } else if (topicSortDirection === "desc") {
+        topicData.sort((a, b) => b.mastery_rate - a.mastery_rate);
+    }
+
     const validPredictions = data.student_performance.filter(s => s.predicted_score !== null);
     const avgPredictedPoints = validPredictions.length > 0
         ? validPredictions.reduce((acc, s) => acc + (s.predicted_score || 0), 0) / validPredictions.length
         : 0;
     const maxPossiblePoints = data.document.post_test_max_score || 60;
-    const predictedMeanPercentage = (avgPredictedPoints / maxPossiblePoints) * 100;
-
     const sortedStudentsByPrediction = [...data.student_performance].sort((a, b) => (b.predicted_score || 0) - (a.predicted_score || 0));
     const overallTopStudents = sortedStudentsByPrediction.filter(s => s.predicted_score !== null).slice(0, 3);
     const overallBottomStudents = sortedStudentsByPrediction.filter(s => s.predicted_score !== null).reverse().slice(0, 3);
@@ -369,7 +389,7 @@ export default function AnalysisDetailPage() {
         { label: '76-90%', min: 76, max: 90, count: 0, color: '#6366f1' }, // indigo (Developing/Proficient)
         { label: '91-100%', min: 91, max: 100, count: 0, color: '#10b981' }, // emerald (Excellent)
     ];
-    
+
     if (data?.student_performance) {
         data.student_performance.forEach(s => {
             const perc = getTruePercentage(s);
@@ -383,7 +403,7 @@ export default function AnalysisDetailPage() {
             const d = payload[0].payload;
             const assessNum = d.formative_assessment_number;
             const topicName = d.topic;
-            
+
             const studentsWithScores = data.student_performance
                 .filter(s => s.scores && typeof s.scores[assessNum] === 'number')
                 .map(s => ({
@@ -397,14 +417,22 @@ export default function AnalysisDetailPage() {
             const bottomStudents = studentsWithScores.slice(-3).reverse();
 
             return (
-                <div className="bg-slate-900/95 backdrop-blur-xl text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 w-80 animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-slate-900/95 backdrop-blur-xl text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 w-85 animate-in fade-in zoom-in-95 duration-200">
                     <div className="mb-4 pb-4 border-b border-white/10">
                         <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1 leading-tight">{topicName}</p>
-                        <div className="flex items-end justify-between gap-4 mt-2">
-                            <span className="text-3xl font-black leading-none">{d.mean.toFixed(1)} <span className="text-sm text-slate-400 font-bold">/ {d.max_score}</span></span>
-                            <span className="text-[10px] font-black px-2.5 py-1.5 bg-white/10 backdrop-blur-md rounded-xl text-indigo-200">
-                                {d.passing_rate}% PASS
-                            </span>
+                        <div className="flex flex-col gap-2 mt-2">
+                            <span className="text-2xl font-black leading-none text-white">Class Mean Score: <span className="text-indigo-300">{d.mean.toFixed(1)}</span> out of {d.max_score}</span>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                <span className="text-[9px] font-black px-2.5 py-1 bg-emerald-500/20 rounded-md text-emerald-300">
+                                    {d.mastery_rate}% Mastery Level
+                                </span>
+                                <span className="text-[9px] font-black px-2.5 py-1 bg-amber-500/20 rounded-md text-amber-300">
+                                    {d.monitoring_rate}% Monitoring
+                                </span>
+                                <span className="text-[9px] font-black px-2.5 py-1 bg-rose-500/20 rounded-md text-rose-300">
+                                    {d.priority_rate}% Priority Support
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -474,7 +502,7 @@ export default function AnalysisDetailPage() {
                         <div>
                             <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                                 {data.document.analysis_doc_title}
-                                <Badge className="bg-emerald-100 text-emerald-700 border-none px-3 py-1 font-bold">Processed</Badge>
+                                <Badge className="bg-emerald-600 text-white border-none px-3 py-1 font-bold">Analysis Completed</Badge>
                             </h1>
                             <p className="text-slate-500 font-medium">
                                 {data.document.subject?.subject_name} • {data.document.quarter?.quarter_name} • {data.document.section_id?.section_name}
@@ -495,18 +523,18 @@ export default function AnalysisDetailPage() {
                 <Tabs defaultValue="overview" className="w-full">
                     <TabsList className="bg-slate-100/50 p-1 rounded-xl h-12 mb-6 w-full md:w-auto overflow-x-auto overflow-y-hidden">
                         <TabsTrigger value="overview" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Dashboard Overview</TabsTrigger>
-                        <TabsTrigger value="students" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Student Performance</TabsTrigger>
-                        <TabsTrigger value="topics" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Topic Analysis</TabsTrigger>
+                        <TabsTrigger value="students" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Learner Performance Registry</TabsTrigger>
+                        <TabsTrigger value="topics" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Competency Performance Analysis</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-6 mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Summary Metrics */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[
-                                { title: "Avg Class Score", value: data.statistics?.mean.toFixed(2), icon: TrendingUp, color: "blue", desc: "Global average across assessments", help: "The combined mean score of all students across all formative assessments recorded in this document." },
-                                { title: "Target Threshold", value: data.statistics?.mean_passing_threshold.toFixed(2), icon: AlertCircle, color: "amber", desc: "Class passing target (75%)", help: "Calculated as 75% of the average maximum points across all tests. Students below this may need intervention." },
-                                { title: "Predicted Mean", value: avgPredictedPoints.toFixed(1), icon: BrainCircuit, color: "indigo", desc: `Estimated Avg for Post-Test (${predictedMeanPercentage.toFixed(0)}%)`, help: "The average score our ARIMA model predicts the entire class will achieve in the upcoming Post-Test based on historical data." },
-                                { title: "Class Success %", value: `${data.student_performance.length > 0 ? (data.student_performance.filter(s => (s.passing_rate || 0) >= 75).length / data.student_performance.length * 100).toFixed(0) : 0}%`, icon: CheckCircle2, color: "emerald", desc: "Students above passing rate", help: "Percentage of students who maintain a passing rate of 75% or higher across their assessments." },
+                                { title: "Average Class Raw Score", value: data.statistics?.mean.toFixed(2), icon: TrendingUp, color: "blue", desc: "Mean raw score of learners based on the formative assessment", help: "The combined mean score of all students across all formative assessments recorded in this document." },
+                                { title: "Target Score Threshold", value: (data.statistics?.mean_passing_threshold ? (data.statistics.mean_passing_threshold * 70 / 75) : 0).toFixed(2), icon: AlertCircle, color: "amber", desc: "Minimum score equivalent to the 70% target level", help: "Minimum score equivalent to the 70% target level" },
+                                { title: "Predicted Post-Test Performance", value: avgPredictedPoints.toFixed(1), icon: BrainCircuit, color: "indigo", desc: "Estimated learner performance after instructional intervention", help: "The average score our ARIMA model predicts the entire class will achieve in the upcoming Post-Test based on historical data." },
+                                { title: "Learners Reaching Target", value: `${data.student_performance.length > 0 ? (data.student_performance.filter(s => (s.passing_rate || 0) >= 70).length / data.student_performance.length * 100).toFixed(0) : 0}%`, icon: CheckCircle2, color: "emerald", desc: "Percentage of learners who met or exceeded the 70% target threshold", help: "Percentage of students who maintain a passing rate of 70% or higher across their assessments." },
                             ].map((stat, idx) => (
                                 <Card key={idx} className="border-none shadow-sm ring-1 ring-slate-200 rounded-2xl">
                                     <CardContent className="p-5">
@@ -527,24 +555,24 @@ export default function AnalysisDetailPage() {
                         </div>
 
                         {/* Priority Intervention Alert (at the very top if any students are failing) */}
-                        {data.student_performance.filter(s => s.predicted_status === 'Fail').length > 0 && (
+                        {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').length > 0 && (
                             <Card className="border-none shadow-md ring-2 ring-red-500/10 rounded-3xl overflow-hidden bg-red-50/10 backdrop-blur-sm border-l-8 border-l-red-500">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-xl font-black text-red-700 flex items-center gap-3">
                                             <AlertCircle className="h-6 w-6" />
-                                            Immediate Intervention Priority
+                                            Priority Support Learners for Intervention
                                             <Badge className="bg-red-500 text-white border-none px-2 py-0.5 text-[10px] animate-pulse">ACTION REQUIRED</Badge>
                                         </CardTitle>
                                         <InfoTooltip content="These students are predicted to fail the upcoming post-test based on their current formative assessment performance." />
                                     </div>
                                     <CardDescription className="text-red-600/70 font-medium italic">
-                                        {data.student_performance.filter(s => s.predicted_status === 'Fail').length} students are currently at high risk
+                                        {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').length} learners scored below the 70% target threshold and are recommended for immediate instructional support.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="flex flex-wrap gap-2 pt-2">
-                                        {data.student_performance.filter(s => s.predicted_status === 'Fail').slice(0, 8).map((student) => (
+                                        {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').slice(0, 8).map((student) => (
                                             <TooltipProvider key={student.lrn}>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
@@ -564,11 +592,11 @@ export default function AnalysisDetailPage() {
                                                 </Tooltip>
                                             </TooltipProvider>
                                         ))}
-                                        {data.student_performance.filter(s => s.predicted_status === 'Fail').length > 8 && (
+                                        {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').length > 8 && (
                                             <Sheet>
                                                 <SheetTrigger asChild>
                                                     <Badge variant="outline" className="bg-red-100 border-red-200 text-red-700 font-black px-3 py-1.5 rounded-xl cursor-pointer hover:bg-red-200 transition-all shadow-sm">
-                                                        +{data.student_performance.filter(s => s.predicted_status === 'Fail').length - 8} more
+                                                        View {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').length - 8} more learners
                                                     </Badge>
                                                 </SheetTrigger>
                                                 <SheetContent className="w-[450px] sm:w-[540px] max-w-full flex flex-col h-full bg-white border-l shadow-2xl p-6">
@@ -578,12 +606,12 @@ export default function AnalysisDetailPage() {
                                                             Immediate Intervention List
                                                         </SheetTitle>
                                                         <SheetDescription className="text-slate-500 font-medium">
-                                                            All {data.student_performance.filter(s => s.predicted_status === 'Fail').length} students at high risk requiring action.
+                                                            All {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').length} students at high risk requiring action.
                                                         </SheetDescription>
                                                     </SheetHeader>
                                                     <ScrollArea className="flex-1 mt-4 -mr-2 pr-4">
                                                         <div className="space-y-4 pb-6">
-                                                            {data.student_performance.filter(s => s.predicted_status === 'Fail').map((student) => (
+                                                            {data.student_performance.filter(s => normalizeStatus(s.predicted_status) === 'Priority Support Learners').map((student) => (
                                                                 <div key={student.lrn} className="flex flex-col p-4 rounded-2xl bg-red-50/20 border border-red-100/50 hover:bg-red-50/40 transition-all">
                                                                     <div className="flex items-center justify-between gap-4 mb-2">
                                                                         <div>
@@ -622,11 +650,11 @@ export default function AnalysisDetailPage() {
                                     <div>
                                         <CardTitle className="text-lg font-black text-slate-800 flex items-center gap-2">
                                             <Trophy className="h-5 w-5 text-emerald-500" />
-                                            Top Performers
+                                            Predicted Mastery Learners:
                                         </CardTitle>
-                                        <CardDescription>Highest predicted scores</CardDescription>
+                                        <CardDescription>Top Predicted Learners who will demonstrate the highest assessment performance</CardDescription>
                                     </div>
-                                    <Badge className="bg-emerald-100 text-emerald-800 border-none font-bold">Top {overallTopStudents.length}</Badge>
+                                    <Badge className="bg-emerald-500 text-white border-none font-bold">Top {overallTopStudents.length}</Badge>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3">
@@ -658,11 +686,11 @@ export default function AnalysisDetailPage() {
                                     <div>
                                         <CardTitle className="text-lg font-black text-slate-800 flex items-center gap-2">
                                             <LifeBuoy className="h-5 w-5 text-rose-500" />
-                                            Needs Support
+                                            Predicted Priority Support Learners
                                         </CardTitle>
-                                        <CardDescription>Lowest predicted scores</CardDescription>
+                                        <CardDescription>Predicted learners who will require focused instructional support</CardDescription>
                                     </div>
-                                    <Badge className="bg-rose-100 text-rose-800 border-none font-bold">Bottom {overallBottomStudents.length}</Badge>
+                                    <Badge className="bg-rose-500 text-white border-none font-bold">Lowest {overallBottomStudents.length} Scores for Intervention</Badge>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3">
@@ -699,10 +727,10 @@ export default function AnalysisDetailPage() {
                                 <div className="px-6 pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="text-xl font-black flex items-center gap-2">
-                                            Class Analytics Hub
+                                            Class Performance Analytics
                                             <InfoTooltip content="Navigate between different visualization modes to get a deep understanding of your class performance and trends." />
                                         </CardTitle>
-                                        <CardDescription>Deep dive into patterns and individual progress</CardDescription>
+                                        <CardDescription>Summary of learner performance patterns, mastery levels, and support needs</CardDescription>
                                     </div>
                                     <TabsList className="bg-slate-100/80 p-1 h-10 rounded-xl">
                                         <TabsTrigger value="distribution" className="rounded-lg text-xs font-bold gap-2">
@@ -782,14 +810,15 @@ export default function AnalysisDetailPage() {
                                                             <div className="flex items-center gap-2 min-w-0 text-left">
                                                                 <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                                                 <div className="truncate pr-2">
-                                                                    <SelectValue placeholder="All Students" />
+                                                                    <SelectValue placeholder="All Performance Levels" />
                                                                 </div>
                                                             </div>
                                                         </SelectTrigger>
                                                         <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1">
                                                             <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Performance Levels</SelectItem>
-                                                            <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Predicted Passing</SelectItem>
-                                                            <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-red-600">Needs Support (Predicted Fail)</SelectItem>
+                                                            <SelectItem value="Mastery Learners" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Mastery Learners</SelectItem>
+                                                            <SelectItem value="Monitoring Learners" className="rounded-xl font-bold text-xs py-2 text-amber-500">Monitoring Learners</SelectItem>
+                                                            <SelectItem value="Priority Support Learners" className="rounded-xl font-bold text-xs py-2 text-red-600">Priority Support Learners</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <Select value={matrixActualStatusFilter} onValueChange={setMatrixActualStatusFilter}>
@@ -797,14 +826,15 @@ export default function AnalysisDetailPage() {
                                                             <div className="flex items-center gap-2 min-w-0 text-left">
                                                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                                                                 <div className="truncate pr-2">
-                                                                    <SelectValue placeholder="Actual Status" />
+                                                                    <SelectValue placeholder="Actual performance Level" />
                                                                 </div>
                                                             </div>
                                                         </SelectTrigger>
                                                         <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-1">
-                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Actual Results</SelectItem>
-                                                            <SelectItem value="pass" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Actual Passed</SelectItem>
-                                                            <SelectItem value="fail" className="rounded-xl font-bold text-xs py-2 text-rose-600">Actual Failed</SelectItem>
+                                                            <SelectItem value="all" className="rounded-xl font-bold text-xs py-2">All Actual Statuses</SelectItem>
+                                                            <SelectItem value="Mastery Learners" className="rounded-xl font-bold text-xs py-2 text-emerald-600">Actual Mastery Learners</SelectItem>
+                                                            <SelectItem value="Monitoring Learners" className="rounded-xl font-bold text-xs py-2 text-amber-500">Actual Monitoring Learners</SelectItem>
+                                                            <SelectItem value="Priority Support Learners" className="rounded-xl font-bold text-xs py-2 text-rose-600">Actual Priority Support Learners</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <Select value={matrixActualInterventionFilter} onValueChange={setMatrixActualInterventionFilter}>
@@ -833,13 +863,13 @@ export default function AnalysisDetailPage() {
                                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Legend</p>
                                                     <div className="flex items-center gap-4">
                                                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
-                                                            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" /> Mastery (≥90%)
+                                                            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" /> Mastery Learners (≥90%)
                                                         </div>
                                                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
-                                                            <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm shadow-amber-400/40" /> Passing (≥75%)
+                                                            <div className="w-3 h-3 rounded-full bg-amber-400 shadow-sm shadow-amber-400/40" /> Monitoring Learners (70% - 89%)
                                                         </div>
                                                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/50">
-                                                            <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/40" /> At Risk ({"<"}75%)
+                                                            <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/40" /> Priority Support Learners ({"<"}70%)
                                                         </div>
                                                     </div>
                                                 </div>
@@ -885,8 +915,7 @@ export default function AnalysisDetailPage() {
                                                             <tr key={student.lrn} className="group hover:bg-indigo-50/30 transition-all duration-300">
                                                                 <td className="px-8 py-4 font-bold text-slate-800 bg-white group-hover:bg-slate-50/95 border-r border-slate-200/60 sticky left-0 z-20 transition-all shadow-[2px_0_10px_-2px_rgba(0,0,0,0.03)] group-hover:shadow-[4px_0_15px_-4px_rgba(0,0,0,0.05)]">
                                                                     <div className="flex items-center gap-4">
-                                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black tracking-tighter shadow-sm transition-transform group-hover:scale-110 ${student.predicted_status === 'Pass' ? 'bg-emerald-100/80 text-emerald-700' : 'bg-rose-100/80 text-rose-700'
-                                                                            }`}>
+                                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black tracking-tighter shadow-sm transition-transform group-hover:scale-110 ${getStatusBgClass(student.predicted_status)}`}>
                                                                             {student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                                                                         </div>
                                                                         <div className="flex flex-col min-w-0">
@@ -917,7 +946,7 @@ export default function AnalysisDetailPage() {
                                                                                                         }`}
                                                                                                 >
                                                                                                     <span className="relative z-10 text-xs">{Math.round(score)}</span>
-                                                                                                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+                                                                                                    <div className="absolute inset-0 bg-black/15 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
                                                                                                 </div>
                                                                                             </div>
                                                                                         </TooltipTrigger>
@@ -938,9 +967,9 @@ export default function AnalysisDetailPage() {
                                                                                                         <div className={`w-2 h-2 rounded-full ${percent! >= 75 ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400 animate-pulse'}`} />
                                                                                                         <span className="text-[10px] font-black uppercase tracking-widest leading-none">
                                                                                                             {(() => {
-                                                                                                                if (percent! >= 90) return "Mastery";
-                                                                                                                if (percent! >= 75) return "Proficient";
-                                                                                                                return "Critical";
+                                                                                                                if (percent! >= 90) return "Mastery Learners";
+                                                                                                                if (percent! >= 75) return "Monitoring Learners";
+                                                                                                                return "Priority Support Learners";
                                                                                                             })()}
                                                                                                         </span>
                                                                                                     </div>
@@ -960,16 +989,14 @@ export default function AnalysisDetailPage() {
                                                                 })}
                                                                 <td className="px-8 py-4 bg-indigo-50/40 group-hover:bg-indigo-100/40 text-center sticky right-0 z-20 transition-all border-l border-indigo-100/30 shadow-[-2px_0_10px_-2px_rgba(79,70,229,0.05)]">
                                                                     <div className="flex flex-col items-center gap-1 group/badge p-1">
-                                                                        <div className={`px-4 py-1.5 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-2 transition-all group-hover/badge:scale-105 group-hover/badge:shadow-md ${student.predicted_status === 'Pass' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                                                                            }`}>
+                                                                        <div className={`px-4 py-1.5 rounded-xl font-black text-[11px] shadow-sm flex items-center gap-2 transition-all group-hover/badge:scale-105 group-hover/badge:shadow-md ${getStatusSolidBgClass(student.predicted_status)}`}>
                                                                             {student.predicted_score?.toFixed(1) || "N/A"}
                                                                             <span className="text-[8px] font-bold opacity-60 bg-black/10 px-1.5 py-0.5 rounded-md">
                                                                                 {student.prediction_score_percent.toFixed(0)}%
                                                                             </span>
                                                                         </div>
-                                                                        <span className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${student.predicted_status === 'Pass' ? 'text-emerald-700/60' : 'text-rose-700/60'
-                                                                            }`}>
-                                                                            {student.predicted_status === 'Pass' ? 'Pass' : 'At Risk'}
+                                                                        <span className={`text-[8px] font-black uppercase tracking-[0.2em] mt-1 ${getStatusTextClass(student.predicted_status)}`}>
+                                                                            {normalizeStatus(student.predicted_status)}
                                                                         </span>
                                                                     </div>
                                                                 </td>
@@ -977,12 +1004,6 @@ export default function AnalysisDetailPage() {
                                                         ))}
                                                     </tbody>
                                                 </table>
-                                            </div>
-
-                                            {/* Modern Tooltip indicator for scrolling */}
-                                            <div className="absolute -bottom-4 right-8 flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-2xl animate-bounce-subtle pointer-events-none opacity-0 group-hover/matrix:opacity-100 transition-opacity">
-                                                <Layers className="h-3 w-3" />
-                                                <span className="text-[10px] font-black tracking-widest uppercase">Scroll Matrix →</span>
                                             </div>
                                         </div>
                                     </TabsContent>
@@ -992,7 +1013,7 @@ export default function AnalysisDetailPage() {
                                             {/* Donut Chart for Class Standing */}
                                             <Card className="border-none bg-slate-50/50 rounded-2xl p-6">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Class Standing</h4>
+                                                    <h4 className="font-black text-slate-800 uppercase text-xs tracking-widest">Learner Performance Classification</h4>
                                                     <InfoTooltip content="Distribution of student performance based on their mean scores compared to the passing target." />
                                                 </div>
                                                 <div className="h-[250px]">
@@ -1000,10 +1021,9 @@ export default function AnalysisDetailPage() {
                                                         <PieChart>
                                                             <Pie
                                                                 data={[
-                                                                    { name: 'Mastery', color: '#10b981', value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length },
-                                                                    { name: 'Proficient', color: '#6c6ec1ff', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p >= 80 && p <= 89; }).length },
-                                                                    { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
-                                                                    { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
+                                                                    { name: 'Mastery Learners', color: '#10b981', value: data.student_performance.filter(s => getLearnerStatus(getTruePercentage(s)) === 'Mastery Learners').length },
+                                                                    { name: 'Monitoring Learners', color: '#6c6ec1ff', value: data.student_performance.filter(s => getLearnerStatus(getTruePercentage(s)) === 'Monitoring Learners').length },
+                                                                    { name: 'Priority Support Learners', color: '#ef4444', value: data.student_performance.filter(s => getLearnerStatus(getTruePercentage(s)) === 'Priority Support Learners').length }
                                                                 ].filter(d => d.value > 0)}
                                                                 innerRadius={45}
                                                                 outerRadius={85}
@@ -1011,10 +1031,9 @@ export default function AnalysisDetailPage() {
                                                                 dataKey="value"
                                                             >
                                                                 {[
-                                                                    { name: 'Mastery', color: '#10b981', value: data.student_performance.filter(s => getTruePercentage(s) >= 90).length },
-                                                                    { name: 'Proficient', color: '#6c6ec1ff', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p >= 80 && p <= 89; }).length },
-                                                                    { name: 'Developing', color: '#f59e0b', value: data.student_performance.filter(s => { const p = getTruePercentage(s); return p > 75 && p <= 79; }).length },
-                                                                    { name: 'Remedial', color: '#ef4444', value: data.student_performance.filter(s => getTruePercentage(s) < 75).length }
+                                                                    { name: 'Mastery Learners', color: '#10b981', value: data.student_performance.filter(s => getLearnerStatus(getTruePercentage(s)) === 'Mastery Learners').length },
+                                                                    { name: 'Monitoring Learners', color: '#6c6ec1ff', value: data.student_performance.filter(s => getLearnerStatus(getTruePercentage(s)) === 'Monitoring Learners').length },
+                                                                    { name: 'Priority Support Learners', color: '#ef4444', value: data.student_performance.filter(s => getLearnerStatus(getTruePercentage(s)) === 'Priority Support Learners').length }
                                                                 ].filter(d => d.value > 0).map((entry, index) => (
                                                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                                                 ))}
@@ -1029,10 +1048,13 @@ export default function AnalysisDetailPage() {
                                             </Card>
 
                                             <div className="space-y-4">
-                                                <h4 className="font-black text-slate-800 flex items-center gap-2">
-                                                    Highest Performers
-                                                    <Badge className="bg-emerald-500 text-white border-none">TOP 5</Badge>
-                                                </h4>
+                                                <div>
+                                                    <h4 className="font-black text-slate-800 flex items-center gap-2">
+                                                        Highest Performing Learners
+                                                        <Badge className="bg-emerald-500 text-white border-none">Top 3  Learners</Badge>
+                                                    </h4>
+                                                    <p className="text-xs text-slate-500 font-medium mt-1">Learners with the highest scores in the formative assessment</p>
+                                                </div>
                                                 {[...data.student_performance].sort((a, b) => getTruePercentage(b) - getTruePercentage(a)).slice(0, 3).map((s, i) => (
                                                     <Link
                                                         key={`top-${s.lrn}`}
@@ -1052,11 +1074,14 @@ export default function AnalysisDetailPage() {
                                                     </Link>
                                                 ))}
 
-                                                <h4 className="font-black text-slate-800 flex items-center gap-2 pt-2">
-                                                    Requires Support
-                                                    <Badge className="bg-orange-400 text-white border-none">REMEDIAL</Badge>
-                                                </h4>
-                                                {[...data.student_performance].sort((a, b) => getTruePercentage(a) - getTruePercentage(b)).slice(0, 2).map((s, i) => (
+                                                <div className="pt-2">
+                                                    <h4 className="font-black text-slate-800 flex items-center gap-2">
+                                                        Priority Support Learners
+                                                        <Badge className="bg-orange-400 text-white border-none">Lowest 3 Scores for Intervention</Badge>
+                                                    </h4>
+                                                    <p className="text-xs text-slate-500 font-medium mt-1">Learners who require focused instructional support</p>
+                                                </div>
+                                                {[...data.student_performance].sort((a, b) => getTruePercentage(a) - getTruePercentage(b)).slice(0, 3).map((s, i) => (
                                                     <Link
                                                         key={`risk-${s.lrn}`}
                                                         to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${s.lrn}`}
@@ -1069,7 +1094,7 @@ export default function AnalysisDetailPage() {
                                                             <span className="font-bold text-slate-800 group-hover:text-orange-700 transition-colors">{s.name}</span>
                                                         </div>
                                                         <div className="text-right">
-                                                            <span className={`text-lg font-black font-mono ${getScoreColor(getTruePercentage(s))}`}>{s.mean.toFixed(1)}</span>
+                                                            <span className={`text-lg font-black font-mono ${getScoreColorClass(getTruePercentage(s))}`}>{s.mean.toFixed(1)}</span>
                                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Score</p>
                                                         </div>
                                                     </Link>
@@ -1110,16 +1135,16 @@ export default function AnalysisDetailPage() {
 
                     <TabsContent value="students" className="mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
-                            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between pb-8 gap-4 px-8 pt-8">
-                                <div>
-                                    <CardTitle className="text-2xl font-black flex items-center gap-3">
-                                        Student Performance Registry
-                                        <InfoTooltip content="Comprehensive view of all students, their historical averages, and ARIMA model predictions for the upcoming post-test." />
-                                    </CardTitle>
-                                    <CardDescription>Advanced predictions and pedagogical intervention guide</CardDescription>
-                                </div>
-                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                                    <div className="relative w-full md:w-80">
+                            <CardHeader className="flex flex-col gap-6 pb-6 px-8 pt-8 border-b border-slate-100">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="text-2xl font-black flex items-center gap-3">
+                                            Learner Performance and Intervention Registry
+                                            <InfoTooltip content="Comprehensive view of all students, their historical averages, and ARIMA model predictions for the upcoming post-test." />
+                                        </CardTitle>
+                                        <CardDescription>A record of learners’ formative assessment results, predicted performance, actual post-test outcomes, and recommended instructional support</CardDescription>
+                                    </div>
+                                    <div className="relative w-full lg:w-80">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                         <Input
                                             placeholder="Search by learner name or LRN..."
@@ -1128,303 +1153,386 @@ export default function AnalysisDetailPage() {
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                         />
                                     </div>
-                                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                        <SelectTrigger className="w-full sm:w-44 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
-                                            <SelectValue placeholder="All Statuses" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Statuses</SelectItem>
-                                            <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Predicted Pass</SelectItem>
-                                            <SelectItem value="fail" className="font-bold rounded-xl h-10 text-red-600">Predicted Fail</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={interventionFilter} onValueChange={setInterventionFilter}>
-                                        <SelectTrigger className="w-full sm:w-52 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
-                                            <div className="flex items-center gap-2">
-                                                <BrainCircuit className="h-4 w-4 text-indigo-400 shrink-0" />
-                                                <SelectValue placeholder="Pred. Strategy" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Pred. Interventions</SelectItem>
-                                            {interventionLabels.map(label => (
-                                                <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
-                                                    {label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <div className="h-10 w-px bg-slate-200 hidden sm:block mx-1" />
-                                    <Select value={actualStatusFilter} onValueChange={setActualStatusFilter}>
-                                        <SelectTrigger className="w-full sm:w-44 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                                                <SelectValue placeholder="Actual Status" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Actual Statuses</SelectItem>
-                                            <SelectItem value="pass" className="font-bold rounded-xl h-10 text-emerald-600">Actual Pass</SelectItem>
-                                            <SelectItem value="fail" className="font-bold rounded-xl h-10 text-rose-600">Actual Fail</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={actualInterventionFilter} onValueChange={setActualInterventionFilter}>
-                                        <SelectTrigger className="w-full sm:w-52 h-12 rounded-2xl border-none ring-1 ring-slate-200 bg-white/80 font-bold text-sm text-slate-700 shadow-sm px-4">
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                                                <SelectValue placeholder="Actual Strategy" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-200 shadow-2xl p-2 max-h-[300px]">
-                                            <SelectItem value="all" className="font-bold rounded-xl h-10">All Actual Interventions</SelectItem>
-                                            {actualInterventionLabels.map(label => (
-                                                <SelectItem key={label} value={label} className="font-bold rounded-xl h-10">
-                                                    {label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Predicted Performance</label>
+                                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                            <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700">
+                                                <SelectValue placeholder="All Performance Levels" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-slate-200 shadow-xl p-2">
+                                                <SelectItem value="all" className="font-bold rounded-lg h-9">All Performance Levels</SelectItem>
+                                                <SelectItem value="Mastery Learners" className="font-bold rounded-lg h-9 text-emerald-600">Mastery Learners</SelectItem>
+                                                <SelectItem value="Monitoring Learners" className="font-bold rounded-lg h-9 text-amber-500">Monitoring Learners</SelectItem>
+                                                <SelectItem value="Priority Support Learners" className="font-bold rounded-lg h-9 text-red-600">Priority Support Learners</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Pre Predicted Strategy</label>
+                                        <Select value={interventionFilter} onValueChange={setInterventionFilter}>
+                                            <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700">
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <BrainCircuit className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                                                    <SelectValue placeholder="Pre Predicted Interventions" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-slate-200 shadow-xl p-2 max-h-[300px]">
+                                                <SelectItem value="all" className="font-bold rounded-lg h-9">Pre Predicted Interventions</SelectItem>
+                                                {interventionLabels.map(label => (
+                                                    <SelectItem key={label} value={label} className="font-bold rounded-lg h-9">
+                                                        {mapIntervention(label).label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Actual Outcome</label>
+                                        <Select value={actualStatusFilter} onValueChange={setActualStatusFilter}>
+                                            <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700">
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                    <SelectValue placeholder="Actual performance Level" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-slate-200 shadow-xl p-2">
+                                                <SelectItem value="all" className="font-bold rounded-lg h-9">All Actual Statuses</SelectItem>
+                                                <SelectItem value="Mastery Learners" className="font-bold rounded-lg h-9 text-emerald-600">Actual Mastery Learners</SelectItem>
+                                                <SelectItem value="Monitoring Learners" className="font-bold rounded-lg h-9 text-amber-500">Actual Monitoring Learners</SelectItem>
+                                                <SelectItem value="Priority Support Learners" className="font-bold rounded-lg h-9 text-rose-600">Actual Priority Support Learners</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Recommended Post Strategy</label>
+                                        <Select value={actualInterventionFilter} onValueChange={setActualInterventionFilter}>
+                                            <SelectTrigger className="w-full h-11 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700">
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                    <SelectValue placeholder="Recommended Post Interventions" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-slate-200 shadow-xl p-2 max-h-[300px]">
+                                                <SelectItem value="all" className="font-bold rounded-lg h-9">All Actual Interventions</SelectItem>
+                                                {actualInterventionLabels.map(label => (
+                                                    <SelectItem key={label} value={label} className="font-bold rounded-lg h-9">
+                                                        {mapIntervention(label).label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader className="bg-slate-50/50">
-                                        <TableRow className="hover:bg-transparent border-slate-100 h-14">
-                                            <TableHead
-                                                className="w-[300px] font-black text-slate-700 pl-8 uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
-                                                onClick={() => handleSort("name")}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    Student Information
-                                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest w-[120px]">
-                                                Trend
-                                            </TableHead>
-                                            <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
-                                                onClick={() => handleSort("mean")}
-                                            >
+                                <div className="w-full overflow-x-auto custom-scrollbar">
+                                    <Table className="min-w-[1950px] w-full border-collapse">
+                                        <TableHeader className="bg-slate-50/50">
+                                            <TableRow className="hover:bg-transparent border-slate-100 h-14">
+                                                <TableHead
+                                                    className="w-[300px] font-black text-slate-700 pl-8 uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors"
+                                                    onClick={() => handleSort("name")}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        Learner Information
+                                                        <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest w-[120px]">
+                                                    Performance Trend
+                                                </TableHead>
+                                                <TableHead
+                                                    className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors w-[150px]"
+                                                    onClick={() => handleSort("mean")}
+                                                >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Avg. Score
+                                                    Average Formative Score
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30"
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30 w-[180px]"
                                                 onClick={() => handleSort("predicted_score")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Predicted Score
+                                                    Predicted Post-Test Score
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30"
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-indigo-50/30 w-[220px]"
                                                 onClick={() => handleSort("predicted_status")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Pred. Status
+                                                    Predicted Performance Level
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center bg-indigo-50/30">Prediction Intervention</TableHead>
-                                            
+                                            <TableHead className="font-black text-slate-700 w-[320px] uppercase text-[11px] tracking-widest text-center bg-indigo-50/30">Recommended Pre-Intervention Plan</TableHead>
+
                                             <TableHead
-                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30"
+                                                className="font-black text-slate-700 text-center uppercase text-[11px] tracking-widest cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30 w-[180px]"
                                                 onClick={() => handleSort("actual_score")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Actual Score
+                                                    Actual Post-Test Score
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
                                             <TableHead
-                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30"
+                                                className="font-black text-slate-700 uppercase text-[11px] tracking-widest text-center cursor-pointer hover:text-indigo-600 transition-colors bg-emerald-50/30 w-[220px]"
                                                 onClick={() => handleSort("actual_status")}
                                             >
                                                 <div className="flex items-center justify-center gap-2">
-                                                    Actual Status
+                                                    Actual Performance Level
                                                     <ArrowUpDown className="h-3 w-3 opacity-50" />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center pr-8 bg-emerald-50/30">Actual Intervention</TableHead>
+                                            <TableHead className="font-black text-slate-700 w-[320px] uppercase text-[11px] tracking-widest text-center bg-emerald-50/30">Recommended Post-Test Intervention</TableHead>
+                                            <TableHead className="font-black text-slate-700 w-[250px] uppercase text-[11px] tracking-widest text-center pr-8 bg-indigo-50/20">Validation Label</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredStudents.length > 0 ? (
-                                            filteredStudents.map((student) => (
-                                                <TableRow key={student.lrn} className="group hover:bg-slate-100/30 transition-all border-slate-50 h-20">
-                                                    <TableCell className="pl-8 py-4">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
-                                                                {student.name.charAt(0)}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors">
-                                                                    {student.name}
-                                                                </Link>
-                                                                <span className="text-[10px] text-slate-400 font-mono tracking-wider">{student.lrn}</span>
-                                                            </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-center w-[120px] px-2">
-                                                        <div className="h-8 w-full">
-                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                <LineChart data={data.formative_assessments.map(fa => ({
-                                                                    score: student.scores?.[fa.formative_assessment_number] !== undefined ? student.scores[fa.formative_assessment_number] : null,
-                                                                    max: fa.max_score
-                                                                }))}>
-                                                                    <Line 
-                                                                        type="monotone" 
-                                                                        dataKey={(d) => d.score !== null ? (d.score / d.max) * 100 : null}
-                                                                        stroke={getScoreColorHex(getTruePercentage(student))} 
-                                                                        strokeWidth={2} 
-                                                                        dot={{ r: 2, fill: getScoreColorHex(getTruePercentage(student)), strokeWidth: 0 }}
-                                                                        isAnimationActive={false}
-                                                                        connectNulls
-                                                                    />
-                                                                    <YAxis domain={[0, 100]} hide />
-                                                                </LineChart>
-                                                            </ResponsiveContainer>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <span className={`px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-sm ${getScoreColor(getTruePercentage(student))}`}>
-                                                            {student.mean.toFixed(1)}
-                                                        </span>
-                                                    </TableCell>
-                                                    <TableCell className="text-center bg-indigo-50/10">
-                                                        <div className="flex flex-col items-center">
-                                                            <span className="font-black text-indigo-600 text-xl tracking-tighter">
-                                                                {student.predicted_score?.toFixed(1) || "N/A"}
-                                                            </span>
-                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-center bg-indigo-50/10">
-                                                        <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.predicted_status === 'Pass'
-                                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                            : 'bg-red-50 text-red-600 border-red-100'
-                                                            }`}>
-                                                            {student.predicted_status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="bg-indigo-50/10">
-                                                        <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme(student.prediction_score_percent)}`}>
-                                                            <BrainCircuit className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
-                                                            <div className="flex flex-col gap-1">
-                                                                {Object.entries(student.prediction_intervention).map(([label, action]) => (
-                                                                    <div key={label}>
-                                                                        <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{label}</span>
-                                                                        <span className="block italic">"{action}"</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </TableCell>
+                                            filteredStudents.map((student) => {
+                                                const predPercent = student.prediction_score_percent;
+                                                const actualPercent = student.actual_score !== null ? (student.actual_score / (student.actual_max || 1)) * 100 : null;
+                                                const validationLabel = getValidationLabel(predPercent, actualPercent);
 
-                                                    <TableCell className="text-center bg-emerald-50/10">
-                                                        {student.actual_score !== null ? (
-                                                            <div className="flex flex-col items-center">
-                                                                <span className="font-black text-emerald-600 text-xl tracking-tighter">
-                                                                    {student.actual_score}
-                                                                </span>
-                                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Post Test Score / {student.actual_max}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-center bg-emerald-50/10">
-                                                        {student.actual_status ? (
-                                                            <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${student.actual_status === 'Pass'
-                                                                ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                                                                : 'bg-rose-100 text-rose-700 border-rose-200'
-                                                                }`}>
-                                                                {student.actual_status}
-                                                            </Badge>
-                                                        ) : (
-                                                            <span className="text-slate-300 font-medium italic text-xs">-</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="pr-8 bg-emerald-50/10 text-center">
-                                                        {student.actual_score !== null ? (
-                                                            <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme((student.actual_score / (student.actual_max || 1)) * 100)}`}>
-                                                                <CheckCircle2 className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
-                                                                <div className="flex flex-col gap-1 text-left">
-                                                                    {Object.entries(student.actual_intervention).map(([label, action]) => (
-                                                                        <div key={label}>
-                                                                            <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{label}</span>
-                                                                            <span className="block italic">"{action}"</span>
-                                                                        </div>
-                                                                    ))}
+                                                return (
+                                                    <TableRow key={student.lrn} className="group hover:bg-slate-100/30 transition-all border-slate-50 h-20">
+                                                        <TableCell className="pl-8 py-4">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                                                                    {student.name.charAt(0)}
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <Link to={`/dashboard/analysis/${data.document.analysis_document_id}/student/${student.lrn}`} className="font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors">
+                                                                        {student.name}
+                                                                    </Link>
+                                                                    <span className="text-[10px] text-slate-400 font-mono tracking-wider">{student.lrn}</span>
                                                                 </div>
                                                             </div>
-                                                        ) : (
-                                                            <span className="text-slate-300 font-medium italic text-xs">Awaiting evaluation...</span>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                                        </TableCell>
+                                                        <TableCell className="text-center w-[120px] px-2">
+                                                            <div className="h-8 w-full">
+                                                                <ResponsiveContainer width="100%" height="100%">
+                                                                    <LineChart data={data.formative_assessments.map(fa => ({
+                                                                        score: student.scores?.[fa.formative_assessment_number] !== undefined ? student.scores[fa.formative_assessment_number] : null,
+                                                                        max: fa.max_score
+                                                                    }))}>
+                                                                        <Line
+                                                                            type="monotone"
+                                                                            dataKey={(d) => d.score !== null ? (d.score / d.max) * 100 : null}
+                                                                            stroke={getScoreColorHex(getTruePercentage(student))}
+                                                                            strokeWidth={2}
+                                                                            dot={{ r: 2, fill: getScoreColorHex(getTruePercentage(student)), strokeWidth: 0 }}
+                                                                            isAnimationActive={false}
+                                                                            connectNulls
+                                                                        />
+                                                                        <YAxis domain={[0, 100]} hide />
+                                                                    </LineChart>
+                                                                </ResponsiveContainer>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-center">
+                                                            <span className={`px-3 py-1.5 rounded-lg bg-slate-50 font-bold text-sm ${getScoreColorClass(getTruePercentage(student))}`}>
+                                                                {student.mean.toFixed(1)}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center bg-indigo-50/10">
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-indigo-600 text-xl tracking-tighter">
+                                                                    {student.predicted_score?.toFixed(1) || "N/A"}
+                                                                </span>
+                                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">PREDICTED Score</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-center bg-indigo-50/10">
+                                                            {(() => {
+                                                                const status = getLearnerStatus(predPercent);
+                                                                const isPriority = status === 'Priority Support Learners';
+                                                                const isMastery = status === 'Mastery Learners';
+                                                                return (
+                                                                    <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${isMastery ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                                            isPriority ? 'bg-red-50 text-red-600 border-red-100' :
+                                                                                'bg-amber-50 text-amber-600 border-amber-100'
+                                                                        }`}>
+                                                                        {status}
+                                                                    </Badge>
+                                                                );
+                                                            })()}
+                                                        </TableCell>
+                                                        <TableCell className="bg-indigo-50/10">
+                                                            <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme(student.prediction_score_percent).bgClass}`}>
+                                                                <BrainCircuit className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1">
+                                                                    {Object.entries(student.prediction_intervention).map(([label, action]) => {
+                                                                        const mapped = mapIntervention(label);
+                                                                        return (
+                                                                            <div key={label}>
+                                                                                <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{mapped.label}</span>
+                                                                                <span className="block italic">"{action}"</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        </TableCell>
+
+                                                        <TableCell className="text-center bg-emerald-50/10">
+                                                            {student.actual_score !== null ? (
+                                                                <div className="flex flex-col items-center">
+                                                                    <span className="font-black text-emerald-600 text-xl tracking-tighter">
+                                                                        {student.actual_score}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Post Test Score / {student.actual_max}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-slate-300 font-medium italic text-xs">Awaiting...</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-center bg-emerald-50/10">
+                                                            {student.actual_score !== null ? (
+                                                                (() => {
+                                                                    const status = getLearnerStatus((student.actual_score / (student.actual_max || 1)) * 100);
+                                                                    const isPriority = status === 'Priority Support Learners';
+                                                                    const isMastery = status === 'Mastery Learners';
+                                                                    return (
+                                                                        <Badge className={`px-4 py-1 rounded-full border shadow-none font-black text-[10px] uppercase tracking-widest ${isMastery ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                                                isPriority ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                                                                                    'bg-amber-100 text-amber-700 border-amber-200'
+                                                                            }`}>
+                                                                            {status}
+                                                                        </Badge>
+                                                                    );
+                                                                })()
+                                                            ) : (
+                                                                <span className="text-slate-300 font-medium italic text-xs">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="bg-emerald-50/10">
+                                                            {student.actual_score !== null ? (
+                                                                <div className={`p-3 rounded-2xl border text-[11px] font-semibold leading-relaxed shadow-sm flex items-start gap-2 ${getInterventionTheme((student.actual_score / (student.actual_max || 1)) * 100).bgClass}`}>
+                                                                    <CheckCircle2 className="h-3.5 w-3.5 opacity-60 mt-0.5 shrink-0" />
+                                                                    <div className="flex flex-col gap-1 text-left">
+                                                                        {Object.entries(student.actual_intervention).map(([label, action]) => {
+                                                                            const mapped = mapIntervention(label);
+                                                                            return (
+                                                                                <div key={label}>
+                                                                                    <span className="font-black uppercase text-[9px] tracking-widest block opacity-70">{mapped.label}</span>
+                                                                                    <span className="block italic">"{action}"</span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-slate-300 font-medium italic text-xs">Awaiting evaluation...</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="pr-8 bg-indigo-50/10 text-center">
+                                                            <Badge className={`px-3 py-1.5 rounded-full border shadow-none font-bold text-[10px] leading-tight ${getValidationLabelStyle(validationLabel)}`}>
+                                                                {validationLabel}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={9} className="h-40 text-center text-slate-400 font-medium">
+                                                <TableCell colSpan={10} className="h-40 text-center text-slate-400 font-medium">
                                                     No student records found matching "{searchTerm}"
                                                 </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
-                            </CardContent>
+                            </div>
+                        </CardContent>
                         </Card>
                     </TabsContent>
 
                     <TabsContent value="topics" className="mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="w-full">
                             <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm">
                                 <Tabs defaultValue="bar" className="w-full">
-                                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardHeader className="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-4 px-8 pt-8">
                                         <div>
-                                            <CardTitle className="text-2xl font-black">Topic Analysis</CardTitle>
-                                            <CardDescription>Performance distribution and competency map</CardDescription>
+                                            <CardTitle className="text-2xl font-black flex items-center gap-3">
+                                                Competency Performance Analysis
+                                                <InfoTooltip content="Distribution of learner performance across assessed topics and competencies." />
+                                            </CardTitle>
+                                            <CardDescription>Distribution of learner performance across assessed topics and competencies</CardDescription>
                                         </div>
-                                        <TabsList className="bg-slate-100/80 p-1 h-9 rounded-xl">
-                                            <TabsTrigger value="bar" className="rounded-lg text-xs font-bold px-3">Success Rate</TabsTrigger>
-                                            <TabsTrigger value="ave" className="rounded-lg text-xs font-bold px-3">Average Score</TabsTrigger>
-                                            <TabsTrigger value="radar" className="rounded-lg text-xs font-bold px-3">Competency Map</TabsTrigger>
-                                        </TabsList>
+                                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Sort by Mastery:</span>
+                                                <Select
+                                                    value={topicSortDirection}
+                                                    onValueChange={(val: any) => setTopicSortDirection(val)}
+                                                >
+                                                    <SelectTrigger className="w-40 h-10 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-xs text-slate-700">
+                                                        <SelectValue placeholder="Default" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-slate-200 shadow-2xl p-1">
+                                                        <SelectItem value="none" className="rounded-lg font-bold text-xs">Default Order</SelectItem>
+                                                        <SelectItem value="desc" className="rounded-lg font-bold text-xs text-emerald-600">Highest Mastery First</SelectItem>
+                                                        <SelectItem value="asc" className="rounded-lg font-bold text-xs text-rose-600">Lowest Mastery First</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <TabsList className="bg-slate-100/80 p-1 h-10 rounded-xl">
+                                                <TabsTrigger value="bar" className="rounded-lg text-xs font-bold px-4 h-8">Target Attainment</TabsTrigger>
+                                                <TabsTrigger value="ave" className="rounded-lg text-xs font-bold px-4 h-8">Mean Topic Score</TabsTrigger>
+                                                <TabsTrigger value="radar" className="rounded-lg text-xs font-bold px-4 h-8">Competency Performance Map</TabsTrigger>
+                                            </TabsList>
+                                        </div>
                                     </CardHeader>
 
-                                    <CardContent className="h-[430px] pt-4">
+                                    <CardContent className="h-[500px] px-8 pb-8">
                                         <TabsContent value="bar" className="h-full mt-0 animate-in fade-in duration-500">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={topicData} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                            <div className="flex justify-start gap-6 mb-4 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex items-center gap-2 text-xs font-black text-slate-600">
+                                                    <div className="w-3.5 h-3.5 rounded-md bg-[#10b981]" /> Mastery Level Topic (≥81%)
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs font-black text-slate-600">
+                                                    <div className="w-3.5 h-3.5 rounded-md bg-[#f59e0b]" /> Monitoring Level Topic (70% - 80.99%)
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs font-black text-slate-600">
+                                                    <div className="w-3.5 h-3.5 rounded-md bg-[#ef4444]" /> Priority Support Topic ({"<"}70%)
+                                                </div>
+                                            </div>
+                                            <ResponsiveContainer width="100%" height="90%">
+                                                <BarChart data={topicData} layout="vertical" margin={{ left: 30, right: 30, top: 10, bottom: 10 }}>
                                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                                                    <XAxis type="number" hide />
+                                                    <XAxis type="number" domain={[0, 100]} tickFormatter={(val) => `${val}%`} tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }} />
                                                     <YAxis
                                                         dataKey="topic"
                                                         type="category"
                                                         axisLine={false}
                                                         tickLine={false}
-                                                        width={120}
+                                                        width={180}
                                                         tick={{ fill: "#475569", fontSize: 11, fontWeight: 700 }}
                                                     />
                                                     <RechartsTooltip
                                                         cursor={{ fill: '#f8fafc' }}
-                                                        content={<TopicPerformanceTooltip />}
+                                                        contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                                                        labelStyle={{ fontWeight: "900", color: "#1e293b", marginBottom: "4px" }}
                                                     />
-                                                    <Legend verticalAlign="top" align="right" height={40} iconType="circle" wrapperStyle={{ fontWeight: "bold", fontSize: "12px" }} />
-                                                    <Bar dataKey="passing_rate" name="Pass Rate %" stackId="a" fill="#10b981" barSize={32} radius={[0, 0, 0, 0]} />
-                                                    <Bar dataKey="failing_rate" name="Fail Rate %" stackId="a" fill="#ef4444" barSize={32} radius={[0, 8, 8, 0]} />
+                                                    <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontWeight: "bold", fontSize: "11px" }} />
+                                                    <Bar dataKey="mastery_rate" name="Mastery Level Topic %" stackId="a" fill="#10b981" barSize={24} />
+                                                    <Bar dataKey="monitoring_rate" name="Monitoring Level Topic %" stackId="a" fill="#f59e0b" barSize={24} />
+                                                    <Bar dataKey="priority_rate" name="Priority Support Topic %" stackId="a" fill="#ef4444" barSize={24} radius={[0, 6, 6, 0]} />
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </TabsContent>
 
                                         <TabsContent value="ave" className="h-full mt-0 animate-in fade-in duration-500">
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={topicData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+                                                <BarChart data={topicData} margin={{ top: 20, right: 30, left: 30, bottom: 50 }}>
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                                     <XAxis
                                                         dataKey="topic"
@@ -1444,18 +1552,18 @@ export default function AnalysisDetailPage() {
                                                     />
                                                     <RechartsTooltip
                                                         cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
-                                                        content={<TopicPerformanceTooltip />}
+                                                        contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
                                                     />
                                                     <Bar
                                                         dataKey="mean_percentage"
-                                                        name="Mastery Level %"
+                                                        name="Mean Topic Score %"
                                                         radius={[8, 8, 0, 0]}
                                                         barSize={40}
                                                     >
                                                         {topicData.map((entry, index) => {
                                                             let barColor = '#ef4444';
-                                                            if (entry.mean_percentage >= 90) barColor = '#10b981';
-                                                            else if (entry.mean_percentage >= 75) barColor = '#6366f1';
+                                                            if (entry.mean_percentage >= 81) barColor = '#10b981';
+                                                            else if (entry.mean_percentage >= 70) barColor = '#f59e0b';
 
                                                             return <Cell key={`cell-${index}`} fill={barColor} />;
                                                         })}
@@ -1466,16 +1574,16 @@ export default function AnalysisDetailPage() {
 
                                         <TabsContent value="radar" className="h-full mt-0 animate-in fade-in duration-500">
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={topicData.map(t => ({
+                                                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={topicData.map(t => ({
                                                     subject: t.topic,
-                                                    A: parseFloat(t.passing_rate),
+                                                    A: t.mastery_rate,
                                                     fullMark: 100
                                                 }))}>
                                                     <PolarGrid stroke="#e2e8f0" />
                                                     <PolarAngleAxis dataKey="subject" tick={{ fill: "#64748b", fontSize: 10, fontWeight: "bold" }} />
                                                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
                                                     <Radar
-                                                        name="Passing Rate"
+                                                        name="Target Attainment Rate (Mastery %)"
                                                         dataKey="A"
                                                         stroke="#6366f1"
                                                         fill="#6366f1"
@@ -1488,76 +1596,6 @@ export default function AnalysisDetailPage() {
                                     </CardContent>
                                 </Tabs>
                             </Card>
-
-                            <div className="space-y-6">
-                                <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl bg-red-50/20 backdrop-blur-sm">
-                                    <CardHeader className="pb-4">
-                                        <CardTitle className="text-xl font-black text-slate-800 flex items-center gap-3">
-                                            <div className="bg-red-500 rounded-lg p-1.5">
-                                                <AlertCircle className="h-5 w-5 text-white" />
-                                            </div>
-                                            Toughest Topics
-                                            <InfoTooltip content="These topics have the highest failure rates and require immediate review or remedial sessions." />
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        {[...data.formative_assessments]
-                                            .sort((a, b) => a.passing_rate - b.passing_rate)
-                                            .slice(0, 2)
-                                            .map((fa, i) => (
-                                                <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-white/80 border border-red-100 shadow-sm transition-all hover:shadow-md">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center font-black text-red-600 text-xl">
-                                                            !
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-black text-slate-800 text-lg leading-tight">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
-                                                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight mt-1">Class Avg: {fa.mean.toFixed(1)} / {fa.max_score}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-3xl font-black text-red-600 leading-none">{(100 - fa.passing_rate).toFixed(0)}%</p>
-                                                        <p className="text-[10px] text-red-400 font-black uppercase tracking-widest mt-1">FAIL RATE</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="border-none shadow-md ring-1 ring-slate-200 rounded-3xl bg-emerald-50/20 backdrop-blur-sm">
-                                    <CardHeader className="pb-4">
-                                        <CardTitle className="text-xl font-black text-slate-800 flex items-center gap-3">
-                                            <div className="bg-emerald-500 rounded-lg p-1.5">
-                                                <CheckCircle2 className="h-5 w-5 text-white" />
-                                            </div>
-                                            Strongest Topics
-                                            <InfoTooltip content="These topics show a high level of mastery across the class. Consider moving forward to more advanced modules." />
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        {[...data.formative_assessments]
-                                            .sort((a, b) => b.passing_rate - a.passing_rate)
-                                            .slice(0, 2)
-                                            .map((fa) => (
-                                                <div key={fa.id} className="flex items-center justify-between p-5 rounded-2xl bg-white/80 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-xl">
-                                                            ★
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-black text-slate-800 text-lg leading-tight">{fa.fa_topic_name || `Assessment ${fa.formative_assessment_number}`}</p>
-                                                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight mt-1">Class Avg: {fa.mean.toFixed(1)} / {fa.max_score}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-3xl font-black text-emerald-600 leading-none">{fa.passing_rate.toFixed(0)}%</p>
-                                                        <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">PASS RATE</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </CardContent>
-                                </Card>
-                            </div>
                         </div>
                     </TabsContent>
                 </Tabs>
