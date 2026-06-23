@@ -168,11 +168,11 @@ class ArimaModelPredictionTests(TestCase):
         """Test that predicted status is correctly assigned based on thresholds."""
         df = assign_predicted_status(self.student_data.copy())
         
-        # 0.8 * 60 = 48 >= 60 * 0.75 = 45 -> Pass
-        self.assertEqual(df.iloc[0]["predicted_status"], "Pass")
+        # 0.8 * 100 = 80.0% -> Monitoring Learners
+        self.assertEqual(df.iloc[0]["predicted_status"], "Monitoring Learners")
         
-        # 0.6 * 60 = 36 < 45 -> Fail
-        self.assertEqual(df.iloc[1]["predicted_status"], "Fail")
+        # 0.6 * 100 = 60.0% -> Priority Support Learners
+        self.assertEqual(df.iloc[1]["predicted_status"], "Priority Support Learners")
 
     @patch("arima_model.arima_model.pickle.load")
     @patch("arima_model.arima_model.os.path.exists")
@@ -203,8 +203,8 @@ class ArimaModelPredictionTests(TestCase):
         
         self.assertEqual(result_df.iloc[0]["predictions"], 0.9)
         self.assertEqual(result_df.iloc[1]["predictions"], 0.5)
-        self.assertEqual(result_df.iloc[0]["predicted_status"], "Pass")
-        self.assertEqual(result_df.iloc[1]["predicted_status"], "Fail")
+        self.assertEqual(result_df.iloc[0]["predicted_status"], "Mastery Learners")
+        self.assertEqual(result_df.iloc[1]["predicted_status"], "Priority Support Learners")
 
     def test_save_predictions(self):
         """Test that predictions are correctly saved to the database."""
@@ -219,9 +219,9 @@ class ArimaModelPredictionTests(TestCase):
         score1 = saved_scores.get(test_number="1")
         self.assertEqual(score1.student_id, self.student)
         self.assertEqual(score1.score, 0.8)
-        self.assertEqual(score1.predicted_status, "Pass")
+        self.assertEqual(score1.predicted_status, "Monitoring Learners")
         self.assertEqual(score1.max_score, 60.0)
         
         score2 = saved_scores.get(test_number="2")
         self.assertEqual(score2.score, 0.6)
-        self.assertEqual(score2.predicted_status, "Fail")
+        self.assertEqual(score2.predicted_status, "Priority Support Learners")
