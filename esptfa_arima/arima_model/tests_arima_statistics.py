@@ -68,32 +68,32 @@ class ArimaStatisticsTests(TestCase):
         self.assertEqual(stat.minimum, 30.0)
         self.assertEqual(stat.maximum, 80.0)
         self.assertEqual(stat.total_students, 2)
-        # Mean passing threshold = 0.75 * mean([100, 50, 100, 50]) = 0.75 * 75 = 56.25
-        self.assertEqual(stat.mean_passing_threshold, 56.25)
+        # Mean passing threshold = 0.70 * mean([100, 50, 100, 50]) = 0.70 * 75 = 52.5
+        self.assertEqual(stat.mean_passing_threshold, 52.5)
         
         # Verify it's in DB
         self.assertTrue(AnalysisDocumentStatistic.objects.filter(analysis_document=self.analysis_doc).exists())
-
+ 
     def test_compute_test_statistics(self):
         """Test statistics computation for each formative assessment (test number)."""
         compute_test_statistics(self.processed_data, self.analysis_doc)
         
         # Check for test 1
         stat1 = FormativeAssessmentStatistic.objects.get(analysis_document=self.analysis_doc, formative_assessment_number="1")
-        # Scores: [80, 60], Mean: 70, Max: 100, Passing: 75
+        # Scores: [80, 60], Mean: 70, Max: 100, Passing: 70
         self.assertEqual(stat1.mean, 70.0)
         self.assertEqual(stat1.max_score, 100.0)
-        self.assertEqual(stat1.passing_threshold, 75.0)
+        self.assertEqual(stat1.passing_threshold, 70.0)
         # Passing: [80] (1 student), Total: 2 -> 50%
         self.assertEqual(stat1.passing_rate, 50.0)
         self.assertEqual(stat1.failing_rate, 50.0)
         self.assertEqual(stat1.fa_topic, self.topic1)
-
+ 
         # Check for test 2
         stat2 = FormativeAssessmentStatistic.objects.get(analysis_document=self.analysis_doc, formative_assessment_number="2")
-        # Scores: [40, 30], Mean: 35, Max: 50, Passing: 37.5
+        # Scores: [40, 30], Mean: 35, Max: 50, Passing: 35
         self.assertEqual(stat2.mean, 35.0)
-        self.assertEqual(stat2.passing_threshold, 37.5)
+        self.assertEqual(stat2.passing_threshold, 35.0)
         # Passing: [40] (1 student), Total: 2 -> 50%
         self.assertEqual(stat2.passing_rate, 50.0)
 

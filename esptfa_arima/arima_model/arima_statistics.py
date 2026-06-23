@@ -38,7 +38,7 @@ def compute_document_statistics(processed_data, analysis_document):
     total_students = processed_data["student_id"].nunique()
 
     # mean passing threshold
-    passing_threshold = 0.75 * processed_data["max_score"].mean()
+    passing_threshold = 0.70 * processed_data["max_score"].mean()
 
     # save statistics
 
@@ -66,7 +66,7 @@ def compute_test_statistics(processed_data, analysis_document):
         # compute for mean using pandas
         scores = fa_data["score"]
         max_score = fa_data["max_score"].iloc[0]
-        passing_threshold = 0.75 * max_score
+        passing_threshold = 0.70 * max_score
         total_scores = scores.count()
         mean = scores.mean()
         median = scores.median()
