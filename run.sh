@@ -14,8 +14,13 @@ else
     exit 1
 fi
 
+# do bun run build
+cd "$BASEDIR/frontend/esptfa-arima-react"
+
+bun run build
+
 # Change directory to the project for the backend
-cd esptfa_arima 
+cd "$BASEDIR/esptfa_arima"
 
 # Set the Django settings module to ensure it's picked up by the application
 export DJANGO_SETTINGS_MODULE=esptfaARIMA.settings_ci
